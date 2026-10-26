@@ -27,3 +27,19 @@ export function useShortcut(id: ShortcutId, scope: ShortcutScope, handler: Short
     return shortcuts.register(id, scope, (event) => latest.current(event));
   }, [id, scope, enabled]);
 }
+
+/** Several shortcuts in one scope. The set of ids should stay the same between renders. */
+export function useShortcutMap(scope: ShortcutScope, handlers: Partial<Record<ShortcutId, ShortcutHandler>>, enabled = true) {
+  const latest = useRef(handlers);
+  useEffect(() => {
+    latest.current = handlers;
+  });
+  const ids = Object.keys(handlers).sort().join(" ");
+  useEffect(() => {
+    if (!enabled || !ids) return;
+    const offs = (ids.split(" ") as ShortcutId[]).map((id) =>
+      shortcuts.register(id, scope, (event) => latest.current[id]?.(event)),
+    );
+    return () => offs.forEach((off) => off());
+  }, [ids, scope, enabled]);
+}

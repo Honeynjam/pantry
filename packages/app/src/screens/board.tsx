@@ -24,6 +24,7 @@ import {
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import { Button } from "@pantry/ui/components/button";
+import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
 import { PriorityGlyph } from "@pantry/ui/components/priority-glyph";
@@ -36,6 +37,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { statusColor, type Lookups } from "../issues/lookups";
+import { SelectionProvider, useIssueSelection, useSelection } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { formatDay, today } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
@@ -101,6 +103,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   const [target, setTarget] = useState<Target | null>(null);
   const [pending, setPending] = useState<PendingMove | null>(null);
   const justDropped = useRef(0);
+  const container = useRef<HTMLDivElement>(null);
 
   // Columns in server order, with a pending drop applied on top.
   const columns = useMemo(() => {
@@ -113,6 +116,10 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
     if (pending && moved) byStatus.get(pending.statusId)?.splice(pending.index, 0, moved);
     return byStatus;
   }, [issues, statuses, pending]);
+
+  // J/K walk the board column by column, top to bottom.
+  const ordered = useMemo(() => statuses.flatMap((status) => columns.get(status._id) ?? []), [statuses, columns]);
+  const selection = useIssueSelection({ ordered, lookups, actions, container });
 
   const sensors = useSensors(
     // A few pixels of travel before a drag starts, so clicks still open the issue.
@@ -210,6 +217,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   const active = activeId ? issueById(activeId) : undefined;
 
   return (
+    <SelectionProvider value={selection.value}>
     <DndContext
       sensors={sensors}
       collisionDetection={collision}
@@ -228,7 +236,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
         },
       }}
     >
-      <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
+      <div ref={container} className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
         {statuses.map((status) => (
           <Column
             key={status._id}
@@ -270,6 +278,8 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
         ) : null}
       </DragOverlay>
     </DndContext>
+    {selection.element}
+    </SelectionProvider>
   );
 }
 
@@ -347,6 +357,10 @@ function Card({
 }) {
   const { Link, navigate } = useNavigation();
   const reduceMotion = usePrefersReducedMotion();
+  const selection = useSelection();
+  const isCursor = selection?.cursor === issue._id;
+  const isSelected = selection?.selected.has(issue._id) ?? false;
+  const anySelected = (selection?.selected.size ?? 0) > 0;
   const draggable = useDraggable({ id: issue._id, data: { statusId: issue.statusId } });
   const { onKeyDown, ...listeners } = draggable.listeners ?? {};
   const droppable = useDroppable({ id: issue._id, data: { statusId: issue.statusId } });
@@ -360,9 +374,17 @@ function Card({
       layout={reduceMotion ? false : "position"}
       transition={spring.smooth}
       data-issue-id={issue._id}
-      className={cn("touch-none rounded-md outline-none", dimmed && "opacity-40")}
+      data-cursor={isCursor || undefined}
+      data-selected={isSelected || undefined}
+      className={cn(
+        "group/card touch-none rounded-md",
+        // The cursor: a ring that follows J/K (and keyboard focus).
+        isCursor ? "outline-2 outline-offset-1 outline-ring outline-solid" : "outline-none",
+        dimmed && "opacity-40",
+      )}
       {...draggable.attributes}
       {...listeners}
+      onFocus={() => selection?.setCursor(issue._id)}
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (event.key === "Enter" && !event.defaultPrevented && !draggable.isDragging) navigate(routes.issue(issue.key));
@@ -370,7 +392,26 @@ function Card({
       aria-roledescription="draggable issue"
       aria-label={`${issue.key} ${issue.title}`}
     >
-      <CardBody issue={issue} lookups={lookups} parentKey={parentKey} subIssues={subIssues}>
+      <CardBody
+        issue={issue}
+        lookups={lookups}
+        parentKey={parentKey}
+        subIssues={subIssues}
+        selected={isSelected}
+        // Cards are dense: the box only takes room once something is selected (X starts it).
+        select={
+          selection && anySelected ? (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => selection.toggle(issue._id)}
+              onPointerDown={(event) => event.stopPropagation()}
+              tabIndex={-1}
+              aria-label={`Select ${issue.key}`}
+              className="relative z-10"
+            />
+          ) : null
+        }
+      >
         <Link
           href={routes.issue(issue.key)}
           tabIndex={-1}
@@ -393,6 +434,8 @@ function CardBody({
   parentKey,
   subIssues,
   lifted = false,
+  selected = false,
+  select,
   children,
 }: {
   issue: Doc<"issues">;
@@ -400,6 +443,9 @@ function CardBody({
   parentKey?: string;
   subIssues?: Doc<"issues">[];
   lifted?: boolean;
+  selected?: boolean;
+  /** The multi-select checkbox, before the key. */
+  select?: ReactNode;
   children?: ReactNode;
 }) {
   const assignee = lookups.member(issue.assigneeId);
@@ -411,10 +457,12 @@ function CardBody({
         "relative flex cursor-default flex-col gap-2 rounded-md bg-background p-2.5 shadow-raised dark:bg-gray-3",
         "transition-[box-shadow] duration-(--duration-instant) hover:shadow-[0_0_0_1px_var(--border-strong),0_1px_2px_oklch(0_0_0/0.06)]",
         lifted && "shadow-overlay hover:shadow-overlay",
+        selected && "bg-gray-3 dark:bg-gray-5",
       )}
     >
       {children}
       <div className="flex items-center gap-2">
+        {select}
         <IssueKey value={issue.key} />
         {parentKey && (
           <span className="flex items-center gap-0.5 text-xs text-muted-foreground" title={`Sub-issue of ${parentKey}`}>

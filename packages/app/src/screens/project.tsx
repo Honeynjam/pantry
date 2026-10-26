@@ -6,10 +6,12 @@ import { Button } from "@pantry/ui/components/button";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { useQuery } from "convex/react";
 import { InboxIcon, PlusIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { motion } from "motion/react";
+import { useMemo, useRef, useState } from "react";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { IssueRow } from "../issues/issue-row";
+import { SelectionProvider, useIssueSelection } from "../issues/selection";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
 import type { NewIssueDefaults } from "../issues/new-issue-dialog";
 import { useAppCommands } from "../shell/app-commands";
@@ -121,12 +123,21 @@ function IssueList({
 }) {
   const actions = useIssueActions();
   const family = useIssueFamily(issues);
-  const groups = lookups.data.statuses
-    .map((status) => ({ status, issues: issues.filter((issue) => issue.statusId === status._id) }))
-    .filter((group) => group.issues.length > 0);
+  const container = useRef<HTMLDivElement>(null);
+  const groups = useMemo(
+    () =>
+      lookups.data.statuses
+        .map((status) => ({ status, issues: issues.filter((issue) => issue.statusId === status._id) }))
+        .filter((group) => group.issues.length > 0),
+    [lookups.data.statuses, issues],
+  );
+  const ordered = useMemo(() => groups.flatMap((group) => group.issues), [groups]);
+  const selection = useIssueSelection({ ordered, lookups, actions, container });
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <SelectionProvider value={selection.value}>
+    {/* layoutScroll: the cursor highlight measures rows correctly while the list is scrolled. */}
+    <motion.div ref={container} layoutScroll className="min-h-0 flex-1 overflow-y-auto">
       {groups.map(({ status, issues: rows }) => (
         <section key={status._id} aria-label={status.name}>
           <div className="sticky top-0 z-20 flex h-8 items-center gap-2 border-b border-border bg-gray-2 px-3">
@@ -155,7 +166,9 @@ function IssueList({
           ))}
         </section>
       ))}
-    </div>
+    </motion.div>
+    {selection.element}
+    </SelectionProvider>
   );
 }
 

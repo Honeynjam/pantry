@@ -38,3 +38,10 @@ export function today(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
+
+/** Today plus `days` as "YYYY-MM-DD" in local time. */
+export function addDays(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}

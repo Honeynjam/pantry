@@ -36,6 +36,7 @@ import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
 import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, StatusPicker } from "../issues/pickers";
+import { useIssueQuickEdit } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { CommentComposer, Timeline } from "../issues/timeline";
 import { fullDate, timeAgo } from "../lib/format";
@@ -117,6 +118,7 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
   };
 
   useShortcutScope("issue");
+  const quickEdit = useIssueQuickEdit(issue, lookups, actions);
   useShortcut("newSubIssue", "issue", () => {
     if (!canHaveSubIssues) {
       toast(issue.parentId ? "Sub-issues can't have sub-issues" : "This project is archived");
@@ -211,6 +213,7 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
         </article>
       </div>
       <PropertiesPanel issue={issue} project={project} parent={parent} lookups={lookups} actions={actions} subIssueCount={subIssues.length} />
+      {quickEdit}
     </div>
   );
 }

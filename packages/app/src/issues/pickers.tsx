@@ -23,7 +23,7 @@ import { focusRing } from "@pantry/ui/lib/styles";
 import { cn } from "@pantry/ui/lib/utils";
 import { CalendarIcon, TagIcon, UserRoundIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { formatDay, today } from "../lib/format";
+import { addDays, formatDay, today } from "../lib/format";
 import { statusColor } from "./lookups";
 
 /**
@@ -271,12 +271,6 @@ export function LabelsPicker({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-function addDays(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 /** Due date: a day, no time. Overdue dates read in the destructive colour (with the date as text). */
