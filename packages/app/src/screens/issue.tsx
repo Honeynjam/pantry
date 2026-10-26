@@ -35,13 +35,15 @@ import { ConfirmDialog } from "../components/confirm-dialog";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
-import { NewIssueDialog } from "../issues/new-issue-dialog";
 import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, StatusPicker } from "../issues/pickers";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { CommentComposer, Timeline } from "../issues/timeline";
 import { fullDate, timeAgo } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
+import { useAppCommands } from "../shell/app-commands";
 import { AppShell, type WorkspaceData } from "../shell/app-shell";
+import { lastListLocation } from "../shell/locations";
+import { useShortcut, useShortcutScope } from "../use-shortcuts";
 import { projectColor } from "../shell/project-color";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
@@ -106,9 +108,23 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
 function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups }) {
   const { issue, project, parent, subIssues, comments, activity } = result;
   const actions = useIssueActions();
-  const { data } = lookups;
-  const [creatingSub, setCreatingSub] = useState(false);
+  const commands = useAppCommands();
+  const { navigate } = useNavigation();
   const canHaveSubIssues = issue.parentId === undefined && project?.archivedAt === undefined;
+  const newSubIssue = () => {
+    if (project && canHaveSubIssues) commands.newIssue({ project, parent: issue });
+  };
+
+  useShortcutScope("issue");
+  useShortcut("newSubIssue", "issue", () => {
+    if (!canHaveSubIssues) {
+      toast(issue.parentId ? "Sub-issues can't have sub-issues" : "This project is archived");
+      return;
+    }
+    newSubIssue();
+  });
+  // Back to the list or board it was opened from (filters included), else the project's list.
+  useShortcut("escape", "issue", () => navigate(lastListLocation() ?? routes.project(issue.key.split("-")[0]!)));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -139,7 +155,7 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
                     size="xs"
                     variant="ghost"
                     className="ml-auto"
-                    onClick={() => setCreatingSub(true)}
+                    onClick={newSubIssue}
                     data-icon="inline-start"
                   >
                     <PlusIcon />
@@ -161,15 +177,6 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
         </article>
       </div>
       <PropertiesPanel issue={issue} project={project} parent={parent} lookups={lookups} actions={actions} subIssueCount={subIssues.length} />
-      {project && (
-        <NewIssueDialog
-          open={creatingSub}
-          onOpenChange={setCreatingSub}
-          data={data}
-          project={project}
-          defaults={{ parent: issue }}
-        />
-      )}
     </div>
   );
 }

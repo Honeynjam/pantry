@@ -23,12 +23,14 @@ import {
 import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
-import { HouseIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import { Keycap } from "@pantry/ui/components/keycap";
+import { HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { routes, useNavigation } from "../navigation";
 import { NewProjectDialog } from "../components/new-project-dialog";
 import { LoadingScreen } from "../screens/loading";
+import { AppCommandsProvider, useAppCommands } from "./app-commands";
 import { projectColor } from "./project-color";
 import { UserMenu } from "./user-menu";
 
@@ -84,6 +86,7 @@ function NavItem({
 
 function AppSidebar({ data }: { data: WorkspaceData }) {
   const { pathname } = useNavigation();
+  const { openPalette } = useAppCommands();
   const [creating, setCreating] = useState(false);
   return (
     <Sidebar collapsible="icon">
@@ -105,6 +108,15 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Search" onClick={openPalette} aria-keyshortcuts="Meta+K Control+K">
+                <SearchIcon />
+                <span>Search</span>
+              </SidebarMenuButton>
+              <SidebarMenuBadge>
+                <Keycap keys="mod+k" />
+              </SidebarMenuBadge>
+            </SidebarMenuItem>
             <NavItem href={routes.home} tooltip="Home" active={pathname === routes.home}>
               <HouseIcon />
               <span>Home</span>
@@ -175,14 +187,16 @@ export function AppShell({
         }
       }}
     >
-      <AppSidebar data={data} />
-      <SidebarInset className="min-w-0">
-        <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
-          <SidebarTrigger />
-          <div className="flex min-w-0 items-center gap-2 text-sm">{title(data)}</div>
-        </header>
-        <main className="flex min-h-0 flex-1 flex-col">{children(data)}</main>
-      </SidebarInset>
+      <AppCommandsProvider data={data} palette={() => null}>
+        <AppSidebar data={data} />
+        <SidebarInset className="min-w-0">
+          <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+            <SidebarTrigger title="Fold the sidebar ( [ )" aria-keyshortcuts="[" />
+            <div className="flex min-w-0 items-center gap-2 text-sm">{title(data)}</div>
+          </header>
+          <main className="flex min-h-0 flex-1 flex-col">{children(data)}</main>
+        </SidebarInset>
+      </AppCommandsProvider>
     </SidebarProvider>
   );
 }

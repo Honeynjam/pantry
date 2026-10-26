@@ -26,5 +26,8 @@ export function useMemoryNavigation(initial = "/"): Navigation {
         );
       },
   );
-  return useMemo<Navigation>(() => ({ pathname, navigate: (to) => setPathname(to), Link }), [pathname, Link]);
+  return useMemo<Navigation>(() => {
+    const [path = "/", query] = pathname.split("?");
+    return { pathname: path, search: query ? `?${query}` : "", navigate: (to) => setPathname(to), Link };
+  }, [pathname, Link]);
 }

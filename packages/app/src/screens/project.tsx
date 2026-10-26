@@ -11,7 +11,8 @@ import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { IssueRow } from "../issues/issue-row";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
-import { NewIssueDialog, type NewIssueDefaults } from "../issues/new-issue-dialog";
+import type { NewIssueDefaults } from "../issues/new-issue-dialog";
+import { useAppCommands } from "../shell/app-commands";
 import { AppShell, type WorkspaceData } from "../shell/app-shell";
 import { NotMemberScreen } from "./not-member";
 import { ProjectNotFound, ProjectTitle } from "./project-chrome";
@@ -54,8 +55,8 @@ export function ProjectIssues({
   const [includeDone, setIncludeDone] = useState(false);
   const issues = useQuery(api.issues.listByProject, { projectId: project._id, includeDone });
   const lookups = useLookups(data);
-  const [creating, setCreating] = useState<NewIssueDefaults | null>(null);
-  const newIssue = (defaults: NewIssueDefaults = {}) => setCreating(defaults);
+  const commands = useAppCommands();
+  const newIssue = (defaults: NewIssueDefaults = {}) => commands.newIssue({ ...defaults, project });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -85,13 +86,6 @@ export function ProjectIssues({
       ) : (
         <IssueList issues={issues} lookups={lookups} newIssue={newIssue} />
       )}
-      <NewIssueDialog
-        open={creating !== null}
-        onOpenChange={(open) => !open && setCreating(null)}
-        data={data}
-        project={project}
-        defaults={creating ?? {}}
-      />
     </div>
   );
 }

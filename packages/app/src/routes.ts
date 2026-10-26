@@ -9,6 +9,7 @@ export const routes = {
   signIn: "/sign-in",
   signUp: "/sign-up",
   setup: "/setup",
+  myIssues: "/my-issues",
   project: (key: string) => `/projects/${encodeURIComponent(key)}`,
   board: (key: string) => `/projects/${encodeURIComponent(key)}/board`,
   projectSettings: (key: string) => `/projects/${encodeURIComponent(key)}/settings`,

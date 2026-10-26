@@ -2,7 +2,7 @@
 
 import { NavigationProvider, PantryProviders, type LinkProps, type Navigation } from "@pantry/app";
 import NextLink from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, type ReactNode } from "react";
 import { getConvexUrl } from "@/lib/convex-env";
 import { MissingConvexUrl } from "./missing-convex-url";
@@ -15,13 +15,16 @@ function Link({ href, ...props }: LinkProps) {
 export default function ClientApp({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useSearchParams().toString();
   const navigation = useMemo<Navigation>(
     () => ({
       pathname,
-      navigate: (to, options) => (options?.replace ? router.replace(to) : router.push(to)),
+      search: params ? `?${params}` : "",
+      // Filter changes replace the URL in place: no scroll jump, no history entry per click.
+      navigate: (to, options) => (options?.replace ? router.replace(to, { scroll: false }) : router.push(to)),
       Link,
     }),
-    [pathname, router],
+    [pathname, params, router],
   );
 
   const convexUrl = getConvexUrl();

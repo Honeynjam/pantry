@@ -10,6 +10,8 @@ export type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & { href: string
  */
 export type Navigation = {
   pathname: string;
+  /** The query string, with its leading `?` (or ""). Filters live here. */
+  search: string;
   navigate: (to: string, options?: { replace?: boolean }) => void;
   Link: ComponentType<LinkProps>;
 };

@@ -13,6 +13,7 @@ import { ChevronRightIcon } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { routes, useNavigation } from "../navigation";
+import { useShortcutScope } from "../use-shortcuts";
 import { describeError, FormError } from "../screens/form-error";
 import type { WorkspaceData } from "../shell/app-shell";
 import { projectColor } from "../shell/project-color";
@@ -41,6 +42,7 @@ export function NewIssueDialog({
   project: Doc<"projects">;
   defaults?: NewIssueDefaults;
 }) {
+  useShortcutScope("overlay", open);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-2xl" showCloseButton={false}>
