@@ -158,7 +158,7 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 | `packages/tsconfig`, `packages/eslint-config` | Shared config |
 | `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |
 | `.github/workflows` | CI (typecheck, lint, test) and Sync upstream (update PRs for self-hosted copies) |
-| `docs/` | Spec (`PANTRY-SPEC.md`), milestone notes, deploy test checklist |
+| `docs/` | Spec (`PANTRY-SPEC.md`), deploy test checklist, Tauri spike notes; build plans and milestone notes in `docs/internal/` |
 
 ## Licence
 

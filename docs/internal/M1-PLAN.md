@@ -5,7 +5,7 @@ Written 26 Oct 2026 before coding. Source of truth: `docs/PANTRY-SPEC.md` §10b.
 ## Plan
 
 ### 1. Scaffold
-- `git init`, spec to `docs/PANTRY-SPEC.md`, kickoff prompt to `docs/KICKOFF-PROMPT.md`, `CLAUDE.md` stays at the root.
+- `git init`, spec to `docs/PANTRY-SPEC.md`, kickoff prompt to `docs/internal/KICKOFF-PROMPT.md`, `CLAUDE.md` stays at the root.
 - pnpm workspace (`packageManager: pnpm@10.34.9`), Turborepo 2.11, Node 24 (`.nvmrc`, `engines`).
 - Packages: `apps/web` (Next.js 16.4), `packages/backend`, `packages/app`, `packages/ui`, `packages/mcp`, plus shared `packages/tsconfig` and `packages/eslint-config`. `apps/desktop` and `apps/site` are not created yet (M5/M6); the workspace globs already cover them.
 - Shared strict tsconfig, ESLint 10 flat config (typescript-eslint, react-hooks; Next's config in `apps/web`), Prettier.

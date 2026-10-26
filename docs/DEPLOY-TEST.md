@@ -43,7 +43,7 @@ Nothing here has been run yet: it needs your accounts. Fill in the "Result" line
 
 ## Record the results
 
-Add a short note to `docs/M1-PLAN.md` (or tell Claude Code): which Root Directory route worked, whether the
+Add a short note to `docs/internal/M1-PLAN.md` (or tell Claude Code): which Root Directory route worked, whether the
 Marketplace key could set env vars, the pnpm/Node versions Vercel used, total time, and anything that surprised you.
 
 ## Fallback (route 2): Root Directory not offered
