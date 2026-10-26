@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "schedule:weekly", "helpers:pinGitHubActionDigests"],
+  "automerge": false,
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "packageRules": [
+    {
+      "description": "Dev tooling: one weekly PR for minor and patch updates of dev dependencies; majors come one by one.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev tooling"
+    },
+    {
+      "description": "Convex: the client, the test harness and the Convex components move together.",
+      "matchPackageNames": ["convex", "convex-test", "@convex-dev/**"],
+      "groupName": "Convex"
+    },
+    {
+      "description": "Better Auth: @convex-dev/better-auth and better-auth must stay on versions that support each other.",
+      "matchPackageNames": ["@convex-dev/better-auth", "better-auth"],
+      "groupName": "Better Auth"
+    },
+    {
+      "description": "Keep better-auth on 1.6: @convex-dev/better-auth 0.12.x peers on better-auth >=1.6.11 <1.7.0 (spec §10b). Lift this together with a component release that supports 1.7.",
+      "matchPackageNames": ["better-auth"],
+      "allowedVersions": "<1.7"
+    },
+    {
+      "description": "Next and React: next and eslint-config-next are pinned to the same exact version; react, react-dom and their types move together.",
+      "matchPackageNames": [
+        "next",
+        "eslint-config-next",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "Next and React"
+    },
+    {
+      "description": "Tiptap: every @tiptap/* package must be on the same version.",
+      "matchPackageNames": ["@tiptap/**"],
+      "groupName": "Tiptap"
+    },
+    {
+      "description": "Tauri: the JS API and CLI, and the Rust crates in apps/desktop/src-tauri.",
+      "matchPackageNames": ["@tauri-apps/**", "tauri", "tauri-build", "tauri-plugin-*"],
+      "groupName": "Tauri"
+    }
+  ]
+}
