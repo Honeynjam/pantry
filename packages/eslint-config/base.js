@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 /** Shared flat config for every TypeScript package. */
 export const base = tseslint.config(
-  { ignores: ["**/dist/**", "**/.next/**", "**/.turbo/**", "**/_generated/**", "**/node_modules/**"] },
+  { ignores: ["**/dist/**", "**/.next/**", "**/.next-*/**", "**/.turbo/**", "**/_generated/**", "**/node_modules/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

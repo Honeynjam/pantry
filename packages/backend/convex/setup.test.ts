@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
 import { requireMember } from "./lib/auth";
 import { DEFAULT_STATUSES, SAMPLE_CONTEXT_DOC, slugify } from "./lib/defaults";
@@ -10,7 +10,7 @@ const owner = { subject: "user-owner", name: "Kris", email: "kris@example.com" }
 describe("setup.createWorkspace", () => {
   it("bootstraps the workspace on first run", async () => {
     const t = setupTest();
-    expect(await t.query(api.setup.status, {})).toEqual({ needsSetup: true });
+    expect(await t.query(api.setup.status, {})).toMatchObject({ needsSetup: true });
 
     const asOwner = t.withIdentity(owner);
     const result = await asOwner.mutation(api.setup.createWorkspace, { workspaceName: "Home" });
@@ -69,7 +69,7 @@ describe("setup.createWorkspace", () => {
     // The owner now passes the member check every app function starts with.
     const me = await asOwner.run((ctx) => requireMember(ctx));
     expect(me._id).toBe(result.memberId);
-    expect(await t.query(api.setup.status, {})).toEqual({ needsSetup: false });
+    expect(await t.query(api.setup.status, {})).toMatchObject({ needsSetup: false });
   });
 
   it("rejects a second run, from anyone", async () => {
@@ -95,7 +95,7 @@ describe("setup.createWorkspace", () => {
   it("requires a signed-in user", async () => {
     const t = setupTest();
     await expect(t.mutation(api.setup.createWorkspace, {})).rejects.toThrow(/Sign in first/);
-    expect(await t.query(api.setup.status, {})).toEqual({ needsSetup: true });
+    expect(await t.query(api.setup.status, {})).toMatchObject({ needsSetup: true });
   });
 
   it("derives names from the identity when none are given", async () => {
@@ -114,5 +114,30 @@ describe("slugify", () => {
     ["***", "workspace"],
   ])("%s → %s", (input, expected) => {
     expect(slugify(input)).toBe(expected);
+  });
+});
+
+describe("setup.status", () => {
+  it("reports a missing BETTER_AUTH_SECRET", async () => {
+    const t = setupTest();
+    vi.stubEnv("BETTER_AUTH_SECRET", undefined);
+    expect(await t.query(api.setup.status, {})).toMatchObject({ needsSecret: true });
+    vi.stubEnv("BETTER_AUTH_SECRET", "set");
+    expect(await t.query(api.setup.status, {})).toMatchObject({ needsSecret: false });
+    vi.unstubAllEnvs();
+  });
+
+  it("tells signed-in non-members apart from members", async () => {
+    const t = setupTest();
+    expect(await t.query(api.setup.status, {})).toMatchObject({ signedIn: false, isMember: false });
+    const stranger = t.withIdentity({ subject: "user-stranger" });
+    expect(await stranger.query(api.setup.status, {})).toMatchObject({ signedIn: true, isMember: false });
+    await t.withIdentity(owner).mutation(api.setup.createWorkspace, {});
+    expect(await t.withIdentity(owner).query(api.setup.status, {})).toMatchObject({
+      needsSetup: false,
+      signedIn: true,
+      isMember: true,
+    });
+    expect(await stranger.query(api.setup.status, {})).toMatchObject({ isMember: false });
   });
 });

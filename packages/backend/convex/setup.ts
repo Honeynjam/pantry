@@ -1,20 +1,33 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireAuthUserId } from "./lib/auth";
+import { env, mutation, query } from "./_generated/server";
+import { getAuthUserId, requireAuthUserId } from "./lib/auth";
 import { DEFAULT_STATUSES, SAMPLE_CONTEXT_DOC, SAMPLE_PROJECT, slugify } from "./lib/defaults";
 
 const MAX_NAME_LENGTH = 80;
 
 /**
- * Whether this instance still needs first-run setup (no members yet).
- * Public and unauthenticated on purpose: the setup screen calls it before anyone can sign in.
- * It returns a single boolean and nothing else.
+ * What the app needs before anyone can sign in: whether first-run setup is still open, whether the
+ * deployment is missing BETTER_AUTH_SECRET (the setup screen then shows the fix), and whether the
+ * caller (if signed in) is a member. Public and unauthenticated on purpose (documented exception to
+ * requireMember): it returns three booleans and nothing about anyone else.
  */
 export const status = query({
   args: {},
   handler: async (ctx) => {
     const anyMember = await ctx.db.query("members").first();
-    return { needsSetup: anyMember === null };
+    const userId = await getAuthUserId(ctx);
+    const member = userId
+      ? await ctx.db
+          .query("members")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .first()
+      : null;
+    return {
+      needsSetup: anyMember === null,
+      needsSecret: !env.BETTER_AUTH_SECRET,
+      signedIn: userId !== null,
+      isMember: member !== null,
+    };
   },
 });
 

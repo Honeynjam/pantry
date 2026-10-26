@@ -14,7 +14,22 @@
   "devDependencies": {
     "@pantry/eslint-config": "workspace:*",
     "@pantry/tsconfig": "workspace:*",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^10.13.0",
     "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@convex-dev/better-auth": "0.12.6",
+    "@pantry/backend": "workspace:*",
+    "@pantry/ui": "workspace:*",
+    "better-auth": "~1.6.33",
+    "convex": "^1.48.0",
+    "lucide-react": "^1.61.0",
+    "motion": "^14.6.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sonner": "^2.0.8"
   }
 }
