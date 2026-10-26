@@ -1,0 +1,22 @@
+{
+  "name": "@pantry/backend",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./brand": "./convex/lib/brand.ts",
+    "./api": "./convex/_generated/api.js",
+    "./dataModel": "./convex/_generated/dataModel.d.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p convex",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@pantry/eslint-config": "workspace:*",
+    "@pantry/tsconfig": "workspace:*",
+    "eslint": "^10.13.0",
+    "typescript": "~6.0.3"
+  }
+}

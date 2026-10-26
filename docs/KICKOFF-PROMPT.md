@@ -1,0 +1,6 @@
+You're building **Pantry**, an open-source (MIT) Linear-style issue tracker for 1–3 people working with AI coding agents. The spec is `docs/PANTRY-SPEC.md` and the project rules are `CLAUDE.md` (repo root).
+
+1. Read `CLAUDE.md` and `docs/PANTRY-SPEC.md` in full. Section 10b ("Build plan for Claude Code") is the source of truth for versions, schema, functions, MCP tools, tasks and acceptance criteria.
+2. Before writing code, reply with a short plan for M1 (its 8 tasks), any contradictions or gaps you find in the spec, and the ★ defaults from §12 you'll use. Use the ★ default for any open question I haven't answered; don't wait on them.
+3. Then work through M1 in order without waiting between tasks, committing locally as you go. Start with **task 1 (Scaffold)**: put `CLAUDE.md` at the repo root and the spec at `docs/PANTRY-SPEC.md`. Pause once, after **task 4 (Design system)**, so Kris can approve `/design` before screens are built on it. Prepare task 7 (Deploy) but leave running it to Kris.
+4. Never deploy or publish anything: no `vercel`, `npx convex deploy`, `git push`, `npm publish`, app signing or releases. For a local Convex backend with no login, use `CONVEX_AGENT_MODE=anonymous npx convex dev --once`.

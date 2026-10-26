@@ -1,0 +1,4 @@
+{
+  "extends": "@pantry/tsconfig/react-library.json",
+  "include": ["src", "*.ts"]
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "@pantry/tsconfig/base.json",
+  "include": ["src", "*.ts"]
+}
