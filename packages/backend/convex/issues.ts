@@ -176,24 +176,26 @@ export const search = query({
     const trimmed = text.trim();
     if (!trimmed) return [];
     const found = new Map<string, Doc<"issues">>();
-    const byKey = async (key: string) => {
-      const issue = await ctx.db
+    const byKey = (key: string) =>
+      ctx.db
         .query("issues")
         .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
         .first();
+    const keep = (issue: Doc<"issues"> | null) => {
       if (issue && (!spaceId || issue.spaceId === spaceId) && (!projectId || issue.projectId === projectId)) {
         found.set(issue._id, issue);
       }
     };
 
     const upper = trimmed.toUpperCase();
-    if (KEY_PATTERN.test(upper)) await byKey(upper);
+    if (KEY_PATTERN.test(upper)) keep(await byKey(upper));
     if (/^\d{1,9}$/.test(trimmed)) {
       const spaces = await ctx.db
         .query("spaces")
         .withIndex("by_workspace", (q) => q.eq("workspaceId", me.workspaceId))
         .collect();
-      for (const space of spaces) await byKey(`${space.key}-${Number(trimmed)}`);
+      // One lookup per space, in parallel; results keep the spaces' order.
+      for (const issue of await Promise.all(spaces.map((space) => byKey(`${space.key}-${Number(trimmed)}`)))) keep(issue);
     }
 
     const matches = await ctx.db
