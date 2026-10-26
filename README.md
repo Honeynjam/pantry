@@ -92,6 +92,7 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 | Path | What |
 |---|---|
 | `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance` (`/api/mcp` in M4) |
+| `apps/desktop` | Tauri v2 Mac app. For now the M2 sign-in spike: see [`docs/spikes/tauri-auth.md`](docs/spikes/tauri-auth.md) (needs Rust; not part of the default checks) |
 | `packages/backend` | Convex functions, schema and Better Auth (`convex/`). All business logic lives here |
 | `packages/app` | Client-only React screens (shared by web and the Mac app) |
 | `packages/ui` | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens |
