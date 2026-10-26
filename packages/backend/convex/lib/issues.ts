@@ -136,11 +136,30 @@ export async function checkParent(
 // Ordering inside a status column
 // ---------------------------------------------------------------------------------------------
 
-async function column(ctx: QueryCtx, spaceId: Id<"spaces">, statusId: Id<"statuses">) {
-  return ctx.db
+type Column = { spaceId: Id<"spaces">; statusId: Id<"statuses"> };
+
+const inColumn = (ctx: QueryCtx, { spaceId, statusId }: Column) =>
+  ctx.db.query("issues").withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", statusId));
+
+/**
+ * The issue right after `anchor` (or right before it, `direction: "desc"`) in column order
+ * (`sortOrder`, then creation), skipping `skip`. Reads only the anchor's ties and one neighbour, not
+ * the column.
+ */
+async function neighbour(ctx: QueryCtx, column: Column, anchor: Doc<"issues">, direction: "asc" | "desc", skip?: Id<"issues">) {
+  const rows = ctx.db
     .query("issues")
-    .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", statusId))
-    .collect();
+    .withIndex("by_space_and_status", (q) => {
+      const inIt = q.eq("spaceId", column.spaceId).eq("statusId", column.statusId);
+      return direction === "asc" ? inIt.gte("sortOrder", anchor.sortOrder) : inIt.lte("sortOrder", anchor.sortOrder);
+    })
+    .order(direction);
+  let passed = false;
+  for await (const row of rows) {
+    if (passed && row._id !== skip) return row;
+    if (row._id === anchor._id) passed = true;
+  }
+  return undefined;
 }
 
 /**
@@ -148,6 +167,9 @@ async function column(ctx: QueryCtx, spaceId: Id<"spaces">, statusId: Id<"status
  * right after) or `beforeId` (the issue it goes right before) say otherwise; between two issues it
  * takes the midpoint. Neighbours that aren't in the column are ignored (they may have just moved).
  * When the gap is below MIN_GAP, the column is renumbered 1, 2, 3… here, in the same transaction.
+ *
+ * Only the neighbours are read (index ranges around the anchor), so a move into a column of
+ * thousands of done issues costs a handful of reads; the whole column is read only to renumber it.
  */
 export async function placeInColumn(
   ctx: MutationCtx,
@@ -156,7 +178,36 @@ export async function placeInColumn(
   placement: Placement,
   issueId?: Id<"issues">,
 ): Promise<number> {
-  const others = (await column(ctx, spaceId, statusId)).filter((row) => row._id !== issueId);
+  const column = { spaceId, statusId };
+  const member = async (id: Id<"issues"> | undefined) => {
+    if (!id || id === issueId) return null;
+    const row = await ctx.db.get("issues", id);
+    return row && row.spaceId === spaceId && row.statusId === statusId ? row : null;
+  };
+  let above: Doc<"issues"> | undefined;
+  let below: Doc<"issues"> | undefined;
+  const after = await member(placement.afterId);
+  const before = after ? null : await member(placement.beforeId);
+  if (after) {
+    above = after;
+    below = await neighbour(ctx, column, after, "asc", issueId);
+  } else if (before) {
+    below = before;
+    above = await neighbour(ctx, column, before, "desc", issueId);
+  } else {
+    below = (await inColumn(ctx, column).take(2)).find((row) => row._id !== issueId);
+  }
+  if (!above && !below) return 1;
+  if (!above) return below!.sortOrder - 1;
+  if (!below) return above.sortOrder + 1;
+  const mid = (above.sortOrder + below.sortOrder) / 2;
+  if (below.sortOrder - above.sortOrder >= MIN_GAP && mid > above.sortOrder && mid < below.sortOrder) return mid;
+  return renumberColumn(ctx, column, placement, issueId);
+}
+
+/** Too close: renumber the whole column 1, 2, 3… with a slot left for the moved issue. */
+async function renumberColumn(ctx: MutationCtx, column: Column, placement: Placement, issueId?: Id<"issues">) {
+  const others = (await inColumn(ctx, column).collect()).filter((row) => row._id !== issueId);
   let index = -1;
   if (placement.afterId) {
     const at = others.findIndex((row) => row._id === placement.afterId);
@@ -164,17 +215,6 @@ export async function placeInColumn(
   }
   if (index < 0 && placement.beforeId) index = others.findIndex((row) => row._id === placement.beforeId);
   if (index < 0) index = 0;
-
-  const above = others[index - 1];
-  const below = others[index];
-  if (!above && !below) return 1;
-  if (!above) return below!.sortOrder - 1;
-  if (!below) return above.sortOrder + 1;
-
-  const mid = (above.sortOrder + below.sortOrder) / 2;
-  if (below.sortOrder - above.sortOrder >= MIN_GAP && mid > above.sortOrder && mid < below.sortOrder) return mid;
-
-  // Too close: renumber the whole column with a slot left for the moved issue.
   for (const [position, row] of others.entries()) {
     const sortOrder = position < index ? position + 1 : position + 2;
     if (row.sortOrder !== sortOrder) await ctx.db.patch("issues", row._id, { sortOrder });

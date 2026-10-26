@@ -292,6 +292,68 @@ describe("issues.move", () => {
     expect(rows.map((row) => row!.sortOrder)).toEqual([1, 2, 3, 4]);
   });
 
+  it("places by neighbours exactly like the whole-column rule, ties and foreign anchors included", async () => {
+    // The rule as it was written over the whole column (before placeInColumn read only neighbours).
+    type Row = { _id: Id<"issues">; sortOrder: number };
+    const reference = (others: Row[], placement: { afterId?: Id<"issues">; beforeId?: Id<"issues"> }) => {
+      let index = -1;
+      if (placement.afterId) {
+        const at = others.findIndex((row) => row._id === placement.afterId);
+        if (at >= 0) index = at + 1;
+      }
+      if (index < 0 && placement.beforeId) index = others.findIndex((row) => row._id === placement.beforeId);
+      if (index < 0) index = 0;
+      const above = others[index - 1];
+      const below = others[index];
+      if (!above && !below) return 1;
+      if (!above) return below!.sortOrder - 1;
+      if (!below) return above.sortOrder + 1;
+      const mid = (above.sortOrder + below.sortOrder) / 2;
+      if (below.sortOrder - above.sortOrder >= MIN_GAP && mid > above.sortOrder && mid < below.sortOrder) return mid;
+      return { renumberAt: index + 1 };
+    };
+
+    // Column: A=1, B=4, C=4 (a tie), D=7, E=9. Anchors: none, each of them, the moving issue itself,
+    // and an issue in another column. Every pair, each on fresh data (some placements renumber), with
+    // the moving issue coming from another column or reordered inside this one (between C and D).
+    const anchors = ["A", "B", "C", "D", "E", "self", "elsewhere"] as const;
+    for (const from of ["backlog", "inside"] as const) {
+      for (const after of [undefined, ...anchors]) {
+        for (const before of [undefined, ...anchors]) {
+          const { t, as, create, status } = await setUp();
+          const ids = new Map<string, Id<"issues">>();
+          for (const title of ["A", "B", "C", "D", "E"]) ids.set(title, (await create(title, { statusId: status.started })).issueId);
+          ids.set("self", (await create("Moving", { statusId: from === "inside" ? status.started : status.backlog })).issueId);
+          ids.set("elsewhere", (await create("Elsewhere", { statusId: status.review })).issueId);
+          const others = await t.run(async (ctx) => {
+            for (const [title, sortOrder] of [["A", 1], ["B", 4], ["C", 4], ["D", 7], ["E", 9], ["self", 5.5]] as const) {
+              await ctx.db.patch("issues", ids.get(title)!, { sortOrder });
+            }
+            const spaceId = (await ctx.db.get("issues", ids.get("A")!))!.spaceId!;
+            const column = await ctx.db
+              .query("issues")
+              .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", status.started))
+              .collect();
+            return column.filter((row) => row._id !== ids.get("self"));
+          });
+          const placement = {
+            ...(after ? { afterId: ids.get(after)! } : {}),
+            ...(before ? { beforeId: ids.get(before)! } : {}),
+          };
+          const expected = reference(others, placement);
+          await as.mutation(api.issues.move, { issueId: ids.get("self")!, statusId: status.started, ...placement });
+          const moved = (await getIssue(t, ids.get("self")!))!;
+          expect([from, after, before, moved.sortOrder]).toEqual([
+            from,
+            after,
+            before,
+            typeof expected === "number" ? expected : expected.renumberAt,
+          ]);
+        }
+      }
+    }
+  });
+
   it("keeps working after many midpoint moves (repeated halving)", async () => {
     const { t, as, create, status } = await setUp();
     const top = await create("Top", { statusId: status.backlog });
