@@ -1,2 +1,3 @@
-
 .env.local
+# Perf seed, copied in by scripts/perf/seed.sh for local runs only
+convex/devSeed.ts
