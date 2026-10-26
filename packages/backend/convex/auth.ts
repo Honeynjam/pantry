@@ -1,5 +1,5 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
-import { convex } from "@convex-dev/better-auth/plugins";
+import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { APIError } from "better-auth/api";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
 import { v } from "convex/values";
@@ -12,6 +12,13 @@ import { checkSignUp, type SignUpCheck } from "./lib/signup";
 export const MISSING_SECRET_MESSAGE = "Missing BETTER_AUTH_SECRET, see setup screen";
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
+
+/**
+ * The Mac app's webview origin: Tauri serves the static build from `tauri://localhost` on macOS
+ * (`http://tauri.localhost` is Windows only, so it isn't listed). Better Auth checks it on sign-in,
+ * and the auth routes' CORS (http.ts) allows the origins listed here. See docs/spikes/tauri-auth.md.
+ */
+export const DESKTOP_ORIGINS = ["tauri://localhost"];
 
 /** Internal: lets the Better Auth hook check the guard from an HTTP action (no ctx.db there). */
 export const canSignUp = internalQuery({
@@ -30,7 +37,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     appName: undefined,
     baseURL: siteUrl,
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: siteUrl ? [siteUrl] : [],
+    trustedOrigins: siteUrl ? [siteUrl, ...DESKTOP_ORIGINS] : DESKTOP_ORIGINS,
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
@@ -53,7 +60,13 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
         },
       },
     },
-    plugins: [convex({ authConfig })],
+    plugins: [
+      // Cross-domain: the Mac app calls the .convex.site auth routes directly and keeps the session
+      // in a `Better-Auth-Cookie` header instead of a cookie. It only acts on requests that send that
+      // header, so the web app (same-origin cookies through /api/auth) is unaffected.
+      ...(siteUrl ? [crossDomain({ siteUrl })] : []),
+      convex({ authConfig }),
+    ],
   } satisfies BetterAuthOptions;
 };
 

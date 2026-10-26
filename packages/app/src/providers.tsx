@@ -17,14 +17,17 @@ export function useAuthClient(): PantryAuthClient {
 export function PantryProviders({
   convexUrl,
   authBaseUrl,
+  crossDomain,
   children,
 }: {
   convexUrl: string;
   authBaseUrl?: string;
+  /** Mac app: talk to the `.convex.site` auth routes directly (see createPantryAuthClient). */
+  crossDomain?: boolean;
   children: ReactNode;
 }) {
   const [convex] = useState(() => new ConvexReactClient(convexUrl));
-  const [authClient] = useState(() => createPantryAuthClient(authBaseUrl));
+  const [authClient] = useState(() => createPantryAuthClient(authBaseUrl, { crossDomain }));
   return (
     // The component's AuthClient union doesn't accept a concretely typed client under TS 6; the
     // runtime shape is exactly what it expects (createAuthClient + convexClient plugin).
