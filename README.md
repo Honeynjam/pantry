@@ -3,7 +3,8 @@
 A fast, keyboard-first, open-source (MIT) issue tracker for 1–3 person teams working with AI coding agents.
 Your agents read and update issues over MCP; your data lives in your own Vercel and Convex accounts.
 
-> Status: early development (milestone M1). The Deploy button below is being tested on a fresh account.
+> Status: early development (milestone M2: invites, projects, issues, list and board). The Deploy button below is
+> being tested on a fresh account.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
@@ -25,6 +26,9 @@ Vercel Hobby is for non-commercial use).
    (once; it survives redeploys), points Convex `SITE_URL` at your production URL, and builds the web app.
 6. **Open your production URL** (`https://<project>.vercel.app`). You'll see the setup screen: create your
    account and workspace. You become the owner; from then on sign-up is invite-only.
+7. **Invite your partner:** Settings → Members → enter their email → **Create invite link**, and send the link
+   yourself (nothing is emailed). It works once, for that email address, for 7 days. They create their account
+   from the link (or sign in, if they already have one on this instance) and land in the workspace.
 
 If the setup screen says **"One more step"**, the deploy key wasn't allowed to set environment variables. Copy the
 one-line command it shows (run it from `packages/backend` in a clone, with `--prod`), or add `BETTER_AUTH_SECRET`
@@ -68,9 +72,11 @@ npx convex env set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
 Then open http://localhost:3000: the setup screen creates your account and workspace.
 
 - `pnpm dev` runs `convex dev` with `CONVEX_AGENT_MODE=anonymous` (a local backend on 127.0.0.1:3210/3211). Set
-  `CONVEX_AGENT_MODE=` (empty) to use your own Convex dev deployment instead.
-- The web app reads the Convex URLs that `convex dev` writes to `packages/backend/.env.local`, so there's nothing
-  to copy. `apps/web/.env.local` overrides them if you need to.
+  `CONVEX_AGENT_MODE=` (empty) to use your own Convex dev deployment instead. If those ports are taken (another
+  local Convex project), run it on others from `packages/backend`:
+  `CONVEX_AGENT_MODE=anonymous npx convex dev --local-cloud-port 3260 --local-site-port 3261`.
+- The web app reads the Convex URLs that `convex dev` writes to `packages/backend/.env.local` (`CONVEX_URL` or, when
+  it finds Vite installed, `VITE_CONVEX_URL`), so there's nothing to copy. `apps/web/.env.local` overrides them.
 - To run a second web dev server from the same folder (Next allows one per build directory), give it its own
   directory: `NEXT_DIST_DIR=.next-2 pnpm --filter @pantry/web exec next dev --port 3001`. If you sign in there,
   set `SITE_URL` to that origin.
@@ -94,7 +100,7 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 | `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance` (`/api/mcp` in M4) |
 | `packages/backend` | Convex functions, schema and Better Auth (`convex/`). All business logic lives here |
 | `packages/app` | Client-only React screens (shared by web and the Mac app) |
-| `packages/ui` | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens |
+| `packages/ui` | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens, `MarkdownEditor` (Tiptap 3) |
 | `packages/mcp` | MCP tool definitions (M4) |
 | `packages/tsconfig`, `packages/eslint-config` | Shared config |
 | `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |

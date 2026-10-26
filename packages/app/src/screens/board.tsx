@@ -17,6 +17,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
   type DragMoveEvent,
+  type DragOverEvent,
   type DragStartEvent,
   type DropAnimation,
 } from "@dnd-kit/core";
@@ -79,9 +80,15 @@ type PendingMove = Target & { issueId: Id<"issues"> };
 
 const columnId = (statusId: Id<"statuses">) => `column:${statusId}`;
 
-/** Pointer first (precise), nearest centre for the keyboard sensor (no pointer). */
+/**
+ * The card under the pointer wins over the column that contains it (pointerWithin returns both, in
+ * no useful order); the column alone means the empty space below its cards. The keyboard sensor has
+ * no pointer, so it falls back to the nearest centre.
+ */
 const collision: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
+  const cards = hits.filter((hit) => !String(hit.id).startsWith("column:"));
+  if (cards.length > 0) return cards;
   return hits.length > 0 ? hits : closestCenter(args);
 };
 
@@ -124,7 +131,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   const statusName = (id: Id<"statuses"> | undefined) => statuses.find((status) => status._id === id)?.name ?? "";
 
   /** Column + index for the dragged card's current position (its centre against the card under it). */
-  function locate(event: DragMoveEvent): Target | null {
+  function locate(event: DragMoveEvent | DragOverEvent | DragEndEvent): Target | null {
     const { active, over } = event;
     if (!over) return null;
     const dragged = active.rect.current.translated;
@@ -146,7 +153,9 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
     setActiveId(event.active.id as Id<"issues">);
   }
 
-  function onDragMove(event: DragMoveEvent) {
+  // `over` on move events can lag a step behind the pointer, so over-changes update it too and the
+  // drop is located again from the final event.
+  function onDragMove(event: DragMoveEvent | DragOverEvent) {
     const next = locate(event);
     setTarget((current) =>
       current?.statusId === next?.statusId && current?.index === next?.index ? current : next,
@@ -155,7 +164,8 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
 
   function onDragEnd(event: DragEndEvent) {
     const issue = issueById(event.active.id);
-    const drop = target;
+    // Dropped outside every column: nothing moves.
+    const drop = event.over ? locate(event) : null;
     setActiveId(null);
     setTarget(null);
     justDropped.current = Date.now();
@@ -205,6 +215,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
       collisionDetection={collision}
       onDragStart={onDragStart}
       onDragMove={onDragMove}
+      onDragOver={onDragMove}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
         setActiveId(null);
