@@ -4,8 +4,9 @@ import { mutation, query } from "./_generated/server";
 import type { Actor } from "./lib/activity";
 import { requireMember } from "./lib/auth";
 import { notFound } from "./lib/errors";
-import { changeStatus, createIssue, deleteIssue, getIssue, getStatus, isTerminal, updateIssue } from "./lib/issues";
+import { changeStatus, createIssue, deleteIssue, getIssue, getStatus, updateIssue } from "./lib/issues";
 import { isProject } from "./lib/model";
+import { isTerminal, OPEN_CATEGORIES } from "./lib/rules";
 import { getProject } from "./lib/spaces";
 import { priority } from "./schema";
 
@@ -89,7 +90,7 @@ export const listMine = query({
   handler: async (ctx) => {
     const me = await requireMember(ctx);
     const groups = await Promise.all(
-      (["unstarted", "started", "review"] as const).map((category) =>
+      OPEN_CATEGORIES.map((category) =>
         ctx.db
           .query("issues")
           .withIndex("by_assignee_and_category", (q) => q.eq("assigneeId", me._id).eq("statusCategory", category))

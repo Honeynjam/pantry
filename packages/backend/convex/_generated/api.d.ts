@@ -26,6 +26,7 @@ import type * as lib_issues from "../lib/issues.js";
 import type * as lib_model from "../lib/model.js";
 import type * as lib_names from "../lib/names.js";
 import type * as lib_priority from "../lib/priority.js";
+import type * as lib_rules from "../lib/rules.js";
 import type * as lib_signup from "../lib/signup.js";
 import type * as lib_spaces from "../lib/spaces.js";
 import type * as lib_tokens from "../lib/tokens.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   "lib/model": typeof lib_model;
   "lib/names": typeof lib_names;
   "lib/priority": typeof lib_priority;
+  "lib/rules": typeof lib_rules;
   "lib/signup": typeof lib_signup;
   "lib/spaces": typeof lib_spaces;
   "lib/tokens": typeof lib_tokens;

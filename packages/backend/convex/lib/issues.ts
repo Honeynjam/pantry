@@ -3,6 +3,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity, type Actor } from "./activity";
 import { fail, notFound } from "./errors";
 import { isProject, issueSpaceId, type Project } from "./model";
+import { isTerminal, normalizeTitle } from "./rules";
 import { getProjectForSpace, getSpace } from "./spaces";
 
 /**
@@ -13,9 +14,6 @@ import { getProjectForSpace, getSpace } from "./spaces";
 
 export type Priority = Doc<"issues">["priority"];
 export type Placement = { beforeId?: Id<"issues">; afterId?: Id<"issues"> };
-
-const TERMINAL = new Set<Doc<"statuses">["category"]>(["done", "canceled"]);
-export const isTerminal = (category: Doc<"statuses">["category"]) => TERMINAL.has(category);
 
 /** Below this gap between neighbours, a column is renumbered 1, 2, 3… (spec §10b ordering). */
 export const MIN_GAP = 1e-9;
@@ -67,7 +65,7 @@ export async function defaultStatus(ctx: QueryCtx, workspaceId: Id<"workspaces">
 // ---------------------------------------------------------------------------------------------
 
 export function cleanTitle(title: string): string {
-  const clean = title.trim().replace(/\s+/g, " ");
+  const clean = normalizeTitle(title);
   if (!clean) fail("INVALID_TITLE", "Give the issue a title.");
   if (clean.length > MAX_TITLE) fail("INVALID_TITLE", `Titles can be at most ${MAX_TITLE} characters.`);
   return clean;

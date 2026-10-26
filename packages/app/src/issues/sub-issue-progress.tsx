@@ -1,8 +1,9 @@
+import { isTerminal } from "@pantry/backend/rules";
 import type { ListIssue } from "./lookups";
 
 /** "◔ 1/3": done or canceled sub-issues out of all, as a tiny ring and a count. */
 export function SubIssueProgress({ subIssues }: { subIssues: Pick<ListIssue, "statusCategory">[] }) {
-  const closed = subIssues.filter((issue) => issue.statusCategory === "done" || issue.statusCategory === "canceled").length;
+  const closed = subIssues.filter((issue) => isTerminal(issue.statusCategory)).length;
   const total = subIssues.length;
   const angle = total ? (closed / total) * 360 : 0;
   return (

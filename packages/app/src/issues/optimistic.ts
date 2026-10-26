@@ -1,5 +1,6 @@
 import { api } from "@pantry/backend/api";
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import { isOpen, isTerminal, normalizeTitle } from "@pantry/backend/rules";
 import type { OptimisticLocalStore } from "convex/browser";
 import type { FunctionArgs } from "convex/server";
 import type { ListIssue } from "./lookups";
@@ -21,8 +22,6 @@ type MoveArgs = FunctionArgs<typeof api.issues.move>;
 type UpdateArgs = FunctionArgs<typeof api.issues.update>;
 type CommentArgs = FunctionArgs<typeof api.comments.add>;
 
-const TERMINAL = new Set(["done", "canceled"]);
-const OPEN = new Set(["unstarted", "started", "review"]);
 
 /** Statuses in workspace order, and who "me" is, from the shell's cached workspace query. */
 function workspace(store: OptimisticLocalStore) {
@@ -111,7 +110,7 @@ function syncMine(store: OptimisticLocalStore, issue: Issue) {
   const mine = store.getQuery(api.issues.listMine, {});
   const me = workspace(store)?.me._id;
   if (!mine || !me) return;
-  const belongs = issue.assigneeId === me && OPEN.has(issue.statusCategory);
+  const belongs = issue.assigneeId === me && isOpen(issue.statusCategory);
   const others = mine.filter((row) => row._id !== issue._id);
   const next = belongs ? [...others, issue].sort((a, b) => b.updatedAt - a.updatedAt) : others;
   if (next.length === mine.length && next.every((row, index) => row === mine[index])) return;
@@ -131,8 +130,8 @@ export function optimisticMove(store: OptimisticLocalStore, args: MoveArgs, now 
   const build = (issue: Issue, column: ReadonlyArray<Issue>): Issue => {
     const sortOrder = placeInColumn(column, args, issue._id);
     if (!changed) return { ...issue, sortOrder };
-    const completedAt = TERMINAL.has(status.category)
-      ? previous && TERMINAL.has(previous.category) && issue.completedAt !== undefined
+    const completedAt = isTerminal(status.category)
+      ? previous && isTerminal(previous.category) && issue.completedAt !== undefined
         ? issue.completedAt
         : now
       : undefined;
@@ -180,7 +179,7 @@ export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, 
   };
   const apply = <T extends Issue>(issue: T): T => {
     const next: T = setsProject ? withProject(issue) : { ...issue, updatedAt: now };
-    if (args.title !== undefined) next.title = args.title.trim().replace(/\s+/g, " ");
+    if (args.title !== undefined) next.title = normalizeTitle(args.title);
     if (args.priority !== undefined) next.priority = args.priority;
     if (args.labelIds !== undefined) next.labelIds = [...args.labelIds];
     if (args.assigneeId !== undefined) {

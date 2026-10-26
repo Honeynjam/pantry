@@ -11,6 +11,7 @@
     "./version": "./convex/lib/version.ts",
     "./model": "./convex/lib/model.ts",
     "./priority": "./convex/lib/priority.ts",
+    "./rules": "./convex/lib/rules.ts",
     "./tokens": "./convex/lib/tokens.ts"
   },
   "scripts": {

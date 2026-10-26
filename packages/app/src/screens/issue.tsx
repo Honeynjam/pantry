@@ -2,6 +2,7 @@
 
 import { api } from "@pantry/backend/api";
 import type { Doc } from "@pantry/backend/dataModel";
+import { normalizeTitle } from "@pantry/backend/rules";
 import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import { Button } from "@pantry/ui/components/button";
 import {
@@ -261,7 +262,7 @@ function TitleField({ issue, actions }: { issue: Doc<"issues">; actions: IssueAc
 
   function commit() {
     setFocused(false);
-    const next = draft.trim().replace(/\s+/g, " ");
+    const next = normalizeTitle(draft);
     if (next && next !== issue.title) void actions.update(issue._id, { title: next });
   }
 
