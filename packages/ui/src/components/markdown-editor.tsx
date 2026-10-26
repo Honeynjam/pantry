@@ -13,6 +13,8 @@ export type MarkdownEditorHandle = {
   clear: () => void;
   isEmpty: () => boolean;
   getMarkdown: () => string;
+  /** Put text back as an unsaved edit (a comment the server refused). */
+  setMarkdown: (markdown: string) => void;
 };
 
 type Callbacks = {
@@ -147,6 +149,10 @@ function MarkdownEditor({
       },
       isEmpty: () => editor?.isEmpty ?? true,
       getMarkdown: () => (editor ? toMarkdown(editor, baseline.current) : baseline.current),
+      setMarkdown: (markdown: string) => {
+        editor?.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
+        dirty.current = true;
+      },
     }),
     [editor],
   );

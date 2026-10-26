@@ -77,8 +77,6 @@ export function BoardPage({ projectKey }: { projectKey: string }) {
 
 /** Where a dragged card would land: a status column and an index among the other cards. */
 type Target = { statusId: Id<"statuses">; index: number };
-/** A drop waiting for the server: shown in place so the card doesn't jump back meanwhile. */
-type PendingMove = Target & { issueId: Id<"issues"> };
 
 const columnId = (statusId: Id<"statuses">) => `column:${statusId}`;
 
@@ -101,21 +99,16 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   const statuses = lookups.data.statuses;
   const [activeId, setActiveId] = useState<Id<"issues"> | null>(null);
   const [target, setTarget] = useState<Target | null>(null);
-  const [pending, setPending] = useState<PendingMove | null>(null);
   const justDropped = useRef(0);
   const container = useRef<HTMLDivElement>(null);
 
-  // Columns in server order, with a pending drop applied on top.
+  // Columns in list order. A drop shows at once: issues.move is optimistic, so `issues` already has
+  // the card in its new place (and Convex puts it back if the server refuses the move).
   const columns = useMemo(() => {
     const byStatus = new Map<Id<"statuses">, Doc<"issues">[]>(statuses.map((status) => [status._id, []]));
-    for (const issue of issues) {
-      if (pending && issue._id === pending.issueId) continue;
-      byStatus.get(issue.statusId)?.push(issue);
-    }
-    const moved = pending && issues.find((issue) => issue._id === pending.issueId);
-    if (pending && moved) byStatus.get(pending.statusId)?.splice(pending.index, 0, moved);
+    for (const issue of issues) byStatus.get(issue.statusId)?.push(issue);
     return byStatus;
-  }, [issues, statuses, pending]);
+  }, [issues, statuses]);
 
   // J/K walk the board column by column, top to bottom.
   const ordered = useMemo(() => statuses.flatMap((status) => columns.get(status._id) ?? []), [statuses, columns]);
@@ -185,10 +178,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
 
     const afterId = others[drop.index - 1]?._id;
     const beforeId = others[drop.index]?._id;
-    setPending({ issueId: issue._id, ...drop });
-    void actions
-      .move(issue._id, drop.statusId, { ...(afterId ? { afterId } : {}), ...(beforeId ? { beforeId } : {}) })
-      .finally(() => setPending((current) => (current?.issueId === issue._id ? null : current)));
+    void actions.move(issue._id, drop.statusId, { ...(afterId ? { afterId } : {}), ...(beforeId ? { beforeId } : {}) });
   }
 
   const announcements: Announcements = {

@@ -260,6 +260,7 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         }}
         placeholder="Search issues, projects and actions…"
         aria-label="Search issues, projects and actions"
+        autoFocus
       />
       <CommandList>
         <CommandEmpty>{query.trim() ? `Nothing matches “${query.trim()}”.` : "Type to search."}</CommandEmpty>

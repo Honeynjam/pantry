@@ -60,7 +60,13 @@ const plural = (count: number, one: string) => `${count} ${count === 1 ? one : `
  * Quick edit for the selection (spec §4 S/A/L/P/D): a small palette of options that applies to
  * every target issue, one mutation per issue. Status goes through `issues.move`.
  */
-export function useQuickEdit(lookups: Lookups, actions: IssueActions, issues: ReadonlyArray<Doc<"issues">>) {
+export function useQuickEdit(
+  lookups: Lookups,
+  actions: IssueActions,
+  issues: ReadonlyArray<Doc<"issues">>,
+  /** The element to focus when the picker closes (the cursor's row); default: where focus was. */
+  returnFocus?: () => HTMLElement | null,
+) {
   const [state, setState] = useState<{ kind: QuickEditKind; ids: Id<"issues">[] } | null>(null);
 
   const open = useCallback((kind: QuickEditKind, targets: ReadonlyArray<Doc<"issues">>) => {
@@ -81,6 +87,7 @@ export function useQuickEdit(lookups: Lookups, actions: IssueActions, issues: Re
       lookups={lookups}
       actions={actions}
       onClose={() => setState(null)}
+      returnFocus={returnFocus}
     />
   );
   return { open, element, isOpen: state !== null };
@@ -228,12 +235,14 @@ function QuickEditDialog({
   lookups,
   actions,
   onClose,
+  returnFocus,
 }: {
   kind: QuickEditKind | null;
   targets: ReadonlyArray<Doc<"issues">>;
   lookups: Lookups;
   actions: IssueActions;
   onClose: () => void;
+  returnFocus?: () => HTMLElement | null;
 }) {
   const open = kind !== null && targets.length > 0;
   const [query, setQuery] = useState("");
@@ -249,6 +258,7 @@ function QuickEditDialog({
       title={kind ? TITLES[kind] : "Edit issues"}
       description={targets.length === 1 ? `${targets[0]!.key} ${targets[0]!.title}` : plural(targets.length, "issue")}
       className="sm:max-w-md"
+      finalFocus={returnFocus ? () => returnFocus() ?? true : undefined}
       onOpenChange={(next, details) => {
         if (!next && details.reason === "escape-key" && query) {
           details.cancel();
@@ -306,7 +316,7 @@ function QuickEditBody({
           <span>{plural(targets.length, "issue")}</span>
         )}
       </div>
-      <CommandInput value={query} onValueChange={(next) => (setQuery(next), setValue(""))} placeholder={PLACEHOLDERS[kind]} aria-label={TITLES[kind]} />
+      <CommandInput value={query} onValueChange={(next) => (setQuery(next), setValue(""))} placeholder={PLACEHOLDERS[kind]} aria-label={TITLES[kind]} autoFocus />
       <CommandList>
         <CommandEmpty>{kind === "labels" && lookups.data.labels.length === 0 ? "No labels yet. Add them in Settings." : "No matches."}</CommandEmpty>
         {ranked.map(({ item, matches }) => (

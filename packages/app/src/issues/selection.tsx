@@ -2,7 +2,7 @@
 
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import { CircleDotIcon, CalendarIcon, SignalIcon, TagIcon, UserRoundIcon, UserRoundCheckIcon, XIcon } from "lucide-react";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { toast } from "sonner";
 import { routes, useNavigation } from "../navigation";
 import { usePaletteActions, type PaletteAction } from "../palette/palette-actions";
@@ -43,13 +43,18 @@ const QUICK_EDITS: { kind: QuickEditKind; id: "status" | "assignee" | "labels" |
   { kind: "dueDate", id: "dueDate", label: "Change due date…", icon: <CalendarIcon /> },
 ];
 
+/** The focusable part of an issue's row (its title link) or card. */
+function focusTarget(container: HTMLElement | null, id: Id<"issues">): HTMLElement | null {
+  const element = container?.querySelector<HTMLElement>(`[data-issue-id="${id}"]`);
+  return element ? (element.querySelector<HTMLElement>("[data-issue-focus]") ?? element) : null;
+}
+
 /** Focus the issue's row or card (so screen readers follow) and scroll it into view. */
 function focusIssue(container: HTMLElement | null, id: Id<"issues">) {
-  const element = container?.querySelector<HTMLElement>(`[data-issue-id="${id}"]`);
-  if (!element) return;
-  const target = element.querySelector<HTMLElement>("[data-issue-focus]") ?? element;
+  const target = focusTarget(container, id);
+  if (!target) return;
   target.focus({ preventScroll: true });
-  element.scrollIntoView({ block: "nearest" });
+  target.closest("[data-issue-id]")?.scrollIntoView({ block: "nearest" });
 }
 
 /**
@@ -72,7 +77,11 @@ export function useIssueSelection({
   useEffect(() => rememberListLocation(pathname + search), [pathname, search]);
   const [cursorState, setCursorState] = useState<Id<"issues"> | null>(null);
   const [selectedState, setSelected] = useState<ReadonlySet<Id<"issues">>>(new Set());
-  const quickEdit = useQuickEdit(lookups, actions, ordered);
+  // After a picker closes, focus returns to the cursor's row even if it moved (status changes do).
+  const cursorRef = useRef<Id<"issues"> | null>(null);
+  const quickEdit = useQuickEdit(lookups, actions, ordered, () =>
+    cursorRef.current ? focusTarget(container.current, cursorRef.current) : null,
+  );
 
   // Issues that left the view (filtered, moved away, deleted) drop out of the cursor and selection.
   const visible = useMemo(() => new Set(ordered.map((issue) => issue._id)), [ordered]);
@@ -81,6 +90,9 @@ export function useIssueSelection({
     () => new Set([...selectedState].filter((id) => visible.has(id))),
     [selectedState, visible],
   );
+  useEffect(() => {
+    cursorRef.current = cursor;
+  });
 
   const targets = (): Doc<"issues">[] => {
     if (selected.size > 0) return ordered.filter((issue) => selected.has(issue._id));

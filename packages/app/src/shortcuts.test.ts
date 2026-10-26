@@ -172,6 +172,14 @@ describe("dispatch", () => {
     expect(fired).toEqual(["list:status"]);
   });
 
+  it("gives keys pressed in a closing dialog to the page", () => {
+    on("assignee", "list");
+    registry.push("list");
+    document.body.innerHTML = `<div role="dialog" data-closed data-ending-style><input id="i" /></div>`;
+    press("a", {}, document.getElementById("i")!);
+    expect(fired).toEqual(["list:assignee"]);
+  });
+
   it("lets a handler decline a key, which then keeps its default", () => {
     registry.register("open", "list", () => false);
     registry.push("list");

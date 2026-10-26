@@ -21,7 +21,9 @@ export function describeError(error: unknown, fallback: string): string {
     if (data && typeof data === "object" && "message" in data && typeof data.message === "string") return data.message;
     if ("message" in error && typeof (error as { message?: unknown }).message === "string") {
       const message = (error as { message: string }).message;
-      if (message) return message;
+      // Unexpected server errors ("[CONVEX M(issues:move)] [Request ID: …] Server Error …") mean
+      // nothing to the reader: say what failed instead.
+      if (message && !message.startsWith("[CONVEX")) return message;
     }
   }
   return fallback;

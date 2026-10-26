@@ -14,6 +14,7 @@ import {
 import { Keycap } from "@pantry/ui/components/keycap";
 import { MarkdownEditor, type MarkdownEditorHandle } from "@pantry/ui/components/markdown-editor";
 import { PRIORITY_LABEL, type Priority } from "@pantry/ui/lib/issue-meta";
+import { cn } from "@pantry/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
@@ -22,6 +23,7 @@ import { ConfirmDialog } from "../components/confirm-dialog";
 import { formatDay, fullDate, timeAgo } from "../lib/format";
 import { describeError } from "../screens/form-error";
 import type { Lookups } from "./lookups";
+import { isOptimisticId, optimisticComment } from "./optimistic";
 
 type Activity = Doc<"activity">;
 type Comment = Doc<"comments">;
@@ -156,6 +158,7 @@ function ActivityItem({ row, lookups }: { row: Activity; lookups: Lookups }) {
 function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups }) {
   const author = lookups.member(comment.authorId);
   const mine = comment.authorId === lookups.data.me._id;
+  const sending = isOptimisticId(comment._id);
   const edit = useMutation(api.comments.edit);
   const remove = useMutation(api.comments.remove);
   const [editing, setEditing] = useState(false);
@@ -173,7 +176,13 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
   }
 
   return (
-    <li className="my-1.5 rounded-lg border border-border bg-background">
+    <li
+      className={cn(
+        "my-1.5 rounded-lg border border-border bg-background transition-opacity duration-(--duration-fast)",
+        sending && "opacity-70",
+      )}
+      aria-busy={sending || undefined}
+    >
       <div className="flex h-9 items-center gap-2 px-3 text-xs">
         <PersonAvatar person={{ name: author?.displayName ?? "?", avatarUrl: author?.avatarUrl }} size="xs" />
         <span className="font-medium text-foreground">{author?.displayName ?? "Someone"}</span>
@@ -190,7 +199,8 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
             (edited)
           </span>
         )}
-        {mine && !editing && (
+        {sending && <span className="text-muted-foreground">Sending…</span>}
+        {mine && !editing && !sending && (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="icon-xs" className="ml-auto" aria-label="Comment actions" />}
@@ -253,22 +263,23 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
   );
 }
 
-/** New comment: markdown, Cmd/Ctrl+Enter posts it. */
+/**
+ * New comment: markdown, Cmd/Ctrl+Enter posts it. Optimistic: the comment shows in the thread and
+ * the editor empties at once; if the server refuses it, it leaves the thread and the text comes
+ * back into the editor.
+ */
 export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) {
-  const add = useMutation(api.comments.add);
+  const add = useMutation(api.comments.add).withOptimisticUpdate((store, args) => optimisticComment(store, args));
   const editor = useRef<MarkdownEditorHandle>(null);
-  const [pending, setPending] = useState(false);
 
   async function post(body: string) {
-    if (pending || !body.trim()) return;
-    setPending(true);
+    if (!body.trim()) return;
+    editor.current?.clear();
     try {
       await add({ issueId, body });
-      editor.current?.clear();
     } catch (err) {
       toast.error(describeError(err, "Couldn't post the comment."));
-    } finally {
-      setPending(false);
+      if (editor.current?.isEmpty()) editor.current.setMarkdown(body);
     }
   }
 
@@ -286,7 +297,7 @@ export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) 
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Keycap keys="mod+enter" />
         </span>
-        <Button size="sm" variant="secondary" disabled={pending} onClick={() => void post(editor.current?.getMarkdown() ?? "")}>
+        <Button size="sm" variant="secondary" onClick={() => void post(editor.current?.getMarkdown() ?? "")}>
           Comment
         </Button>
       </div>

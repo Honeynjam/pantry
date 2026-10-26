@@ -141,10 +141,19 @@ export function helpSections(defs: ReadonlyArray<ShortcutDef> = SHORTCUTS): Help
 /** Return `false` when the key wasn't used (it then keeps its default behaviour). */
 export type ShortcutHandler = (event: KeyboardEvent) => void | false;
 
+/**
+ * A popup that's animating out (Base UI marks it `data-closed` / `data-ending-style`) still holds
+ * focus for a moment; keys pressed then belong to the page, so the next shortcut isn't lost.
+ */
+function inClosingPopup(element: Element): boolean {
+  return element.closest("[data-closed], [data-ending-style]") !== null;
+}
+
 /** Inputs, textareas, selects and rich-text editors: letter keys are text there. */
 export function isTypingTarget(target: EventTarget | null): boolean {
   if (!target || typeof (target as Element).closest !== "function") return false;
   const element = target as Element;
+  if (inClosingPopup(element)) return false;
   if (element.closest("input, textarea, select")) return true;
   const editable = element.closest("[contenteditable]");
   return editable !== null && editable.getAttribute("contenteditable") !== "false";
@@ -158,7 +167,8 @@ const POPUP_SELECTOR = '[role="menu"], [role="listbox"], [role="dialog"], [role=
 
 function inPopup(target: EventTarget | null): boolean {
   if (!target || typeof (target as Element).closest !== "function") return false;
-  return (target as Element).closest(POPUP_SELECTOR) !== null;
+  const element = target as Element;
+  return element.closest(POPUP_SELECTOR) !== null && !inClosingPopup(element);
 }
 
 type Entry = { scope: ShortcutScope; handler: ShortcutHandler; order: number };
