@@ -33,7 +33,8 @@ Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
   ({ name: "Pantry", defaultKey: "PAN", tokenPrefix: "pan_" }).
 - Use packages/ui components (shadcn on Base UI, restyled to our tokens) before writing new UI; no stock-looking shadcn.
 - Animate only with the motion tokens in packages/ui, and give every animation a reduced-motion branch.
-- Schema changes must be backward compatible (add optional fields first, migrate, then tighten).
+- Schema changes must be backward compatible (add optional fields first, migrate, then tighten): docs/MIGRATIONS.md.
+  The Spaces release ships a TRANSITIONAL schema; read rows through convex/lib/model.ts, never raw.
 - Optimistic updates always build new objects; never mutate what localStore.getQuery returns.
 - Keyboard shortcuts are registered only through the shortcut registry in packages/app (it also drives the ? help).
 - Do not build: GitHub PR integration of any kind, agents as members/assignees or agents running inside the app,

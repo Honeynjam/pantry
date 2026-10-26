@@ -109,6 +109,9 @@ Then open http://localhost:3000: the setup screen creates your account and works
   `CONVEX_AGENT_MODE=` (empty) to use your own Convex dev deployment instead. If those ports are taken (another
   local Convex project), run it on others from `packages/backend`:
   `CONVEX_AGENT_MODE=anonymous npx convex dev --local-cloud-port 3260 --local-site-port 3261`.
+- Data migrations run by themselves: `pnpm dev` runs `migrations:run` when it starts, and every Vercel deploy runs it
+  right after `convex deploy`. To run them by hand: `pnpm --filter @pantry/backend migrate`. How schema changes and
+  migrations work (and how to recover if one fails): [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 - The web app reads the Convex URLs that `convex dev` writes to `packages/backend/.env.local` (`CONVEX_URL` or, when
   it finds Vite installed, `VITE_CONVEX_URL`), so there's nothing to copy. `apps/web/.env.local` overrides them.
 - To run a second web dev server from the same folder (Next allows one per build directory), give it its own

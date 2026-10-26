@@ -389,7 +389,7 @@ pantry/
 - **Root Directory is an M1 check** (the Deploy Button can't set it): see §10 for the two ordered routes.
 
 ### Schema (`packages/backend/convex/schema.ts`)
-Index names follow Convex's `by_a_and_b` convention.
+Index names follow Convex's `by_a_and_b` convention. The block below is the **target** schema. The Spaces release ships a transitional version that also accepts M2 rows (an M2 `projects` shape, optional `issues.spaceId`, the `project_context` doc), migrates them on deploy, and narrows back in a later release: see `docs/MIGRATIONS.md`.
 ```ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -647,7 +647,8 @@ Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
   ({ name: "Pantry", defaultKey: "PAN", tokenPrefix: "pan_" }).
 - Use packages/ui components (shadcn on Base UI, restyled to our tokens) before writing new UI; no stock-looking shadcn.
 - Animate only with the motion tokens in packages/ui, and give every animation a reduced-motion branch.
-- Schema changes must be backward compatible (add optional fields first, migrate, then tighten).
+- Schema changes must be backward compatible (add optional fields first, migrate, then tighten): docs/MIGRATIONS.md.
+  The Spaces release ships a TRANSITIONAL schema; read rows through convex/lib/model.ts, never raw.
 - Optimistic updates always build new objects; never mutate what localStore.getQuery returns.
 - Keyboard shortcuts are registered only through the shortcut registry in packages/app (it also drives the ? help).
 - Do not build: GitHub PR integration of any kind, agents as members/assignees or agents running inside the app,

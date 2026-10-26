@@ -109,6 +109,11 @@ Built this way; each is easy to change.
 | "My issues" lists open issues assigned to me | ✔ `/my-issues` (Todo, In Progress, In Review), across projects |
 | URL filters narrow the list and board and survive a reload | ✔ |
 
+## Later: Spaces → Projects
+
+The Spaces model change (branch `spaces/model`) deploys onto M2 data with a transitional schema and an
+automatic migration; see `docs/MIGRATIONS.md` for the design, the proof on M2 data and the narrowing plan.
+
 ## Not verified
 
 - Safari and Firefox (Chromium only); mobile widths; VoiceOver itself (live regions and labels were checked in the
