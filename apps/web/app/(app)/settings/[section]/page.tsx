@@ -1,6 +1,6 @@
 "use client";
 
-import { SettingsPage } from "@pantry/app";
+import { SettingsPage } from "@pantry/app/screens/settings/settings-page";
 import { useParams } from "next/navigation";
 
 export default function Page() {

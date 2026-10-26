@@ -1,6 +1,6 @@
 "use client";
 
-import { SpacePage } from "@pantry/app";
+import { SpacePage } from "@pantry/app/screens/space";
 import { useParams } from "next/navigation";
 
 export default function Page() {

@@ -1,5 +1,5 @@
 import { brand } from "@pantry/backend/brand";
-import { SignInPage } from "@pantry/app";
+import { SignInPage } from "@pantry/app/screens/sign-in";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: `Sign in · ${brand.name}` };

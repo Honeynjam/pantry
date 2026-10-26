@@ -1,5 +1,5 @@
 import { brand } from "@pantry/backend/brand";
-import { SignUpPage } from "@pantry/app";
+import { SignUpPage } from "@pantry/app/screens/sign-up";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: `Create your account · ${brand.name}` };

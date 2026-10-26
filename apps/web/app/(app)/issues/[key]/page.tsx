@@ -1,6 +1,6 @@
 "use client";
 
-import { IssuePage } from "@pantry/app";
+import { IssuePage } from "@pantry/app/screens/issue";
 import { useParams } from "next/navigation";
 
 export default function Page() {

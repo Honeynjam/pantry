@@ -1,6 +1,6 @@
 "use client";
 
-import { BoardPage } from "@pantry/app";
+import { BoardPage } from "@pantry/app/screens/board";
 import { useParams } from "next/navigation";
 
 export default function Page() {
