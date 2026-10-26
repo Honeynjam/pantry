@@ -26,17 +26,4 @@ export function useNavigation(): Navigation {
   return value;
 }
 
-export const routes = {
-  home: "/",
-  signIn: "/sign-in",
-  signUp: "/sign-up",
-  setup: "/setup",
-  project: (key: string) => `/projects/${encodeURIComponent(key)}`,
-  board: (key: string) => `/projects/${encodeURIComponent(key)}/board`,
-  projectSettings: (key: string) => `/projects/${encodeURIComponent(key)}/settings`,
-  issue: (key: string) => `/issues/${encodeURIComponent(key)}`,
-  settings: (section: SettingsSection = "members") => `/settings/${section}`,
-} as const;
-
-export const SETTINGS_SECTIONS = ["members", "projects", "labels", "statuses"] as const;
-export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+export { routes, SETTINGS_SECTIONS, type SettingsSection } from "./routes";
