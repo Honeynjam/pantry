@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
 import { requireToken } from "./lib/auth";
-import { sha256Hex } from "./lib/tokens";
+import { sha256Hex, shouldTouch, TOKEN_TOUCH_INTERVAL_MS } from "./lib/tokens";
 import { MAX_ACTIVE_TOKENS } from "./tokens";
 import { setupTest, type TestConvex } from "./test.setup";
 
@@ -107,5 +107,54 @@ describe("tokens", () => {
     await expect(createToken(t, "One more")).rejects.toThrow(/up to 25 tokens/);
     await t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId: last!.tokenId });
     await createToken(t, "One more");
+  });
+});
+
+describe("lastUsedAt", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("shouldTouch: never used, or used 10 minutes ago or more", () => {
+    const now = 1_000_000_000;
+    expect(shouldTouch(undefined, now)).toBe(true);
+    expect(shouldTouch(now - TOKEN_TOUCH_INTERVAL_MS + 1, now)).toBe(false);
+    expect(shouldTouch(now - TOKEN_TOUCH_INTERVAL_MS, now)).toBe(true);
+  });
+
+  it("mcp.touchToken writes at most once per 10 minutes", async () => {
+    const { t } = await setUp();
+    const { token, tokenId } = await createToken(t);
+    const lastUsed = () => t.run(async (ctx) => (await ctx.db.get("apiTokens", tokenId))!.lastUsedAt);
+    const start = Date.now() + 1000;
+    vi.useFakeTimers({ now: start });
+
+    expect(await t.mutation(api.mcp.touchToken, { token })).toBe(true);
+    expect(await lastUsed()).toBe(start);
+
+    vi.setSystemTime(start + 9 * 60 * 1000);
+    expect(await t.mutation(api.mcp.touchToken, { token })).toBe(false);
+    expect(await lastUsed()).toBe(start);
+
+    vi.setSystemTime(start + TOKEN_TOUCH_INTERVAL_MS);
+    expect(await t.mutation(api.mcp.touchToken, { token })).toBe(true);
+    expect(await lastUsed()).toBe(start + TOKEN_TOUCH_INTERVAL_MS);
+
+    // The list shows it; a bad token touches nothing.
+    expect((await t.withIdentity(owner).query(api.tokens.list, {}))[0]!.lastUsedAt).toBe(start + TOKEN_TOUCH_INTERVAL_MS);
+    expect(await t.mutation(api.mcp.touchToken, { token: "pan_nope" })).toBe(false);
+  });
+
+  it("mcp.verifyToken answers who the token acts as, and null once revoked", async () => {
+    const { t, memberId, workspaceId } = await setUp();
+    const { token, tokenId } = await createToken(t);
+    expect(await t.query(api.mcp.verifyToken, { token })).toEqual({
+      tokenId,
+      memberId,
+      workspaceId,
+      userId: owner.subject,
+      displayName: "Kris",
+      lastUsedAt: null,
+    });
+    await t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId });
+    expect(await t.query(api.mcp.verifyToken, { token })).toBeNull();
   });
 });

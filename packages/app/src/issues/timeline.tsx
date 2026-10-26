@@ -17,7 +17,7 @@ import { PRIORITY_LABEL, type Priority } from "@pantry/ui/lib/issue-meta";
 import { cn } from "@pantry/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import { formatDay, fullDate, timeAgo } from "../lib/format";
@@ -175,6 +175,13 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const editor = useRef<MarkdownEditorHandle>(null);
+  const anchor = `comment-${comment._id}`;
+  const item = useRef<HTMLLIElement>(null);
+
+  // Links from MCP add_comment end in #comment-<id>; the thread loads after the page, so scroll here.
+  useEffect(() => {
+    if (window.location.hash === `#${anchor}`) item.current?.scrollIntoView({ block: "center" });
+  }, [anchor]);
 
   async function saveEdit(body: string) {
     if (!body.trim()) return;
@@ -188,8 +195,10 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
 
   return (
     <li
+      id={anchor}
+      ref={item}
       className={cn(
-        "my-1.5 rounded-lg border border-border bg-background transition-opacity duration-(--duration-fast)",
+        "my-1.5 scroll-mt-16 rounded-lg border border-border bg-background transition-opacity duration-(--duration-fast)",
         sending && "opacity-70",
       )}
       aria-busy={sending || undefined}
