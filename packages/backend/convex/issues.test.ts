@@ -400,6 +400,35 @@ describe("issues.listBySpace / listMine / get / remove", () => {
     expect(all).toEqual(["Backlog item", "Todo item", "Recent done", "Old done"]);
   });
 
+  it("keeps column order among recent done issues, and falls back to updatedAt without completedAt", async () => {
+    const { t, as, create, status, spaceId } = await setUp();
+    const first = await create("Done first", { statusId: status.done });
+    const second = await create("Done second", { statusId: status.done });
+    const undatedRecent = await create("Undated recent", { statusId: status.canceled });
+    const undatedOld = await create("Undated old", { statusId: status.canceled });
+    const long = Date.now() - RECENT_DONE_MS - 1000;
+    await t.run(async (ctx) => {
+      // completedAt order is the reverse of the column order: the list must follow sortOrder.
+      await ctx.db.patch("issues", first.issueId, { sortOrder: 1, completedAt: Date.now() - 1000 });
+      await ctx.db.patch("issues", second.issueId, { sortOrder: 2, completedAt: Date.now() - 5000 });
+      await ctx.db.patch("issues", undatedRecent.issueId, { completedAt: undefined });
+      await ctx.db.patch("issues", undatedOld.issueId, { completedAt: undefined, updatedAt: long });
+    });
+    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map((issue) => issue.title);
+    expect(titles).toEqual(["Done first", "Done second", "Undated recent"]);
+  });
+
+  it("returns list rows without descriptions (the issue page has them)", async () => {
+    const { as, create, spaceId, memberId } = await setUp();
+    const { key } = await create("Described", { description: "A long description", assigneeId: memberId });
+    const [row] = await as.query(api.issues.listBySpace, { spaceId });
+    expect(row).not.toHaveProperty("description");
+    expect(row).toMatchObject({ key, title: "Described" });
+    const [mine] = await as.query(api.issues.listMine, {});
+    expect(mine).not.toHaveProperty("description");
+    expect((await as.query(api.issues.get, { key }))!.issue.description).toBe("A long description");
+  });
+
   it("lists my open issues", async () => {
     const { t, as, create, status, memberId, partnerId } = await setUp();
     await create("Mine todo", { assigneeId: memberId });

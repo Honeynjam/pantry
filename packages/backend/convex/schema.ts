@@ -128,6 +128,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_space_and_status", ["spaceId", "statusId", "sortOrder"])
+    // Recently done/canceled issues of a column without reading the old ones (issues.listBySpace).
+    .index("by_space_status_and_completed", ["spaceId", "statusId", "completedAt"])
     .index("by_project", ["projectId"])
     .index("by_assignee_and_category", ["assigneeId", "statusCategory"])
     .index("by_parent", ["parentId"])

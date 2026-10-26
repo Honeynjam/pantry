@@ -24,7 +24,7 @@ import { FilterBar, useIssueFilters } from "../issues/filter-bar";
 import { applyFilters, EMPTY_FILTERS, hasFilters, parseGroup, serializeGroup, slug, type GroupBy } from "../issues/filters";
 import { IssueRow } from "../issues/issue-row";
 import { SelectionProvider, useIssueSelection } from "../issues/selection";
-import { statusColor, useLookups, type Lookups } from "../issues/lookups";
+import { statusColor, useLookups, type Lookups, type ListIssue } from "../issues/lookups";
 import type { NewIssueDefaults } from "../issues/new-issue-dialog";
 import { useNavigation } from "../navigation";
 import { useAppCommands } from "../shell/app-commands";
@@ -184,7 +184,7 @@ export function NoMatches({ onClear }: { onClear: () => void }) {
 }
 
 export type BoardProps = {
-  issues: Doc<"issues">[];
+  issues: ListIssue[];
   lookups: Lookups;
   space: Doc<"spaces">;
   newIssue: (defaults?: NewIssueDefaults) => void;
@@ -193,15 +193,15 @@ export type BoardProps = {
 
 /** One list section or board lane: a status, or a project ("No project" when `project` is null). */
 type Group =
-  | { kind: "status"; id: string; status: Doc<"statuses">; issues: Doc<"issues">[] }
-  | { kind: "project"; id: string; project: Project | null; issues: Doc<"issues">[] };
+  | { kind: "status"; id: string; status: Doc<"statuses">; issues: ListIssue[] }
+  | { kind: "project"; id: string; project: Project | null; issues: ListIssue[] };
 
 /**
  * Issues in sections. By status: one per status that has issues. By project: one per project of
  * the space that has issues, in the space's order, then "No project"; rows keep status order.
  */
 export function groupIssues(
-  issues: Doc<"issues">[],
+  issues: ListIssue[],
   groupBy: GroupBy,
   statuses: Doc<"statuses">[],
   projects: Project[],
@@ -212,7 +212,7 @@ export function groupIssues(
       .filter((group) => group.issues.length > 0);
   }
   const order = new Map(statuses.map((status, index) => [status._id, index]));
-  const byStatus = (rows: Doc<"issues">[]) =>
+  const byStatus = (rows: ListIssue[]) =>
     [...rows].sort((a, b) => (order.get(a.statusId) ?? 0) - (order.get(b.statusId) ?? 0) || a.sortOrder - b.sortOrder);
   const known = new Set(projects.map((project) => project._id));
   return [
@@ -232,10 +232,10 @@ export function groupIssues(
 }
 
 /** Parent keys and sub-issue lists, from the issues already loaded. */
-export function useIssueFamily(issues: Doc<"issues">[]) {
+export function useIssueFamily(issues: ListIssue[]) {
   return useMemo(() => {
     const byId = new Map(issues.map((issue) => [issue._id, issue]));
-    const children = new Map<Id<"issues">, Doc<"issues">[]>();
+    const children = new Map<Id<"issues">, ListIssue[]>();
     for (const issue of issues) {
       if (!issue.parentId) continue;
       children.set(issue.parentId, [...(children.get(issue.parentId) ?? []), issue]);
@@ -251,7 +251,7 @@ export function IssueList({
   groupBy = "status",
   projects = [],
 }: {
-  issues: Doc<"issues">[];
+  issues: ListIssue[];
   lookups: Lookups;
   newIssue: (defaults?: NewIssueDefaults) => void;
   groupBy?: GroupBy;

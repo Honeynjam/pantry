@@ -1,6 +1,7 @@
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import type { Project } from "@pantry/backend/model";
 import { PRIORITIES, type Priority } from "@pantry/ui/lib/issue-meta";
+import type { ListIssue } from "./lookups";
 
 /**
  * List and board filters (spec §3, §4): status, assignee, label and priority, plus `/`'s title
@@ -98,7 +99,7 @@ export type FilterContext = {
 };
 
 /** The issues that pass every active facet and contain every word of the title text. */
-export function applyFilters<T extends Doc<"issues">>(issues: ReadonlyArray<T>, filters: Filters, context: FilterContext): T[] {
+export function applyFilters<T extends ListIssue>(issues: ReadonlyArray<T>, filters: Filters, context: FilterContext): T[] {
   const words = filters.q.toLowerCase().split(/\s+/).filter(Boolean);
   // Names to ids. A name that matches nothing (renamed, deleted) still filters, to nothing.
   const byName = (rows: ReadonlyArray<{ _id: string; name: string }>, slugs: string[]) =>

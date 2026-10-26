@@ -15,8 +15,23 @@ export const RECENT_DONE_MS = 14 * 24 * 60 * 60 * 1000;
 const app = (member: Doc<"members">): Actor => ({ member, via: "app" });
 
 /**
+ * An issue as lists and boards show it: everything but the description, which only the issue page
+ * reads (`issues.get`). Descriptions are most of an issue's size, and a live list is re-sent whole on
+ * every change to any of its issues.
+ */
+export function listRow(issue: Doc<"issues">) {
+  const { description: _description, ...row } = issue;
+  return row;
+}
+
+/** Column order: `sortOrder`, then creation (the `by_space_and_status` index order). */
+const byColumnOrder = (a: Doc<"issues">, b: Doc<"issues">) => a.sortOrder - b.sortOrder || a._creationTime - b._creationTime;
+
+/**
  * Issues of one space, ordered by status (workspace order) then `sortOrder`; with `projectId`, only
- * that project's (it must be in the space).
+ * that project's (it must be in the space). Done and canceled issues completed more than 14 days ago
+ * are left out unless `includeDone`, and they aren't read either: those columns are read through
+ * `by_space_status_and_completed` from the cutoff on, so old done issues cost nothing.
  */
 export const listBySpace = query({
   args: { spaceId: v.id("spaces"), projectId: v.optional(v.id("projects")), includeDone: v.optional(v.boolean()) },
@@ -36,20 +51,39 @@ export const listBySpace = query({
     const since = Date.now() - RECENT_DONE_MS;
     const columns = await Promise.all(
       statuses.map(async (status) => {
-        const issues = await ctx.db
-          .query("issues")
-          .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", status._id))
-          .collect();
-        const inProject = projectId ? issues.filter((issue) => issue.projectId === projectId) : issues;
-        if (includeDone || !isTerminal(status.category)) return inProject;
-        return inProject.filter((issue) => (issue.completedAt ?? issue.updatedAt) >= since);
+        let issues: Doc<"issues">[];
+        if (includeDone || !isTerminal(status.category)) {
+          issues = await ctx.db
+            .query("issues")
+            .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", status._id))
+            .collect();
+        } else {
+          const [recent, undated] = await Promise.all([
+            ctx.db
+              .query("issues")
+              .withIndex("by_space_status_and_completed", (q) =>
+                q.eq("spaceId", spaceId).eq("statusId", status._id).gte("completedAt", since),
+              )
+              .collect(),
+            // Every done/canceled issue has completedAt (changeStatus and createIssue set it); this
+            // keeps the old fallback to updatedAt for any row that somehow doesn't.
+            ctx.db
+              .query("issues")
+              .withIndex("by_space_status_and_completed", (q) =>
+                q.eq("spaceId", spaceId).eq("statusId", status._id).eq("completedAt", undefined),
+              )
+              .collect(),
+          ]);
+          issues = [...recent, ...undated.filter((issue) => issue.updatedAt >= since)].sort(byColumnOrder);
+        }
+        return projectId ? issues.filter((issue) => issue.projectId === projectId) : issues;
       }),
     );
-    return columns.flat();
+    return columns.flat().map(listRow);
   },
 });
 
-/** My open issues (unstarted, started, review), most recently updated first. */
+/** My open issues (unstarted, started, review), most recently updated first, as list rows. */
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
@@ -62,7 +96,10 @@ export const listMine = query({
           .collect(),
       ),
     );
-    return groups.flat().sort((a, b) => b.updatedAt - a.updatedAt);
+    return groups
+      .flat()
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .map(listRow);
   },
 });
 
@@ -104,7 +141,7 @@ export const get = query({
       // Only a workstream; on an M2 issue projectId still means its M2 project (the space).
       project: project && isProject(project) ? project : null,
       parent: parent ? { _id: parent._id, key: parent.key, title: parent.title, statusId: parent.statusId } : null,
-      subIssues: subIssues.sort((a, b) => a.number - b.number),
+      subIssues: subIssues.sort((a, b) => a.number - b.number).map(listRow),
       comments,
       activity: activity.reverse(),
     };

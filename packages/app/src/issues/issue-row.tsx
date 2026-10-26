@@ -1,6 +1,5 @@
 "use client";
 
-import type { Doc } from "@pantry/backend/dataModel";
 import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
@@ -11,7 +10,7 @@ import { CornerDownRightIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { routes, useNavigation } from "../navigation";
 import type { IssueActions } from "./actions";
-import type { Lookups } from "./lookups";
+import type { Lookups, ListIssue } from "./lookups";
 import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker } from "./pickers";
 import { useSelection } from "./selection";
 import { SubIssueProgress } from "./sub-issue-progress";
@@ -29,11 +28,11 @@ export function IssueRow({
   parentKey,
   subIssues,
 }: {
-  issue: Doc<"issues">;
+  issue: ListIssue;
   lookups: Lookups;
   actions: IssueActions;
   parentKey?: string;
-  subIssues?: Doc<"issues">[];
+  subIssues?: ListIssue[];
 }) {
   const { Link } = useNavigation();
   const { data } = lookups;

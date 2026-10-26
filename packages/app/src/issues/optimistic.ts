@@ -2,6 +2,7 @@ import { api } from "@pantry/backend/api";
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import type { OptimisticLocalStore } from "convex/browser";
 import type { FunctionArgs } from "convex/server";
+import type { ListIssue } from "./lookups";
 
 /**
  * Optimistic updates (spec §10b M3 task 4): the cached `issues.listByProject`, `issues.listMine`,
@@ -10,9 +11,12 @@ import type { FunctionArgs } from "convex/server";
  *
  * Query results are shared, frozen-in-spirit client state: every change here builds new arrays
  * and objects and never touches what `getQuery` returned.
+ *
+ * Lists carry issues without their description (`ListIssue`); only `issues.get`'s issue has one.
+ * The builders are generic over both, so each cached copy keeps its own shape.
  */
 
-type Issue = Doc<"issues">;
+type Issue = ListIssue;
 type MoveArgs = FunctionArgs<typeof api.issues.move>;
 type UpdateArgs = FunctionArgs<typeof api.issues.update>;
 type CommentArgs = FunctionArgs<typeof api.comments.add>;
@@ -70,7 +74,7 @@ export function placeInColumn(column: ReadonlyArray<Issue>, args: Pick<MoveArgs,
 }
 
 /** Replace one issue in every cached query that shows it. `next` builds the new copy. */
-function replaceEverywhere(store: OptimisticLocalStore, issueId: Id<"issues">, next: (issue: Issue) => Issue) {
+function replaceEverywhere(store: OptimisticLocalStore, issueId: Id<"issues">, next: <T extends Issue>(issue: T) => T) {
   for (const { args, value } of store.getAllQueries(api.issues.get)) {
     if (!value) continue;
     const isIt = value.issue._id === issueId;
@@ -148,7 +152,7 @@ export function optimisticMove(store: OptimisticLocalStore, args: MoveArgs, now 
     );
   }
   const result = moved ?? build(current, []);
-  replaceEverywhere(store, args.issueId, (issue) => ({
+  replaceEverywhere(store, args.issueId, <T extends Issue>(issue: T): T => ({
     ...issue,
     statusId: result.statusId,
     statusCategory: result.statusCategory,
@@ -168,16 +172,15 @@ export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, 
   const current = findIssue(store, args.issueId);
   if (!current) return;
   const setsProject = args.projectId !== undefined && !current.parentId;
-  const withProject = (issue: Issue): Issue => {
-    const next: Issue = { ...issue, updatedAt: now };
+  const withProject = <T extends Issue>(issue: T): T => {
+    const next: T = { ...issue, updatedAt: now };
     if (args.projectId === null) delete next.projectId;
     else if (args.projectId !== undefined) next.projectId = args.projectId;
     return next;
   };
-  const apply = (issue: Issue): Issue => {
-    const next: Issue = setsProject ? withProject(issue) : { ...issue, updatedAt: now };
+  const apply = <T extends Issue>(issue: T): T => {
+    const next: T = setsProject ? withProject(issue) : { ...issue, updatedAt: now };
     if (args.title !== undefined) next.title = args.title.trim().replace(/\s+/g, " ");
-    if (args.description !== undefined) next.description = args.description;
     if (args.priority !== undefined) next.priority = args.priority;
     if (args.labelIds !== undefined) next.labelIds = [...args.labelIds];
     if (args.assigneeId !== undefined) {
@@ -189,7 +192,8 @@ export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, 
       else next.dueDate = args.dueDate;
     }
     // Parent changes reshape sub-issue lists and run server checks: they wait for the server.
-    return next;
+    // Only the issue page's copy carries the description.
+    return args.description !== undefined && "description" in issue ? { ...next, description: args.description } : next;
   };
   const isChild = (issue: Issue) => setsProject && issue.parentId === args.issueId;
 

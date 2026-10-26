@@ -4,7 +4,8 @@ import { resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { useMemo } from "react";
 import type { WorkspaceData } from "../shell/app-shell";
 
-export type Issue = Doc<"issues">;
+/** An issue as lists, boards and My issues get it: everything but the description (the issue page loads that). */
+export type ListIssue = Omit<Doc<"issues">, "description">;
 
 /** Id → row maps over the workspace data the shell already subscribes to. */
 export type Lookups = {

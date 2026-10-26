@@ -1,6 +1,6 @@
 "use client";
 
-import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Id } from "@pantry/backend/dataModel";
 import { CircleDotIcon, CalendarIcon, SignalIcon, TagIcon, UserRoundIcon, UserRoundCheckIcon, XIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { usePaletteActions, type PaletteAction } from "../palette/palette-action
 import { rememberListLocation } from "../shell/locations";
 import { useShortcut, useShortcutMap, useShortcutScope } from "../use-shortcuts";
 import type { IssueActions } from "./actions";
-import type { Lookups } from "./lookups";
+import type { Lookups, ListIssue } from "./lookups";
 import { assignToMe, useQuickEdit, type QuickEditKind } from "./quick-edit";
 
 /**
@@ -67,7 +67,7 @@ export function useIssueSelection({
   actions,
   container,
 }: {
-  ordered: ReadonlyArray<Doc<"issues">>;
+  ordered: ReadonlyArray<ListIssue>;
   lookups: Lookups;
   actions: IssueActions;
   container: RefObject<HTMLElement | null>;
@@ -94,7 +94,7 @@ export function useIssueSelection({
     cursorRef.current = cursor;
   });
 
-  const targets = (): Doc<"issues">[] => {
+  const targets = (): ListIssue[] => {
     if (selected.size > 0) return ordered.filter((issue) => selected.has(issue._id));
     const issue = cursor ? ordered.find((row) => row._id === cursor) : undefined;
     return issue ? [issue] : [];
@@ -211,7 +211,7 @@ export function useIssueSelection({
 /**
  * Issue detail: the same letter keys act on the open issue (no cursor needed), in the `issue` scope.
  */
-export function useIssueQuickEdit(issue: Doc<"issues">, lookups: Lookups, actions: IssueActions) {
+export function useIssueQuickEdit(issue: ListIssue, lookups: Lookups, actions: IssueActions) {
   const issues = useMemo(() => [issue], [issue]);
   const quickEdit = useQuickEdit(lookups, actions, issues);
   useShortcutMap("issue", Object.fromEntries(QUICK_EDITS.map((item) => [item.id, () => quickEdit.open(item.kind, issues)])));

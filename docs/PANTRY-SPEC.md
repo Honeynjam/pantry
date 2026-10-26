@@ -102,7 +102,7 @@ Users/sessions/accounts live in the Better Auth Convex component's tables; our t
 | `projects` | workspaceId, spaceId, name (unique per space, ignoring case), color?, sortOrder, archivedAt? | `by_space`, `by_space_and_name` |
 | `statuses` | workspaceId, name, category (`backlog`\|`unstarted`\|`started`\|`review`\|`done`\|`canceled`), order, color | `by_workspace_and_order` |
 | `labels` | workspaceId, name, color | `by_workspace` |
-| `issues` | workspaceId, spaceId, projectId? (→projects, same space), number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_space_and_status`, `by_project`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`; search index `search_title` |
+| `issues` | workspaceId, spaceId, projectId? (→projects, same space), number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_space_and_status`, `by_space_status_and_completed`, `by_project`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`; search index `search_title` |
 | `comments` | issueId, authorId (→members), body (md), via (`app`\|`mcp`), editedAt? | `by_issue` |
 | `activity` | workspaceId, issueId, actorId? (→members), type, from?, to?, via (`app`\|`mcp`) | `by_issue`, `by_workspace` |
 | `docs` | workspaceId, spaceId?, kind (`space_context` in v0.1), title, body (md), updatedBy, updatedAt | `by_space_and_kind` |
@@ -487,6 +487,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_space_and_status", ["spaceId", "statusId", "sortOrder"])
+    .index("by_space_status_and_completed", ["spaceId", "statusId", "completedAt"]) // recent done, unread old
     .index("by_project", ["projectId"])
     .index("by_assignee_and_category", ["assigneeId", "statusCategory"])
     .index("by_parent", ["parentId"])
@@ -569,9 +570,9 @@ The UI's whole backend surface; Claude Code builds exactly these (plus `setup.ts
 | `projects.create` / `projects.update` / `projects.archive` / `projects.reorder` | mutation | `{ spaceId, name, color? }` / `{ projectId, name?, color?: string \| null }` / `{ projectId }` (its issues keep their space, with no project) / `{ spaceId, projectIds: Id[] }` |
 | `labels.create` / `labels.update` / `labels.remove` | mutation | `{ name, color }` / `{ labelId, name?, color? }` / `{ labelId }` (also pulls it from issues' `labelIds`) |
 | `statuses.update` / `statuses.reorder` | mutation | `{ statusId, name?, color? }` / `{ statusIds: Id[] }`. No create/delete in v0.1: the six defaults cover it |
-| `issues.listBySpace` | query | `{ spaceId, projectId?, includeDone?: boolean }` → issues ordered by status then `sortOrder` (only that project's with `projectId`); done/canceled only from the last 14 days unless `includeDone` |
-| `issues.listMine` | query | `{}` → my issues in categories `unstarted`, `started`, `review` |
-| `issues.get` | query | `{ key }` → issue, its space and project, sub-issues, comments, last 100 activity rows |
+| `issues.listBySpace` | query | `{ spaceId, projectId?, includeDone?: boolean }` → issues without `description` ordered by status then `sortOrder` (only that project's with `projectId`); done/canceled only from the last 14 days unless `includeDone`, read through `by_space_status_and_completed` so older ones aren't read |
+| `issues.listMine` | query | `{}` → my issues (without `description`) in categories `unstarted`, `started`, `review` |
+| `issues.get` | query | `{ key }` → issue, its space and project, sub-issues (without `description`), comments, last 100 activity rows |
 | `issues.search` | query | `{ text, spaceId?, projectId? }` → up to 20 matches from `search_title`; an exact key match (`PAN-42`) comes first |
 | `issues.create` | mutation | `{ spaceId, projectId?: Id \| null, title, description?, statusId?, priority?, assigneeId?, labelIds?, parentId?, dueDate? }` → `{ issueId, key }` |
 | `issues.update` | mutation | `{ issueId, title?, description?, priority?, assigneeId?: Id \| null, labelIds?, dueDate?: string \| null, parentId?: Id \| null, projectId?: Id \| null }`; one activity row per changed field (`project_changed` for the project); parent and project changes go through the sub-issue helper; never changes status |

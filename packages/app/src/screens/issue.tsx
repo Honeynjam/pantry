@@ -35,7 +35,7 @@ import { ConfirmDialog } from "../components/confirm-dialog";
 import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
-import { statusColor, useLookups, type Lookups } from "../issues/lookups";
+import { statusColor, useLookups, type ListIssue, type Lookups } from "../issues/lookups";
 import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "../issues/pickers";
 import { useIssueQuickEdit } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
@@ -292,7 +292,7 @@ function SubIssueList({
   lookups,
   actions,
 }: {
-  subIssues: Doc<"issues">[];
+  subIssues: ListIssue[];
   lookups: Lookups;
   actions: IssueActions;
 }) {

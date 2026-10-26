@@ -39,7 +39,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
-import { statusColor, type Lookups } from "../issues/lookups";
+import { statusColor, type Lookups, type ListIssue } from "../issues/lookups";
 import { SelectionProvider, useIssueSelection, useSelection } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { formatDay, today } from "../lib/format";
@@ -123,7 +123,7 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
     [groupBy, projects],
   );
   const laneOf = useCallback(
-    (issue: Doc<"issues">) =>
+    (issue: ListIssue) =>
       groupBy !== "project" ? "all" : issue.projectId && projects.some((p) => p._id === issue.projectId) ? issue.projectId : "none",
     [groupBy, projects],
   );
@@ -131,7 +131,7 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   // Cells in list order. A drop shows at once: issues.move/update are optimistic, so `issues`
   // already has the card in its new place (and Convex puts it back if the server refuses).
   const columns = useMemo(() => {
-    const cells = new Map<string, Doc<"issues">[]>();
+    const cells = new Map<string, ListIssue[]>();
     for (const lane of lanes) for (const status of statuses) cells.set(cellKey(lane.id, status._id), []);
     for (const issue of issues) cells.get(cellKey(laneOf(issue), issue.statusId))?.push(issue);
     return cells;
@@ -248,7 +248,7 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
 
   const active = activeId ? issueById(activeId) : undefined;
   const renderCard = (lane: string) =>
-    function render(issue: Doc<"issues">) {
+    function render(issue: ListIssue) {
       return (
         <Card
           issue={issue}
@@ -417,13 +417,13 @@ function Column({
   lane: string;
   laneName?: string;
   status: Doc<"statuses">;
-  issues: Doc<"issues">[];
+  issues: ListIssue[];
   activeId: Id<"issues"> | null;
   indicator: number | null;
   onNewIssue: () => void;
   /** Swimlanes show the status headers once, above the lanes. */
   header?: boolean;
-  children: (issue: Doc<"issues">) => ReactNode;
+  children: (issue: ListIssue) => ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnId(lane, status._id), data: { lane, statusId: status._id } });
   // The indicator index counts the other cards, so skip the dragged one when placing it.
@@ -472,11 +472,11 @@ function Card({
   dimmed,
   justDropped,
 }: {
-  issue: Doc<"issues">;
+  issue: ListIssue;
   lane: string;
   lookups: Lookups;
   parentKey?: string;
-  subIssues?: Doc<"issues">[];
+  subIssues?: ListIssue[];
   dimmed: boolean;
   justDropped: React.RefObject<number>;
 }) {
@@ -563,10 +563,10 @@ function CardBody({
   select,
   children,
 }: {
-  issue: Doc<"issues">;
+  issue: ListIssue;
   lookups: Lookups;
   parentKey?: string;
-  subIssues?: Doc<"issues">[];
+  subIssues?: ListIssue[];
   lifted?: boolean;
   selected?: boolean;
   /** The multi-select checkbox, before the key. */

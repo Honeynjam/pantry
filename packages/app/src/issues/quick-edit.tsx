@@ -1,6 +1,6 @@
 "use client";
 
-import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Id } from "@pantry/backend/dataModel";
 import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import {
   Command,
@@ -23,7 +23,7 @@ import { addDays, formatDay, today } from "../lib/format";
 import { highlightRuns, rank } from "../palette/rank";
 import { useShortcutScope } from "../use-shortcuts";
 import type { IssueActions } from "./actions";
-import { statusColor, type Lookups } from "./lookups";
+import { statusColor, type Lookups, type ListIssue } from "./lookups";
 
 /** The properties `S`, `A`, `L`, `P` and `D` edit. */
 export type QuickEditKind = "status" | "assignee" | "labels" | "priority" | "dueDate";
@@ -63,13 +63,13 @@ const plural = (count: number, one: string) => `${count} ${count === 1 ? one : `
 export function useQuickEdit(
   lookups: Lookups,
   actions: IssueActions,
-  issues: ReadonlyArray<Doc<"issues">>,
+  issues: ReadonlyArray<ListIssue>,
   /** The element to focus when the picker closes (the cursor's row); default: where focus was. */
   returnFocus?: () => HTMLElement | null,
 ) {
   const [state, setState] = useState<{ kind: QuickEditKind; ids: Id<"issues">[] } | null>(null);
 
-  const open = useCallback((kind: QuickEditKind, targets: ReadonlyArray<Doc<"issues">>) => {
+  const open = useCallback((kind: QuickEditKind, targets: ReadonlyArray<ListIssue>) => {
     if (targets.length > 0) setState({ kind, ids: targets.map((issue) => issue._id) });
   }, []);
 
@@ -94,7 +94,7 @@ export function useQuickEdit(
 }
 
 /** `I`: assign every target to me, one mutation per issue that isn't mine yet. */
-export function assignToMe(targets: ReadonlyArray<Doc<"issues">>, lookups: Lookups, actions: IssueActions) {
+export function assignToMe(targets: ReadonlyArray<ListIssue>, lookups: Lookups, actions: IssueActions) {
   const me = lookups.data.me._id;
   const todo = targets.filter((issue) => issue.assigneeId !== me);
   if (todo.length === 0) {
@@ -105,14 +105,14 @@ export function assignToMe(targets: ReadonlyArray<Doc<"issues">>, lookups: Looku
   if (todo.length > 1) toast(`Assigned ${plural(todo.length, "issue")} to you`);
 }
 
-function shared<T>(targets: ReadonlyArray<Doc<"issues">>, read: (issue: Doc<"issues">) => T, value: T): boolean | "mixed" {
+function shared<T>(targets: ReadonlyArray<ListIssue>, read: (issue: ListIssue) => T, value: T): boolean | "mixed" {
   const hits = targets.filter((issue) => read(issue) === value).length;
   return hits === 0 ? false : hits === targets.length ? true : "mixed";
 }
 
 function buildOptions(
   kind: QuickEditKind,
-  targets: ReadonlyArray<Doc<"issues">>,
+  targets: ReadonlyArray<ListIssue>,
   lookups: Lookups,
   actions: IssueActions,
   query: string,
@@ -238,7 +238,7 @@ function QuickEditDialog({
   returnFocus,
 }: {
   kind: QuickEditKind | null;
-  targets: ReadonlyArray<Doc<"issues">>;
+  targets: ReadonlyArray<ListIssue>;
   lookups: Lookups;
   actions: IssueActions;
   onClose: () => void;
@@ -285,7 +285,7 @@ function QuickEditBody({
   close,
 }: {
   kind: QuickEditKind;
-  targets: ReadonlyArray<Doc<"issues">>;
+  targets: ReadonlyArray<ListIssue>;
   lookups: Lookups;
   actions: IssueActions;
   query: string;

@@ -84,7 +84,7 @@ function setUp() {
   return { store, list, before };
 }
 
-const keys = (issues: ReadonlyArray<Doc<"issues">> | undefined) => issues?.map((row) => row.key);
+const keys = (issues: ReadonlyArray<{ key: string }> | undefined) => issues?.map((row) => row.key);
 
 describe("optimistic updates", () => {
   it("moves an issue: new status, category, completedAt, top of the column, re-sorted", () => {
@@ -142,6 +142,20 @@ describe("optimistic updates", () => {
     // A sub-issue can't take its own project: left for the server to refuse.
     optimisticUpdate(store, { issueId: child._id, projectId: id("p-c") }, 902);
     expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![1]!.projectId).toBeUndefined();
+  });
+
+  it("edits the description on the issue page's copy only: list rows don't carry one", () => {
+    const store = fakeStore();
+    const full = issue(1, "unstarted", 1, { description: "Old" });
+    const { description: _description, ...row } = full;
+    store.setQuery(api.workspace.current, {}, { me, statuses, members: [me], labels: [], spaces: [], projects: [] });
+    store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, [row]);
+    store.setQuery(api.issues.get, { key: "PAN-1" }, { issue: full, space: null, project: null, parent: null, subIssues: [], comments: [], activity: [] });
+    optimisticUpdate(store, { issueId: full._id, description: "New", title: "Renamed" }, 950);
+    expect(store.getQuery(api.issues.get, { key: "PAN-1" })!.issue).toMatchObject({ description: "New", title: "Renamed" });
+    const listed = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![0]!;
+    expect(listed).toMatchObject({ title: "Renamed", updatedAt: 950 });
+    expect(listed).not.toHaveProperty("description");
   });
 
   it("adds a comment from me at the end of the thread", () => {
