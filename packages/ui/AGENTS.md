@@ -17,7 +17,7 @@ The root AGENTS.md still applies; these rules are on top of it.
 ## Motion rules
 
 - Animate only with the motion tokens in src/lib/motion.ts (springs smooth / snappy / morph, the durations and
-  eases) or their CSS mirrors in globals.css (--duration-*, --ease-*).
+  eases) or their CSS mirrors in globals.css (`--duration-*`, `--ease-*`).
 - Animate transform and opacity; one continuous movement per state change; springs for anything the user can
   reverse; exits faster than entrances; presses scale to pressScale, except elements that anchor a menu or popover.
   No scroll reveals or decorative loops.
