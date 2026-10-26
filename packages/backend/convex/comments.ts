@@ -1,18 +1,10 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type MutationCtx } from "./_generated/server";
-import { logActivity } from "./lib/activity";
 import { requireMember } from "./lib/auth";
+import { addComment, cleanBody } from "./lib/comments";
 import { fail, notFound } from "./lib/errors";
 import { getIssue } from "./lib/issues";
-
-const MAX_BODY = 20_000;
-
-function cleanBody(body: string): string {
-  if (!body.trim()) fail("EMPTY", "Write something first.");
-  if (body.length > MAX_BODY) fail("TOO_LONG", `Comments can be at most ${MAX_BODY.toLocaleString("en")} characters.`);
-  return body;
-}
 
 /** A comment the caller wrote, in their workspace. Only authors edit or remove their comments. */
 async function ownComment(ctx: MutationCtx, me: Doc<"members">, commentId: Id<"comments">) {
@@ -29,10 +21,7 @@ export const add = mutation({
   handler: async (ctx, { issueId, body }) => {
     const me = await requireMember(ctx);
     const issue = await getIssue(ctx, me.workspaceId, issueId);
-    const commentId = await ctx.db.insert("comments", { issueId, authorId: me._id, body: cleanBody(body), via: "app" });
-    await ctx.db.patch("issues", issue._id, { updatedAt: Date.now() });
-    await logActivity(ctx, { member: me, via: "app" }, issue, "commented");
-    return commentId;
+    return addComment(ctx, { member: me, via: "app" }, issue, body);
   },
 });
 
