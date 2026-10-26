@@ -12,7 +12,9 @@ import {
 } from "@pantry/ui/components/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pantry/ui/components/field";
 import { Input } from "@pantry/ui/components/input";
+import { PantryAvatarPicker } from "@pantry/ui/components/pantry-avatar-picker";
 import { SegmentedControl } from "@pantry/ui/components/segmented-control";
+import { randomPantryAvatar } from "@pantry/ui/lib/pantry-avatars";
 import { useMutation } from "convex/react";
 import { useState, type FormEvent } from "react";
 import { routes, useNavigation } from "../navigation";
@@ -37,6 +39,7 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   const { navigate } = useNavigation();
   const [name, setName] = useState("");
   const [key, setKey] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState(randomPantryAvatar);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const shownKey = key ?? suggestKey(name);
@@ -44,6 +47,7 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   function reset() {
     setName("");
     setKey(null);
+    setAvatar(randomPantryAvatar());
     setKind("product");
     setError(null);
   }
@@ -54,7 +58,7 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     setPending(true);
     setError(null);
     try {
-      const created = await createSpace({ name, key: shownKey, kind });
+      const created = await createSpace({ name, key: shownKey, kind, avatar });
       onOpenChange(false);
       reset();
       navigate(routes.space(created.key));
@@ -82,15 +86,24 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           <FieldGroup className="gap-3">
             <Field>
               <FieldLabel htmlFor="new-space-name">Name</FieldLabel>
-              <Input
-                id="new-space-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Pantry, or Acme Ltd"
-                required
-                autoFocus
-                autoComplete="off"
-              />
+              <div className="flex items-center gap-2">
+                <PantryAvatarPicker
+                  value={avatar}
+                  onChange={setAvatar}
+                  seed="new-space"
+                  label="Space avatar"
+                  className="-my-1 -ml-1"
+                />
+                <Input
+                  id="new-space-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g. Pantry, or Acme Ltd"
+                  required
+                  autoFocus
+                  autoComplete="off"
+                />
+              </div>
             </Field>
             <Field>
               <FieldLabel>Kind</FieldLabel>

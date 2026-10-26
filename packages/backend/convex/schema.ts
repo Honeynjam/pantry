@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { avatarValidator } from "./lib/avatar";
 
 export const via = v.union(v.literal("app"), v.literal("mcp"));
 export const category = v.union(
@@ -77,6 +78,7 @@ export default defineSchema({
     nextIssueNumber: v.number(),
     archivedAt: v.optional(v.number()),
     kind: v.optional(spaceKind), // "product" when missing
+    avatar: v.optional(avatarValidator), // unset: the app seeds one from the key
   })
     // Kept next to by_workspace_and_key (spec §10b): lists spaces in creation order.
     // eslint-disable-next-line @convex-dev/no-duplicate-indexes

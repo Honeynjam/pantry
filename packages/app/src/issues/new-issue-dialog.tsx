@@ -12,11 +12,11 @@ import { useMutation } from "convex/react";
 import { ChevronRightIcon } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { SpaceAvatar } from "../components/space-avatar";
 import { routes, useNavigation } from "../navigation";
 import { useShortcutScope } from "../use-shortcuts";
 import { describeError, FormError } from "../screens/form-error";
 import type { WorkspaceData } from "../shell/app-shell";
-import { spaceColor } from "../shell/space-color";
 import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "./pickers";
 
 export type NewIssueDefaults = {
@@ -131,7 +131,7 @@ function NewIssueForm({
       className="flex flex-col"
     >
       <div className="flex items-center gap-1.5 px-4 pt-3.5 text-xs text-muted-foreground">
-        <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+        <SpaceAvatar space={space} size="xs" />
         <span className="text-foreground">{space.name}</span>
         <ChevronRightIcon className="size-3" aria-hidden />
         {defaults.parent ? (

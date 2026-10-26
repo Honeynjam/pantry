@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { requireMember } from "./lib/auth";
+import { avatarValidator } from "./lib/avatar";
 import { SAMPLE_CONTEXT_DOC } from "./lib/defaults";
 import { fail } from "./lib/errors";
 import { getSpace } from "./lib/spaces";
@@ -9,10 +10,11 @@ import { spaceKind } from "./schema";
 
 /**
  * New space (a product or a client) with its context doc. The key is unique per workspace,
- * archived spaces included (their issues keep their keys), and fixed after creation.
+ * archived spaces included (their issues keep their keys), and fixed after creation. The app sends a
+ * random avatar the creator can change first; without one the space gets a look seeded from its key.
  */
 export const create = mutation({
-  args: { name: v.string(), key: v.string(), kind: v.optional(spaceKind) },
+  args: { name: v.string(), key: v.string(), kind: v.optional(spaceKind), avatar: v.optional(avatarValidator) },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const name = cleanName(args.name, "Space name");
@@ -39,6 +41,7 @@ export const create = mutation({
       key,
       nextIssueNumber: 1,
       ...(args.kind && args.kind !== "product" ? { kind: args.kind } : {}),
+      ...(args.avatar ? { avatar: args.avatar } : {}),
     });
     await ctx.db.insert("docs", {
       workspaceId: me.workspaceId,
@@ -63,6 +66,16 @@ export const update = mutation({
       ...(args.name !== undefined ? { name: cleanName(args.name, "Space name") } : {}),
       ...(args.kind !== undefined ? { kind: args.kind } : {}),
     });
+  },
+});
+
+/** Changes the space's avatar (shape, colour and eyes). */
+export const setAvatar = mutation({
+  args: { spaceId: v.id("spaces"), avatar: avatarValidator },
+  handler: async (ctx, args) => {
+    const me = await requireMember(ctx);
+    await getSpace(ctx, me.workspaceId, args.spaceId);
+    await ctx.db.patch("spaces", args.spaceId, { avatar: args.avatar });
   },
 });
 

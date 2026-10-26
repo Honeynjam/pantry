@@ -35,11 +35,12 @@ import type { Project } from "@pantry/backend/model";
 import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
+import { SpaceAvatar } from "../components/space-avatar";
 import { parseFilters, slug } from "../issues/filters";
 import { routes, useNavigation } from "../navigation";
 import { LoadingScreen } from "../screens/loading";
 import { AppCommandsProvider, useAppCommands } from "./app-commands";
-import { projectColor, spaceColor } from "./space-color";
+import { projectColor } from "./space-color";
 import { UserMenu } from "./user-menu";
 
 export type WorkspaceData = FunctionReturnType<typeof api.workspace.current>;
@@ -137,7 +138,7 @@ function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Pro
         }
       >
         <span className="flex size-4 items-center justify-center" aria-hidden>
-          <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} />
+          <SpaceAvatar space={space} size="xs" />
         </span>
         <span>{space.name}</span>
       </NavItem>

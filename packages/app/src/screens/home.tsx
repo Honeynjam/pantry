@@ -4,10 +4,10 @@ import { IssueKey } from "@pantry/ui/components/issue-key";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { FileTextIcon } from "lucide-react";
+import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { routes, useNavigation } from "../navigation";
 import { AppShell } from "../shell/app-shell";
-import { spaceColor } from "../shell/space-color";
 import { NotMemberScreen } from "./not-member";
 
 export function HomePage() {
@@ -47,7 +47,7 @@ function WorkspaceHome({ data }: { data: Parameters<Parameters<typeof AppShell>[
                 href={routes.space(space.key)}
                 className="flex h-row items-center gap-3 px-3 text-sm transition-colors duration-(--duration-instant) hover:bg-accent"
               >
-                <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+                <SpaceAvatar space={space} size="sm" />
                 <span className="font-medium text-foreground">{space.name}</span>
                 <IssueKey value={space.key} />
                 <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">

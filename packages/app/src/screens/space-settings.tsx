@@ -12,22 +12,24 @@ import { ColorPicker } from "@pantry/ui/components/color-picker";
 import { Input } from "@pantry/ui/components/input";
 import { SegmentedControl } from "@pantry/ui/components/segmented-control";
 import { LABEL_COLORS } from "@pantry/ui/lib/issue-meta";
+import { PantryAvatarPicker } from "@pantry/ui/components/pantry-avatar-picker";
+import type { PantryAvatarValue } from "@pantry/ui/lib/pantry-avatars";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import { InlineInput } from "../components/inline-input";
+import { SpaceAvatar, spaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { fullDate, timeAgo } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
 import { AppShell } from "../shell/app-shell";
-import { spaceColor } from "../shell/space-color";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
 import { SpaceNotFound, SpaceTitle } from "./space-chrome";
 import { SettingsEmpty, SettingsGroup, SettingsList, SettingsPanel, SettingsRow } from "./settings/parts";
 
-/** Space settings (spec §4): name, key, kind, projects, context doc, archive. */
+/** Space settings (spec §4): name, avatar, key, kind, projects, context doc, archive. */
 export function SpaceSettingsPage({ spaceKey }: { spaceKey: string }) {
   return (
     <EntryGate allow={["ready", "not-member"]}>
@@ -55,6 +57,9 @@ export function SpaceSettingsPage({ spaceKey }: { spaceKey: string }) {
 function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Project[] }) {
   const update = useMutation(api.spaces.update);
   const archive = useMutation(api.spaces.archive);
+  const saveAvatar = useMutation(api.spaces.setAvatar);
+  // Shown at once while the save is in flight, so clicking through looks feels instant.
+  const [pendingAvatar, setPendingAvatar] = useState<PantryAvatarValue | null>(null);
   const { navigate } = useNavigation();
   const [archiving, setArchiving] = useState(false);
   const save = async (patch: { name?: string; kind?: "product" | "client" }) => {
@@ -70,7 +75,7 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
       title="Space settings"
       description={
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+          <SpaceAvatar space={space} size="xs" />
           {space.name}
         </span>
       }
@@ -87,6 +92,25 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
               maxLength={80}
               className="h-7 flex-1"
               onSave={(name) => save({ name })}
+            />
+          </div>
+          <div className="flex min-h-row items-center gap-3 py-1 pr-1.5 pl-3 text-sm">
+            <span className="w-24 shrink-0 text-muted-foreground">Avatar</span>
+            <PantryAvatarPicker
+              value={pendingAvatar ?? spaceAvatar(space)}
+              seed={space.key}
+              label="Space avatar"
+              className="-my-0.5 -ml-1"
+              onChange={async (avatar) => {
+                setPendingAvatar(avatar);
+                try {
+                  await saveAvatar({ spaceId: space._id, avatar });
+                } catch (err) {
+                  toast.error(describeError(err, "Couldn't change the avatar."));
+                } finally {
+                  setPendingAvatar((shown) => (shown === avatar ? null : shown));
+                }
+              }}
             />
           </div>
           <div className="flex min-h-row items-center gap-3 px-3 py-1.5 text-sm">

@@ -5,9 +5,9 @@ import { Button } from "@pantry/ui/components/button";
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { NewSpaceDialog } from "../../components/new-space-dialog";
+import { SpaceAvatar } from "../../components/space-avatar";
 import { routes, useNavigation } from "../../navigation";
 import type { WorkspaceData } from "../../shell/app-shell";
-import { spaceColor } from "../../shell/space-color";
 import { SettingsEmpty, SettingsGroup, SettingsList, SettingsPanel } from "./parts";
 
 function projectCount(data: WorkspaceData, spaceId: string): string {
@@ -40,7 +40,7 @@ export function SpacesSettings({ data }: { data: WorkspaceData }) {
                   href={routes.spaceSettings(space.key)}
                   className="group flex h-row items-center gap-3 px-3 text-sm transition-colors duration-(--duration-instant) hover:bg-accent"
                 >
-                  <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+                  <SpaceAvatar space={space} size="sm" />
                   <span className="min-w-0 flex-1 truncate text-foreground">{space.name}</span>
                   <span className="text-xs text-muted-foreground">{space.kind === "client" ? "Client" : "Product"}</span>
                   <span className="text-xs text-muted-foreground tabular">
