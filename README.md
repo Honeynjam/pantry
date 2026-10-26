@@ -145,11 +145,20 @@ pnpm turbo typecheck lint test
 light and dark: open http://localhost:3000/design while `pnpm dev` runs. Production builds return 404 for `/design`
 unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 
+### Landing site
+
+`apps/site` is the one-page marketing site (http://localhost:3002 while `pnpm dev` runs). All copy lives in
+`apps/site/lib/content.ts`. It's deployed as its own Vercel project, separate from any Pantry instance:
+import this repo again, set **Root Directory** to `apps/site`, don't add Convex, then add the domain under
+Settings → Domains. Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://pantry.dev`) for canonical URLs and social cards; without
+it the site uses Vercel's production URL. `apps/site/vercel.json` skips builds when nothing the site depends on changed.
+
 ## Repo layout
 
 | Path | What |
 |---|---|
 | `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance`, `/api/mcp` |
+| `apps/site` | One-page landing site (Next.js, its own Vercel project; see Landing site above) |
 | `apps/desktop` | Tauri v2 Mac app. For now the M2 sign-in spike: see [`docs/spikes/tauri-auth.md`](docs/spikes/tauri-auth.md) (needs Rust; not part of the default checks) |
 | `packages/backend` | Convex functions, schema and Better Auth (`convex/`). All business logic lives here |
 | `packages/app` | Client-only React screens (shared by web and the Mac app) |

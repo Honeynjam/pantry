@@ -39,7 +39,7 @@ export function SiteNav({ stars }: { stars: number | null }) {
     >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-2 px-5 sm:px-8">
         <a href="#top" aria-label="Pantry home" className="mr-4 text-lg">
-          <PantryLogo />
+          <PantryLogo playful />
         </a>
 
         <NavigationMenu.Root className="max-md:hidden">

@@ -1,16 +1,25 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { brandName, hero } from "@/lib/content";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
+const title = `${brandName}: the issue tracker for small teams and their agents`;
+
 export const metadata: Metadata = {
-  title: `${brandName}: the issue tracker for small teams and their agents`,
+  metadataBase: siteUrl,
+  title,
   description: hero.lede,
-  openGraph: { title: brandName, description: hero.lede, type: "website" },
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", siteName: brandName, title, description: hero.lede, url: "/" },
+  twitter: { card: "summary_large_image", title, description: hero.lede },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fdfdfd",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fdfdfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0c0c" },
+  ],
   colorScheme: "light dark",
 };
 
