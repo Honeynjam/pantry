@@ -102,7 +102,7 @@ Users/sessions/accounts live in the Better Auth Convex component's tables; our t
 | `projects` | workspaceId, spaceId, name (unique per space, ignoring case), color?, sortOrder, archivedAt? | `by_space`, `by_space_and_name` |
 | `statuses` | workspaceId, name, category (`backlog`\|`unstarted`\|`started`\|`review`\|`done`\|`canceled`), order, color | `by_workspace_and_order` |
 | `labels` | workspaceId, name, color | `by_workspace` |
-| `issues` | workspaceId, spaceId, projectId? (→projects, same space), number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_space_and_status`, `by_space_status_and_completed`, `by_project`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`; search index `search_title` |
+| `issues` | workspaceId, spaceId, projectId? (→projects, same space), number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_space_and_status`, `by_space_status_and_completed`, `by_project`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`, `by_space_and_updated`, `by_assignee_and_updated`; search index `search_title` |
 | `comments` | issueId, authorId (→members), body (md), via (`app`\|`mcp`), editedAt? | `by_issue` |
 | `activity` | workspaceId, issueId, actorId? (→members), type, from?, to?, via (`app`\|`mcp`) | `by_issue`, `by_workspace` |
 | `docs` | workspaceId, spaceId?, kind (`space_context` in v0.1), title, body (md), updatedBy, updatedAt | `by_space_and_kind` |
@@ -493,6 +493,8 @@ export default defineSchema({
     .index("by_parent", ["parentId"])
     .index("by_workspace_and_key", ["workspaceId", "key"])
     .index("by_workspace_and_updated", ["workspaceId", "updatedAt"])
+    .index("by_space_and_updated", ["spaceId", "updatedAt"]) // MCP list_issues by space
+    .index("by_assignee_and_updated", ["assigneeId", "updatedAt"]) // MCP list_issues by assignee
     .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "spaceId", "projectId"] }),
 
   comments: defineTable({

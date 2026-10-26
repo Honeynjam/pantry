@@ -244,12 +244,25 @@ export const listIssues = query({
     const label = args.label !== undefined ? (await resolveLabelsByName(ctx, workspaceId, [args.label]))[0]! : null;
     const limit = Math.max(1, Math.min(MAX_LIST_LIMIT, Math.floor(args.limit ?? LIST_LIMIT)));
 
+    // Walk the narrowest newest-first index the filters allow, then filter in code and stop at
+    // `limit`: a space's issues, else an assignee's, else the workspace's.
     const matches: Doc<"issues">[] = [];
-    const newestFirst = ctx.db
-      .query("issues")
-      .withIndex("by_workspace_and_updated", (q) => q.eq("workspaceId", workspaceId))
-      .order("desc");
+    const newestFirst = space
+      ? ctx.db
+          .query("issues")
+          .withIndex("by_space_and_updated", (q) => q.eq("spaceId", space._id))
+          .order("desc")
+      : assignee
+        ? ctx.db
+            .query("issues")
+            .withIndex("by_assignee_and_updated", (q) => q.eq("assigneeId", assignee._id))
+            .order("desc")
+        : ctx.db
+            .query("issues")
+            .withIndex("by_workspace_and_updated", (q) => q.eq("workspaceId", workspaceId))
+            .order("desc");
     for await (const issue of newestFirst) {
+      if (issue.workspaceId !== workspaceId) continue;
       if (space && issue.spaceId !== space._id) continue;
       if (project !== undefined && issue.projectId !== (project?._id ?? undefined)) continue;
       if (status && issue.statusId !== status._id) continue;

@@ -232,6 +232,8 @@ describe("list_issues", () => {
     expect(keys(await list({ assignee: "me" }))).toEqual([a]);
     expect(keys(await list({ assignee: "none" }))).toEqual([c]);
     expect(keys(await list({ assignee: "partner" }))).toEqual([b]);
+    expect(keys(await list({ space: "PAN", assignee: "partner" }))).toEqual([b]);
+    expect(keys(await list({ space: "WEB", assignee: "me" }))).toEqual([]);
     expect(keys(await list({ label: "BUG" }))).toEqual([a]);
     expect(keys(await list({ priority: 3 }))).toEqual([b]);
     expect(keys(await list({ limit: 2 }))).toEqual([b, c]);

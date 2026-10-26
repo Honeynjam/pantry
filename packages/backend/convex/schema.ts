@@ -135,6 +135,9 @@ export default defineSchema({
     .index("by_parent", ["parentId"])
     .index("by_workspace_and_key", ["workspaceId", "key"])
     .index("by_workspace_and_updated", ["workspaceId", "updatedAt"])
+    // MCP list_issues: newest first inside one space, or one assignee's.
+    .index("by_space_and_updated", ["spaceId", "updatedAt"])
+    .index("by_assignee_and_updated", ["assigneeId", "updatedAt"])
     .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "spaceId", "projectId"] }),
 
   comments: defineTable({
