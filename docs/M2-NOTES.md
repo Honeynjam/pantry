@@ -36,9 +36,17 @@ Things the spec didn't pin down; built this way, easy to change.
    no-op for someone who is already a member, so a double submit can't fail. The sign-in page also takes
    `?invite=`, for a person who already has an account on the instance. The link is built from Convex `SITE_URL`
    (falls back to the browser's origin). `invites.create` returns `{ inviteId, token, url, expiresAt }`.
-2. **No invite preview.** Before sign-up the page can't show who invited you or prefill the email, because §10b's
-   function list has no public "peek" query. Adding `invites.peek({ token }) → { email, workspaceName }` would be
-   a small, safe addition if you want it.
+2. **Invite preview (added after M2, approved by Kris).** `invites.peek({ token })` →
+   `{ status: valid | expired | revoked | used | unknown, email, workspaceName }`. The invite sign-up page uses it
+   to pre-fill and lock the invited email, say "Join <workspace>", and show a plain message instead of the form
+   for a dead link. Email and workspace name come back only while the link is valid; it never looks at accounts,
+   so it can't reveal whether an email is registered. The pre-fill is UX only: the sign-up guard and
+   `invites.accept` still check the email on the server (tested with a tampered email).
+
+   **Functions that don't start with `requireMember`** (documented exceptions, all minimal):
+   `setup.status` (public: booleans for the entry gate), `setup.createWorkspace` (signed-in, before any member
+   exists), `invites.accept` (signed-in, not yet a member) and `invites.peek` (public: only the three fields
+   above, for whoever holds the token).
 3. **Names are unique, ignoring case**, for labels and statuses: MCP resolves both by name (§10b MCP tools).
 4. **Project keys** are unique per workspace *including archived projects* (their issues keep their keys). There's
    no unarchive in the spec, so none in the UI.

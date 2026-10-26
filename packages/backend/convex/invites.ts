@@ -128,6 +128,46 @@ export const list = query({
   },
 });
 
+export type InvitePeekStatus = "valid" | "expired" | "revoked" | "used" | "unknown";
+
+/** Longer than any token we hand out (`inv_` + 43 chars); anything bigger isn't worth hashing. */
+const MAX_TOKEN_LENGTH = 128;
+
+/**
+ * What the invite sign-up page shows before anyone is signed in: the invited email (pre-filled,
+ * locked), the workspace name and whether the link still works.
+ *
+ * Public and unauthenticated on purpose (documented exception to requireMember, like
+ * `setup.status`): the visitor has no account yet. It only answers for someone holding the
+ * token's plain text, finds the invite by its hash through one index lookup, and returns these
+ * three fields and nothing else. Email and workspace name are only returned while the link is
+ * valid. It never looks at accounts, so it can't tell anyone whether an email is registered.
+ * Pre-filling is UX only: the sign-up guard and `accept` check the email again on the server.
+ */
+export const peek = query({
+  args: { token: v.string() },
+  handler: async (
+    ctx,
+    { token },
+  ): Promise<{ status: InvitePeekStatus; email: string | null; workspaceName: string | null }> => {
+    const unknown = { status: "unknown" as const, email: null, workspaceName: null };
+    const trimmed = token.trim();
+    if (!trimmed.startsWith(INVITE_TOKEN_PREFIX) || trimmed.length > MAX_TOKEN_LENGTH) return unknown;
+    const hash = await sha256Hex(trimmed);
+    const invite = await ctx.db
+      .query("invites")
+      .withIndex("by_token_hash", (q) => q.eq("tokenHash", hash))
+      .first();
+    if (!invite) return unknown;
+    const state = inviteState(invite, Date.now());
+    if (state !== "pending") {
+      return { status: state === "accepted" ? "used" : state, email: null, workspaceName: null };
+    }
+    const workspace = await ctx.db.get("workspaces", invite.workspaceId);
+    return { status: "valid", email: invite.email, workspaceName: workspace?.name ?? null };
+  },
+});
+
 /**
  * Called right after sign-up (or sign-in) with the token from the link: checks the hash, the
  * email, revocation and expiry, then creates the `members` row. Like `setup.createWorkspace`, it
