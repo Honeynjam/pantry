@@ -17,6 +17,7 @@
   "scripts": {
     "dev": "CONVEX_AGENT_MODE=${CONVEX_AGENT_MODE-anonymous} convex dev --run migrations:run",
     "typecheck": "tsc --noEmit -p convex",
+    "lint:fix": "eslint . --fix",
     "lint": "eslint .",
     "test": "vitest run",
     "migrate": "bash ../../scripts/migrate.sh"

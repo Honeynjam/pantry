@@ -9,6 +9,7 @@
     "preview:web": "vite --port 3250 --strictPort",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build --debug --no-bundle"

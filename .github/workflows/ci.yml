@@ -1,5 +1,5 @@
-# Typecheck, lint, test and build the web app on every push and pull request. No secrets, no deploys: Convex tests run
-# against convex-test in memory, and convex/_generated is committed so nothing needs a backend.
+# `pnpm check` (format check, typecheck, lint, test, web build) on every push and pull request. No secrets, no
+# deploys: Convex tests run against convex-test in memory, and convex/_generated is committed so nothing needs a backend.
 name: CI
 
 on:
@@ -31,13 +31,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo typecheck lint test
-        env:
-          TURBO_TELEMETRY_DISABLED: "1"
-
-      # Production build of the web app (no Convex env needed). Catches server/client boundary
-      # mistakes that dev mode and typecheck miss, before they break a Vercel deploy.
-      - run: pnpm --filter @pantry/web build
+      # The same command you run locally: prettier --check, turbo typecheck lint test, then a
+      # production build of the web app (no Convex env needed). The build catches server/client
+      # boundary mistakes that dev mode and typecheck miss, before they break a Vercel deploy.
+      - run: pnpm check
         env:
           TURBO_TELEMETRY_DISABLED: "1"
           NEXT_TELEMETRY_DISABLED: "1"

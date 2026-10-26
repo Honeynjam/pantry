@@ -10,7 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.4.0",
