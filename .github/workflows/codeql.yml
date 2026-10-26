@@ -1,0 +1,44 @@
+# CodeQL code scanning for the JavaScript/TypeScript code (apps/*, packages/*). Results show up under
+# Security → Code scanning. Free for public repos; it builds nothing (build-mode: none).
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "41 5 * * 3" # Wednesdays 05:41 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    # Only in honeynjam/pantry: self-hosted copies are often private, where code scanning needs GitHub
+    # Advanced Security and the weekly run would just fail. Expression comparison ignores case.
+    if: github.repository == 'honeynjam/pantry'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # upload the results
+      actions: read # read the workflow run (needed while the repo is private)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:javascript-typescript
