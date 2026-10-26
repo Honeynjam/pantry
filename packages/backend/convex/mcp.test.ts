@@ -199,11 +199,21 @@ describe("get_space_context", () => {
 });
 
 describe("list_issues", () => {
+  afterEach(() => vi.useRealTimers());
+
+  /** A, B, C a second apart, then B moves: newest first is B, C, A (OTH-1 is newer still, elsewhere). */
   async function seed(s: Setup) {
+    let clock = Date.now();
+    vi.useFakeTimers({ now: clock });
+    const tick = () => vi.setSystemTime((clock += 1000));
     const a = await mcpIssue(s, "A", { project: "Launch", labels: ["Bug"], assignee: "me", priority: 1 });
+    tick();
     const b = await mcpIssue(s, "B", { assignee: "Partner", priority: 3 });
+    tick();
     const c = await s.t.mutation(api.mcp.createIssue, { token: s.token, space: "WEB", title: "C", project: "Docs" });
+    tick();
     await s.t.mutation(api.mcp.updateIssue, { token: s.token, key: b.key, status: "In Progress" });
+    vi.useRealTimers();
     return { a: a.key, b: b.key, c: c.key };
   }
   const keys = (rows: { key: string }[]) => rows.map((row) => row.key);

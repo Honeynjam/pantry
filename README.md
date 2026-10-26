@@ -37,6 +37,20 @@ in the Convex dashboard → Settings → Environment Variables, then reload.
 Only production deploys run (preview builds are skipped by `ignoreCommand` in `apps/web/vercel.json`), so previews
 never touch your Convex data. Every push to your repo's production branch redeploys web + Convex together.
 
+### Connect your agents (MCP)
+
+1. In the app, open **Settings → API tokens** (or the user menu → API tokens), name a token after where it will
+   live ("Claude Code on my laptop") and create it. You see it once.
+2. Paste the snippet the screen shows. Claude Code:
+   `claude mcp add --transport http pantry https://<your-app>/api/mcp --header "Authorization: Bearer <token>"`.
+   Cursor: the `mcp.json` snippet, which reads the token from `PANTRY_TOKEN`.
+3. Tell the agent "work on PAN-12". It reads the issue and the space's context doc, moves the issue itself, comments
+   and adds sub-issues. Everything shows under your name, tagged "via MCP".
+
+The agent acts as you, inside your workspace only. Revoking a token on the same screen stops it at once (the next
+call gets a 401). Tools: `get_issue`, `get_space_context`, `list_issues`, `create_issue`, `create_sub_issue`,
+`add_comment`, `update_issue` (spec §10b).
+
 ### Troubleshooting
 
 | Symptom | Fix |
@@ -47,6 +61,7 @@ never touch your Convex data. Every push to your repo's production branch redepl
 | Sign-in fails with an origin or URL error | Convex `SITE_URL` must match the URL you opened. Use the production URL, not a deployment-specific one; after adding a domain, redeploy. |
 | Setup screen: "One more step" | See above: set `BETTER_AUTH_SECRET` once. `GET /api/instance` shows `"needsSecret": false` when it's fixed. |
 | Vercel can't connect the repo | Hobby can't use repos owned by a GitHub organisation; clone into a personal account. |
+| An MCP client says 401 / unauthorized | The token was revoked or mistyped: create a new one in Settings → API tokens and update the client's header. |
 | You hit a Convex free-plan limit | Convex dashboard → Usage. A runaway agent loop is the usual cause; revoke its token. |
 
 `GET https://<your-app>/api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion,
@@ -134,12 +149,12 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 
 | Path | What |
 |---|---|
-| `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance` (`/api/mcp` in M4) |
+| `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance`, `/api/mcp` |
 | `apps/desktop` | Tauri v2 Mac app. For now the M2 sign-in spike: see [`docs/spikes/tauri-auth.md`](docs/spikes/tauri-auth.md) (needs Rust; not part of the default checks) |
 | `packages/backend` | Convex functions, schema and Better Auth (`convex/`). All business logic lives here |
 | `packages/app` | Client-only React screens (shared by web and the Mac app) |
 | `packages/ui` | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens, `MarkdownEditor` (Tiptap 3) |
-| `packages/mcp` | MCP tool definitions (M4) |
+| `packages/mcp` | MCP tools (zod inputs, token check, Convex calls) behind `/api/mcp` |
 | `packages/tsconfig`, `packages/eslint-config` | Shared config |
 | `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |
 | `.github/workflows` | CI (typecheck, lint, test) and Sync upstream (update PRs for self-hosted copies) |

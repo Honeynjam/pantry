@@ -120,7 +120,7 @@ Forward-compatible, not built in v0.1: Client / Product modes later add optional
 Tools (minimal):
 | Tool | Does |
 |---|---|
-| `get_issue` | One issue by key, incl. sub-issues, comments |
+| `get_issue` | One issue by key, incl. its space key, project name, sub-issues, comments |
 | `get_space_context` | The space's context doc (agents call it first) |
 | `list_issues` | Filters: space, project, status/category, assignee (`me`), label, priority |
 | `create_issue` | New issue in a space, optionally in one of its projects |
@@ -590,16 +590,16 @@ MCP tools (below) reuse the same internal helpers through `convex/mcp.ts`, so ap
 ### MCP tools (`packages/mcp`)
 Route: `apps/web/app/api/mcp/route.ts` = `withMcpAuth(createMcpHandler(registerTools), verifyToken, { required: true })`, exported as GET and POST. `verifyToken` hashes the bearer token and calls `mcp.verifyToken`; it returns `AuthInfo` with the member and workspace in `extra`, or `undefined` (→ 401). Tools read it from `ctx.http?.authInfo` and pass the raw token to each Convex function, which re-checks it, because these functions are public. `lastUsedAt` is updated by a separate mutation only when the stored value is over 10 minutes old.
 
-All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$`. Spaces are given by key (`PAN`); status, label, assignee and project are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`, and `project` takes `"none"`. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names, or the space's project names), so the agent can retry. Tool descriptions tell the agent to call `get_space_context` first, before starting work. The by-name lookups live in `convex/lib/spaces.ts` (`resolveSpaceByKey`, `resolveProjectByName`).
+All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$` (lower case is upper-cased first). Spaces are given by key (`PAN`); status, label, assignee and project are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`, and `project` takes `"none"`. Priority is a name (`none`, `urgent`, `high`, `medium`, `low`) or 0–4, and results show the name. The resolution itself runs in `convex/mcp.ts`, inside the token's workspace; `packages/mcp` turns a refusal into `isError: true` with its message. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names, or the space's project names), so the agent can retry. Tool descriptions tell the agent to call `get_space_context` first, before starting work. The by-name lookups live in `convex/lib/spaces.ts` (`resolveSpaceByKey`, `resolveProjectByName`).
 
 | Tool | Input | Returns |
 |---|---|---|
-| `get_issue` | `{ key }` | key, title, description, status {name, category}, priority, assignee, labels, parent key, dueDate, sub-issues (key, title, status), last 50 comments (author, body, via, time), url |
-| `get_space_context` | `{ space }` (space key) | space name, key and kind, its projects, context doc markdown, updatedAt |
-| `list_issues` | `{ space? (key), project? (name, case-insensitive, or "none"; needs `space`), status?, category?, assignee?, label?, priority?, limit? = 50 (max 100) }` | rows of key, title, status, priority, assignee, project, updatedAt; newest first |
-| `create_issue` | `{ space (key, required), project? (name), title (1–200), description?, status?, priority? = 0, assignee?, labels?: string[], dueDate? }` | key, url. An unknown project is an error listing the space's project names. Default status: the first `unstarted` status. Unknown labels are an error; labels are never auto-created |
-| `create_sub_issue` | `{ parent, title, description?, priority?, assignee? }` | key, url. Takes the parent's space and project. Error if the parent is itself a sub-issue |
-| `add_comment` | `{ key, body (1–20,000 chars, markdown) }` | comment url |
+| `get_issue` | `{ key }` | key, title, description, space key, project name, status name and category, priority, assignee, labels, parent key, dueDate, creator, created/updated/completed times, sub-issues (key, title, status), last 50 comments (author, body, via, time), url |
+| `get_space_context` | `{ space }` (space key) | space name, key and kind, its active project names, context doc markdown, updatedAt, updatedBy |
+| `list_issues` | `{ space? (key), project? (name, case-insensitive, or "none"; needs `space`), status?, category?, assignee?, label?, priority?, limit? = 50 (max 100) }` | rows of key, title, space, project, status, category, priority, assignee, labels, parent, dueDate, updatedAt, url; newest first |
+| `create_issue` | `{ space (key, required), project? (name), title (1–200), description?, status?, priority? = 0, assignee?, labels?: string[], dueDate? }` | key, space, project, url. An unknown project is an error listing the space's project names. Default status: the first `unstarted` status. Unknown labels are an error; labels are never auto-created |
+| `create_sub_issue` | `{ parent, title, description?, priority?, assignee? }` | key, parent, space, project, url. Takes the parent's space and project. Error if the parent is itself a sub-issue |
+| `add_comment` | `{ key, body (1–20,000 chars, markdown) }` | key, comment id, comment url |
 | `update_issue` | `{ key, status?, priority?, assignee?, addLabels?, removeLabels?, project? (name or "none") }` (at least one) | the updated issue summary. A bad project name lists the valid ones for the issue's space |
 
 Client setup verified today: Claude Code takes `claude mcp add --transport http pantry https://<app>/api/mcp --header "Authorization: Bearer <token>"`; Cursor's `mcp.json` takes `"url"` plus `"headers": { "Authorization": "Bearer ${env:PANTRY_TOKEN}" }`. The token screen shows both snippets.

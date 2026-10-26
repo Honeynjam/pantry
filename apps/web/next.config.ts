@@ -31,7 +31,7 @@ const convexSiteUrl =
 const nextConfig: NextConfig = {
   // Lets a second dev server run from the same folder (Next allows one per build dir), e.g. for tests.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  transpilePackages: ["@pantry/ui", "@pantry/app", "@pantry/backend"],
+  transpilePackages: ["@pantry/ui", "@pantry/app", "@pantry/backend", "@pantry/mcp"],
   env: Object.fromEntries(
     Object.entries({
       NEXT_PUBLIC_CONVEX_URL: convexUrl,
