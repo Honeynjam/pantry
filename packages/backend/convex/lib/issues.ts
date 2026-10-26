@@ -2,6 +2,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity, type Actor } from "./activity";
 import { fail, notFound } from "./errors";
+import { isProject, issueSpaceId, type Project } from "./model";
 import { getProjectForSpace, getSpace } from "./spaces";
 
 /**
@@ -199,7 +200,7 @@ export async function changeStatus(
   placement: Placement = {},
 ) {
   if (status.workspaceId !== issue.workspaceId) return notFound("Status");
-  const sortOrder = await placeInColumn(ctx, issue.spaceId, status._id, placement, issue._id);
+  const sortOrder = await placeInColumn(ctx, issueSpaceId(issue), status._id, placement, issue._id);
   if (status._id === issue.statusId) {
     if (sortOrder !== issue.sortOrder) await ctx.db.patch("issues", issue._id, { sortOrder });
     return;
@@ -310,7 +311,7 @@ export async function setIssueProject(
   ctx: MutationCtx,
   actor: Actor,
   issue: Doc<"issues">,
-  project: Doc<"projects"> | null,
+  project: Project | null,
   now = Date.now(),
 ) {
   const nextId = project?._id;
@@ -414,17 +415,18 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
   // The project: asked for directly, or brought along by a new parent.
   const newParent = patch.parentId !== undefined ? await ctx.db.get("issues", patch.parentId) : null;
   const parentAfter = "parentId" in patch ? newParent : issue.parentId ? await ctx.db.get("issues", issue.parentId) : null;
-  let project: Doc<"projects"> | null | undefined; // undefined: unchanged
+  let project: Project | null | undefined; // undefined: unchanged
   if (input.projectId !== undefined) {
     if (parentAfter && (input.projectId ?? undefined) !== parentAfter.projectId) {
       fail("INVALID_PARENT", `A sub-issue is always in its parent's project. Change ${parentAfter.key}'s project instead.`);
     }
     if ((input.projectId ?? undefined) !== issue.projectId) {
-      const space = await getSpace(ctx, workspaceId, issue.spaceId);
+      const space = await getSpace(ctx, workspaceId, issueSpaceId(issue));
       project = input.projectId ? await getProjectForSpace(ctx, workspaceId, space, input.projectId) : null;
     }
   } else if (newParent && newParent.projectId !== issue.projectId) {
-    project = newParent.projectId ? await ctx.db.get("projects", newParent.projectId) : null;
+    const parentProject = newParent.projectId ? await ctx.db.get("projects", newParent.projectId) : null;
+    project = parentProject && isProject(parentProject) ? parentProject : null;
   }
 
   if (rows.length > 0) {

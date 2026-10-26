@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { fail, notFound } from "./errors";
+import { isLegacyProject, isProject, UPGRADING_MESSAGE, type Project } from "./model";
 
 /**
  * Spaces and projects, always resolved inside one workspace ("not found" for anything else).
@@ -14,14 +15,14 @@ export async function getSpace(ctx: QueryCtx, workspaceId: Id<"workspaces">, spa
   return space;
 }
 
-/** A project in the workspace, archived or not. */
+/** A project (workstream) in the workspace, archived or not. An unmigrated M2 row isn't one. */
 export async function getProject(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
   projectId: Id<"projects">,
-): Promise<Doc<"projects">> {
+): Promise<Project> {
   const project = await ctx.db.get("projects", projectId);
-  if (!project || project.workspaceId !== workspaceId) return notFound("Project");
+  if (!project || project.workspaceId !== workspaceId || !isProject(project)) return notFound("Project");
   return project;
 }
 
@@ -34,7 +35,7 @@ export async function getProjectForSpace(
   workspaceId: Id<"workspaces">,
   space: Pick<Doc<"spaces">, "_id" | "name">,
   projectId: Id<"projects">,
-): Promise<Doc<"projects">> {
+): Promise<Project> {
   const project = await getProject(ctx, workspaceId, projectId);
   if (project.spaceId !== space._id) fail("WRONG_SPACE", `${project.name} is a project in another space, not ${space.name}.`);
   if (project.archivedAt !== undefined) fail("ARCHIVED", `${project.name} is archived.`);
@@ -42,12 +43,21 @@ export async function getProjectForSpace(
 }
 
 /** A space's active projects in sidebar order. */
-export async function activeProjects(ctx: QueryCtx, spaceId: Id<"spaces">): Promise<Doc<"projects">[]> {
+export async function activeProjects(ctx: QueryCtx, spaceId: Id<"spaces">): Promise<Project[]> {
   const rows = await ctx.db
     .query("projects")
     .withIndex("by_space", (q) => q.eq("spaceId", spaceId))
     .collect();
-  return rows.filter((row) => row.archivedAt === undefined).sort((a, b) => a.sortOrder - b.sortOrder);
+  return rows.filter(isProject).filter((row) => row.archivedAt === undefined).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** Whether the workspace still has M2 rows waiting for `migrations:run`. */
+export async function upgradePending(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise<boolean> {
+  const rows = await ctx.db
+    .query("projects")
+    .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+    .collect();
+  return rows.some(isLegacyProject);
 }
 
 /** Case-insensitive, whitespace-normalised name key for uniqueness and lookups. */
@@ -61,6 +71,8 @@ export async function resolveSpaceByKey(ctx: QueryCtx, workspaceId: Id<"workspac
     .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", workspaceId).eq("key", upper))
     .first();
   if (space && space.archivedAt === undefined) return space;
+  // During the upgrade window the key may still belong to an M2 project.
+  if (!space && (await upgradePending(ctx, workspaceId))) return fail("UPGRADING", UPGRADING_MESSAGE);
   const all = await ctx.db
     .query("spaces")
     .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
@@ -77,7 +89,7 @@ export async function resolveProjectByName(
   ctx: QueryCtx,
   space: Pick<Doc<"spaces">, "_id" | "key">,
   name: string,
-): Promise<Doc<"projects"> | null> {
+): Promise<Project | null> {
   if (nameKey(name) === "none") return null;
   const projects = await activeProjects(ctx, space._id);
   const match = projects.find((project) => nameKey(project.name) === nameKey(name));

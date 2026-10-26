@@ -2,6 +2,7 @@
 
 import { api } from "@pantry/backend/api";
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { Button } from "@pantry/ui/components/button";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { useQuery } from "convex/react";
@@ -193,7 +194,7 @@ export type BoardProps = {
 /** One list section or board lane: a status, or a project ("No project" when `project` is null). */
 type Group =
   | { kind: "status"; id: string; status: Doc<"statuses">; issues: Doc<"issues">[] }
-  | { kind: "project"; id: string; project: Doc<"projects"> | null; issues: Doc<"issues">[] };
+  | { kind: "project"; id: string; project: Project | null; issues: Doc<"issues">[] };
 
 /**
  * Issues in sections. By status: one per status that has issues. By project: one per project of
@@ -203,7 +204,7 @@ export function groupIssues(
   issues: Doc<"issues">[],
   groupBy: GroupBy,
   statuses: Doc<"statuses">[],
-  projects: Doc<"projects">[],
+  projects: Project[],
 ): Group[] {
   if (groupBy === "status") {
     return statuses
@@ -254,7 +255,7 @@ export function IssueList({
   lookups: Lookups;
   newIssue: (defaults?: NewIssueDefaults) => void;
   groupBy?: GroupBy;
-  projects?: Doc<"projects">[];
+  projects?: Project[];
 }) {
   const actions = useIssueActions();
   const family = useIssueFamily(issues);

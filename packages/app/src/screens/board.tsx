@@ -22,6 +22,7 @@ import {
   type DropAnimation,
 } from "@dnd-kit/core";
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import { Button } from "@pantry/ui/components/button";
 import { Checkbox } from "@pantry/ui/components/checkbox";
@@ -82,7 +83,7 @@ export function BoardPage({ spaceKey }: { spaceKey: string }) {
  * A swimlane: one per project of the space plus "none" when grouped by project, else one "all".
  * Every column and card carries its lane, so a drop knows its project as well as its status.
  */
-type Lane = { id: string; project: Doc<"projects"> | null | undefined };
+type Lane = { id: string; project: Project | null | undefined };
 
 /** Where a dragged card would land: a lane, a status column and an index among the other cards. */
 type Target = { lane: string; statusId: Id<"statuses">; index: number };

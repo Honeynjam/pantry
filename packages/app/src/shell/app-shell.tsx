@@ -29,8 +29,9 @@ import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
 import { RollingNumber } from "@pantry/ui/components/rolling-number";
-import { ChevronRightIcon, CircleUserRoundIcon, HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { ChevronRightIcon, CircleUserRoundIcon, HouseIcon, LoaderCircleIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import type { Doc } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
@@ -99,7 +100,7 @@ function NavItem({
  * A space in the sidebar, with a chevron that shows its projects (the current space starts open).
  * A project opens the space's list (or board, if that's on screen) filtered to it.
  */
-function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Doc<"projects">[] }) {
+function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Project[] }) {
   const { pathname, search, Link } = useNavigation();
   const reduceMotion = usePrefersReducedMotion();
   const list = routes.space(space.key);
@@ -257,6 +258,23 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
   );
 }
 
+/**
+ * Right after a deploy that changed the data model, the server migrates the old rows (seconds;
+ * `migrations:run`). Until it's done the screens would show half the data, so they wait here; the
+ * page comes back by itself when the migration finishes (workspace.current is live).
+ */
+function Upgrading() {
+  return (
+    <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+      <LoaderCircleIcon className="size-5 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden />
+      <p className="text-sm font-medium text-foreground">Finishing an upgrade</p>
+      <p className="max-w-sm text-sm text-muted-foreground">
+        Your issues are being moved to the new spaces layout. This page comes back by itself in a moment.
+      </p>
+    </div>
+  );
+}
+
 /** Sidebar + page frame. The collapsed state is saved per device. */
 export function AppShell({
   title,
@@ -287,7 +305,7 @@ export function AppShell({
             <SidebarTrigger title="Fold the sidebar ( [ )" aria-keyshortcuts="[" />
             <div className="flex min-w-0 items-center gap-2 text-sm">{title(data)}</div>
           </header>
-          <main className="flex min-h-0 flex-1 flex-col">{children(data)}</main>
+          <main className="flex min-h-0 flex-1 flex-col">{data.upgrading ? <Upgrading /> : children(data)}</main>
         </SidebarInset>
       </AppCommandsProvider>
     </SidebarProvider>

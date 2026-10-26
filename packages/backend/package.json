@@ -8,13 +8,15 @@
     "./brand": "./convex/lib/brand.ts",
     "./api": "./convex/_generated/api.js",
     "./dataModel": "./convex/_generated/dataModel.d.ts",
-    "./version": "./convex/lib/version.ts"
+    "./version": "./convex/lib/version.ts",
+    "./model": "./convex/lib/model.ts"
   },
   "scripts": {
-    "dev": "CONVEX_AGENT_MODE=${CONVEX_AGENT_MODE-anonymous} convex dev",
+    "dev": "CONVEX_AGENT_MODE=${CONVEX_AGENT_MODE-anonymous} convex dev --run migrations:run",
     "typecheck": "tsc --noEmit -p convex",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migrate": "bash ../../scripts/migrate.sh"
   },
   "devDependencies": {
     "@convex-dev/eslint-plugin": "^5.0.0",

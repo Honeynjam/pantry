@@ -2,6 +2,7 @@
 
 import { api } from "@pantry/backend/api";
 import type { Doc } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { Button } from "@pantry/ui/components/button";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { Keycap } from "@pantry/ui/components/keycap";
@@ -51,7 +52,7 @@ export function SpaceSettingsPage({ spaceKey }: { spaceKey: string }) {
   );
 }
 
-function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Doc<"projects">[] }) {
+function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Project[] }) {
   const update = useMutation(api.spaces.update);
   const archive = useMutation(api.spaces.archive);
   const { navigate } = useNavigation();
@@ -151,14 +152,14 @@ const PROJECT_COLORS = LABEL_COLORS.filter((color) => color !== "gray");
  * reorder (arrow buttons, so it works from the keyboard) and archive. Archiving keeps the issues
  * in the space with no project.
  */
-function ProjectsSettings({ space, projects }: { space: Doc<"spaces">; projects: Doc<"projects">[] }) {
+function ProjectsSettings({ space, projects }: { space: Doc<"spaces">; projects: Project[] }) {
   const create = useMutation(api.projects.create);
   const update = useMutation(api.projects.update);
   const reorder = useMutation(api.projects.reorder);
   const archive = useMutation(api.projects.archive);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string | null>(null);
-  const [archiving, setArchiving] = useState<Doc<"projects"> | null>(null);
+  const [archiving, setArchiving] = useState<Project | null>(null);
   const shownColor = color ?? PROJECT_COLORS[projects.length % PROJECT_COLORS.length]!;
   const run = async (action: () => Promise<unknown>, failure: string) => {
     try {

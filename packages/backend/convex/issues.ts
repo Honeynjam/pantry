@@ -5,6 +5,7 @@ import type { Actor } from "./lib/activity";
 import { requireMember } from "./lib/auth";
 import { notFound } from "./lib/errors";
 import { changeStatus, createIssue, deleteIssue, getIssue, getStatus, isTerminal, updateIssue } from "./lib/issues";
+import { isProject } from "./lib/model";
 import { getProject } from "./lib/spaces";
 import { priority } from "./schema";
 
@@ -24,6 +25,7 @@ export const listBySpace = query({
     const space = await ctx.db.get("spaces", spaceId);
     if (!space || space.workspaceId !== me.workspaceId) return notFound("Space");
     if (projectId) {
+      // getProject only returns workstreams, never an unmigrated M2 project.
       const project = await getProject(ctx, me.workspaceId, projectId);
       if (project.spaceId !== space._id) return notFound("Project");
     }
@@ -93,13 +95,14 @@ export const get = query({
         .order("desc")
         .take(100),
       issue.parentId ? ctx.db.get("issues", issue.parentId) : null,
-      ctx.db.get("spaces", issue.spaceId),
-      issue.projectId ? ctx.db.get("projects", issue.projectId) : null,
+      issue.spaceId ? ctx.db.get("spaces", issue.spaceId) : null,
+      issue.spaceId && issue.projectId ? ctx.db.get("projects", issue.projectId) : null,
     ]);
     return {
       issue,
       space,
-      project,
+      // Only a workstream; on an M2 issue projectId still means its M2 project (the space).
+      project: project && isProject(project) ? project : null,
       parent: parent ? { _id: parent._id, key: parent.key, title: parent.title, statusId: parent.statusId } : null,
       subIssues: subIssues.sort((a, b) => a.number - b.number),
       comments,

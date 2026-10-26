@@ -1,4 +1,5 @@
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { PRIORITIES, type Priority } from "@pantry/ui/lib/issue-meta";
 
 /**
@@ -93,7 +94,7 @@ export type FilterContext = {
   statuses: ReadonlyArray<Pick<Doc<"statuses">, "_id" | "name">>;
   labels: ReadonlyArray<Pick<Doc<"labels">, "_id" | "name">>;
   /** The current space's projects (names are unique per space). */
-  projects?: ReadonlyArray<Pick<Doc<"projects">, "_id" | "name">>;
+  projects?: ReadonlyArray<Pick<Project, "_id" | "name">>;
 };
 
 /** The issues that pass every active facet and contain every word of the title text. */

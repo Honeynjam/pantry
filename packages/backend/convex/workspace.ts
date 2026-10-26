@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { requireMember } from "./lib/auth";
-import { activeProjects } from "./lib/spaces";
+import { activeProjects, upgradePending } from "./lib/spaces";
 
 /**
  * Everything the app shell needs in one subscription: the workspace, my member row, statuses (by
@@ -41,6 +41,8 @@ export const current = query({
       labels,
       members,
       spaces: activeSpaces,
+      /** M2 data still waiting for `migrations:run` (seconds after a deploy): the app shows a notice. */
+      upgrading: await upgradePending(ctx, workspace._id),
       /** Active projects of active spaces, in each space's order. */
       projects,
     };

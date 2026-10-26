@@ -1,4 +1,5 @@
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { useMemo } from "react";
 import type { WorkspaceData } from "../shell/app-shell";
@@ -11,9 +12,9 @@ export type Lookups = {
   status: (id: Id<"statuses">) => Doc<"statuses"> | undefined;
   label: (id: Id<"labels">) => Doc<"labels"> | undefined;
   member: (id: Id<"members"> | undefined) => Doc<"members"> | undefined;
-  project: (id: Id<"projects"> | undefined) => Doc<"projects"> | undefined;
+  project: (id: Id<"projects"> | undefined) => Project | undefined;
   /** A space's active projects, in order. */
-  projectsOf: (spaceId: Id<"spaces">) => Doc<"projects">[];
+  projectsOf: (spaceId: Id<"spaces"> | undefined) => Project[];
 };
 
 export function useLookups(data: WorkspaceData): Lookups {
@@ -28,7 +29,7 @@ export function useLookups(data: WorkspaceData): Lookups {
       label: (id) => labels.get(id),
       member: (id) => (id ? members.get(id) : undefined),
       project: (id) => (id ? projects.get(id) : undefined),
-      projectsOf: (spaceId) => data.projects.filter((row) => row.spaceId === spaceId),
+      projectsOf: (spaceId) => (spaceId ? data.projects.filter((row) => row.spaceId === spaceId) : []),
     };
   }, [data]);
 }

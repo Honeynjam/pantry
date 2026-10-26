@@ -1,9 +1,10 @@
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { mutation, type MutationCtx } from "./_generated/server";
 import { requireMember } from "./lib/auth";
 import { fail } from "./lib/errors";
 import { setIssueProject } from "./lib/issues";
+import type { Project } from "./lib/model";
 import { activeProjects, getProject, getSpace, nameKey } from "./lib/spaces";
 import { checkColor, cleanName } from "./lib/validate";
 
@@ -49,7 +50,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const project = await getProject(ctx, me.workspaceId, args.projectId);
-    const patch: Partial<Doc<"projects">> = {};
+    const patch: Partial<Project> = {};
     if (args.name !== undefined) {
       const name = cleanName(args.name, "Project name", 60);
       if (project.archivedAt === undefined) await checkNameFree(ctx, project.spaceId, name, project._id);

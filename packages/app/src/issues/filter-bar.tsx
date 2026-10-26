@@ -16,7 +16,7 @@ import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { PRIORITIES, PRIORITY_LABEL, resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { focusRing } from "@pantry/ui/lib/styles";
 import { cn } from "@pantry/ui/lib/utils";
-import type { Doc } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { ChevronDownIcon, LayersIcon, SearchIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigation } from "../navigation";
@@ -101,7 +101,7 @@ export function FilterBar({
   lookups: Lookups;
   facets?: FilterFacet[];
   /** The space's projects, for the project facet. */
-  projects?: Doc<"projects">[];
+  projects?: Project[];
 }) {
   const input = useRef<HTMLInputElement>(null);
   useShortcutScope("list");

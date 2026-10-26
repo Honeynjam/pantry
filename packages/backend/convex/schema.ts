@@ -10,6 +10,35 @@ export const category = v.union(
 export const priority = v.union(v.literal(0), v.literal(1), v.literal(2), v.literal(3), v.literal(4));
 export const spaceKind = v.union(v.literal("product"), v.literal("client"));
 
+/*
+ * TRANSITIONAL SCHEMA (the Spaces release). Until every instance has run `migrations:run`, the
+ * tables below also accept M2 rows, so `convex deploy` validates against existing data:
+ *   - `projects` holds both M2 "projects" (which are now spaces: key + counter) and new
+ *     workstreams (spaceId + sortOrder);
+ *   - `issues.spaceId` is optional (M2 issues point at their M2 project through `projectId`);
+ *   - `docs` accepts the M2 `project_context` kind and its `projectId`.
+ * A later release narrows these back (docs/MIGRATIONS.md); `migrations:assertMigrated` guards it.
+ */
+
+/** An M2 project: what is now a space. Only `migrations:run` reads these; it moves and deletes them. */
+export const legacyProjectFields = {
+  workspaceId: v.id("workspaces"),
+  name: v.string(),
+  key: v.string(),
+  nextIssueNumber: v.number(),
+  archivedAt: v.optional(v.number()),
+};
+
+/** A project: an optional workstream inside a space ("LinkedIn", "Launch"). */
+export const projectFields = {
+  workspaceId: v.id("workspaces"),
+  spaceId: v.id("spaces"),
+  name: v.string(), // unique per space among active projects, ignoring case
+  color: v.optional(v.string()),
+  sortOrder: v.number(),
+  archivedAt: v.optional(v.number()),
+};
+
 export default defineSchema({
   workspaces: defineTable({ name: v.string(), slug: v.string(), createdBy: v.string() })
     .index("by_slug", ["slug"]),
@@ -54,15 +83,10 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_and_key", ["workspaceId", "key"]),
 
-  // An optional workstream inside a space ("LinkedIn", "Launch"). An issue is in at most one.
-  projects: defineTable({
-    workspaceId: v.id("workspaces"),
-    spaceId: v.id("spaces"),
-    name: v.string(), // unique per space among active projects, ignoring case
-    color: v.optional(v.string()),
-    sortOrder: v.number(),
-    archivedAt: v.optional(v.number()),
-  })
+  // Workstreams inside a space; an issue is in at most one. TRANSITIONAL: also M2 projects (above).
+  projects: defineTable(v.union(v.object(projectFields), v.object(legacyProjectFields)))
+    // Finds a workspace's M2 rows (the "upgrade in progress" check).
+    .index("by_workspace", ["workspaceId"])
     // Kept next to by_space_and_name (spec §10b): a space's projects, sorted by sortOrder in code.
     // eslint-disable-next-line @convex-dev/no-duplicate-indexes
     .index("by_space", ["spaceId"])
@@ -81,8 +105,10 @@ export default defineSchema({
 
   issues: defineTable({
     workspaceId: v.id("workspaces"),
-    spaceId: v.id("spaces"),
-    projectId: v.optional(v.id("projects")), // must be in the issue's space
+    // TRANSITIONAL: optional only so M2 issues validate; every issue gets one from migrations:run.
+    spaceId: v.optional(v.id("spaces")),
+    // A workstream in the issue's space. On an M2 issue (no spaceId) it's the M2 project instead.
+    projectId: v.optional(v.id("projects")),
     number: v.number(),
     key: v.string(), // "PAN-42"
     title: v.string(),
@@ -135,12 +161,17 @@ export default defineSchema({
   docs: defineTable({
     workspaceId: v.id("workspaces"),
     spaceId: v.optional(v.id("spaces")),
-    kind: v.literal("space_context"), // widen to "doc" later
+    // TRANSITIONAL: "project_context" and `projectId` are M2 rows that migrations:run rewrites.
+    kind: v.union(v.literal("space_context"), v.literal("project_context")), // widen to "doc" later
+    projectId: v.optional(v.id("projects")),
     title: v.string(),
     body: v.string(),
     updatedBy: v.id("members"),
     updatedAt: v.number(),
-  }).index("by_space_and_kind", ["spaceId", "kind"]),
+  })
+    .index("by_space_and_kind", ["spaceId", "kind"])
+    // TRANSITIONAL: finds M2 docs still pointing at an M2 project (migrations:run).
+    .index("by_project", ["projectId"]),
 
   apiTokens: defineTable({
     userId: v.string(),

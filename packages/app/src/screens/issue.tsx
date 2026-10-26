@@ -450,7 +450,7 @@ function ParentPicker({
   const { Link } = useNavigation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const candidates = useQuery(api.issues.listBySpace, open ? { spaceId: issue.spaceId } : "skip");
+  const candidates = useQuery(api.issues.listBySpace, open && issue.spaceId ? { spaceId: issue.spaceId } : "skip");
 
   if (subIssueCount > 0) {
     return <span className="flex h-7 items-center px-2 text-sm text-muted-foreground">Has sub-issues</span>;

@@ -5,7 +5,9 @@
 #
 #   1. Make sure the Convex deployment has BETTER_AUTH_SECRET (generated once, never printed).
 #   2. Point Convex SITE_URL at this Vercel project's production URL.
-#   3. `convex deploy`: typecheck + push functions/schema, then build apps/web with the Convex URLs.
+#   3. `convex deploy`: build apps/web with the Convex URLs, typecheck, push functions/schema.
+#   4. Data migrations (scripts/migrate.sh --prod): move existing rows to the new layout. A failure
+#      fails the build; it's safe to re-run (docs/MIGRATIONS.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -55,7 +57,11 @@ if [[ -n "${VERCEL_PROJECT_PRODUCTION_URL:-}" ]]; then
   fi
 fi
 
-# 3. Deploy Convex functions, then build the web app with the deployment's URL.
-exec npx convex deploy \
+# 3. Deploy Convex functions; `convex deploy` builds the web app (--cmd) before it pushes.
+npx convex deploy \
   --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL \
   --cmd "bash \"$ROOT/scripts/vercel-build.sh\" --web"
+
+# 4. Migrate existing data to the schema just pushed (the transitional schema accepts both shapes,
+#    so the push above succeeds on old data). Same deploy key, so the same deployment.
+bash "$ROOT/scripts/migrate.sh" --prod

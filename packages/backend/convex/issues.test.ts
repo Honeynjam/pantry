@@ -257,7 +257,7 @@ describe("issues.move", () => {
     for (const title of ["A", "B", "C"]) ids.push((await create(title, { statusId: status.started })).issueId);
     // Created at the top each time: column order is C, B, A.
     const order = async () =>
-      (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, ids[0]!))!.spaceId }))
+      (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, ids[0]!))!.spaceId! }))
         .filter((issue) => issue.statusId === status.started)
         .map((issue) => issue.title);
     expect(await order()).toEqual(["C", "B", "A"]);
@@ -303,7 +303,7 @@ describe("issues.move", () => {
       await as.mutation(api.issues.move, { issueId, statusId: status.backlog, afterId: bottom.issueId });
       inserted.push(issueId);
     }
-    const column = (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, top.issueId))!.spaceId }))
+    const column = (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, top.issueId))!.spaceId! }))
       .filter((issue) => issue.statusId === status.backlog);
     const orders = column.map((issue) => issue.sortOrder);
     expect([...orders].sort((x, y) => x - y)).toEqual(orders);

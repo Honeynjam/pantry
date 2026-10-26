@@ -1,6 +1,7 @@
 "use client";
 
 import type { Doc, Id } from "@pantry/backend/dataModel";
+import type { Project } from "@pantry/backend/model";
 import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import { Button } from "@pantry/ui/components/button";
 import {
@@ -356,7 +357,7 @@ export function ProjectPicker({
   className,
   lockedReason,
 }: {
-  projects: Doc<"projects">[];
+  projects: Project[];
   value: Id<"projects"> | undefined;
   onChange: (projectId: Id<"projects"> | null) => void;
   variant?: Exclude<PickerVariant, "icon">;
