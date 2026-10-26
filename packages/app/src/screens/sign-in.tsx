@@ -8,14 +8,26 @@ import { EntryGate } from "../entry";
 import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 import { AuthLayout } from "./auth-layout";
+import { AcceptInvite, withInvite } from "./accept-invite";
 import { describeError, FormError } from "./form-error";
 import { SlowHint } from "./slow-hint";
 
-export function SignInPage() {
-  return <EntryGate allow={["signed-out"]}>{() => <SignInForm />}</EntryGate>;
+const SIGNED_OUT = ["signed-out"] as const;
+const SIGNED_OUT_OR_JOINING = ["signed-out", "not-member"] as const;
+
+/** Sign in. With `?invite=` (someone who already has an account), the invite is accepted after. */
+export function SignInPage({ inviteToken }: { inviteToken?: string }) {
+  if (!inviteToken) return <EntryGate allow={SIGNED_OUT}>{() => <SignInForm />}</EntryGate>;
+  return (
+    <EntryGate allow={SIGNED_OUT_OR_JOINING}>
+      {(state) =>
+        state.kind === "not-member" ? <AcceptInvite token={inviteToken} /> : <SignInForm inviteToken={inviteToken} />
+      }
+    </EntryGate>
+  );
 }
 
-function SignInForm() {
+function SignInForm({ inviteToken }: { inviteToken?: string }) {
   const authClient = useAuthClient();
   const { Link } = useNavigation();
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +51,11 @@ function SignInForm() {
   return (
     <AuthLayout
       title="Sign in"
-      description="Welcome back."
+      description={inviteToken ? "Sign in to accept your invite." : "Welcome back."}
       footer={
         <>
           Have an invite?{" "}
-          <Link href={routes.signUp} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
+          <Link href={withInvite(routes.signUp, inviteToken)} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
             Create your account
           </Link>
         </>

@@ -32,4 +32,11 @@ export const routes = {
   signUp: "/sign-up",
   setup: "/setup",
   project: (key: string) => `/projects/${encodeURIComponent(key)}`,
+  board: (key: string) => `/projects/${encodeURIComponent(key)}/board`,
+  projectSettings: (key: string) => `/projects/${encodeURIComponent(key)}/settings`,
+  issue: (key: string) => `/issues/${encodeURIComponent(key)}`,
+  settings: (section: SettingsSection = "members") => `/settings/${section}`,
 } as const;
+
+export const SETTINGS_SECTIONS = ["members", "projects", "labels", "statuses"] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

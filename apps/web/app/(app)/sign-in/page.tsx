@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: `Sign in · ${brand.name}` };
 
-export default function Page() {
-  return <SignInPage />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ invite?: string | string[] }> }) {
+  const { invite } = await searchParams;
+  return <SignInPage inviteToken={typeof invite === "string" && invite ? invite : undefined} />;
 }

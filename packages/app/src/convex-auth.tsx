@@ -4,6 +4,7 @@ import { ConvexProviderWithAuth, type ConvexReactClient } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { PantryAuthClient } from "./auth-client";
 import { fetchTokenWithRetry, recoveryDelayMs } from "./convex-token";
+import { verifyOneTimeTokenFromUrl, type CrossDomainAuthActions } from "./cross-domain";
 
 /**
  * Convex ↔ Better Auth bridge (replaces @convex-dev/better-auth's ConvexBetterAuthProvider).
@@ -87,10 +88,13 @@ function useConvexAuthFromBetterAuth(authClient: PantryAuthClient) {
 export function ConvexBetterAuth({
   client,
   authClient,
+  crossDomain = false,
   children,
 }: {
   client: ConvexReactClient;
   authClient: PantryAuthClient;
+  /** The auth client was created with `crossDomain: true` (Mac app). */
+  crossDomain?: boolean;
   children: ReactNode;
 }) {
   // ConvexProviderWithAuth wants a stable hook; bind it to this auth client once.
@@ -101,6 +105,17 @@ export function ConvexBetterAuth({
       },
     [authClient],
   );
+
+  // Cross-domain only: finish a redirect-based sign-in that came back with ?ott=.
+  useEffect(() => {
+    if (!crossDomain) return;
+    void verifyOneTimeTokenFromUrl(
+      authClient as unknown as CrossDomainAuthActions,
+      window.location,
+      window.history,
+    );
+  }, [authClient, crossDomain]);
+
   return (
     <ConvexProviderWithAuth client={client} useAuth={useAuth}>
       {children}

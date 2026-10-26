@@ -21,11 +21,14 @@ export function useAuthClient(): PantryAuthClient {
  */
 const clients = new Map<string, { convex: ConvexReactClient; auth: PantryAuthClient }>();
 
-function getClients(convexUrl: string, authBaseUrl: string | undefined) {
-  const key = `${convexUrl}|${authBaseUrl ?? ""}`;
+function getClients(convexUrl: string, authBaseUrl: string | undefined, crossDomain: boolean) {
+  const key = `${convexUrl}|${authBaseUrl ?? ""}|${crossDomain ? "cross-domain" : "same-origin"}`;
   let entry = clients.get(key);
   if (!entry) {
-    entry = { convex: new ConvexReactClient(convexUrl), auth: createPantryAuthClient(authBaseUrl) };
+    entry = {
+      convex: new ConvexReactClient(convexUrl),
+      auth: createPantryAuthClient(authBaseUrl, { crossDomain }),
+    };
     clients.set(key, entry);
   }
   return entry;
@@ -35,15 +38,18 @@ function getClients(convexUrl: string, authBaseUrl: string | undefined) {
 export function PantryProviders({
   convexUrl,
   authBaseUrl,
+  crossDomain = false,
   children,
 }: {
   convexUrl: string;
   authBaseUrl?: string;
+  /** Mac app: talk to the `.convex.site` auth routes directly (see createPantryAuthClient). */
+  crossDomain?: boolean;
   children: ReactNode;
 }) {
-  const { convex, auth } = getClients(convexUrl, authBaseUrl);
+  const { convex, auth } = getClients(convexUrl, authBaseUrl, crossDomain);
   return (
-    <ConvexBetterAuth client={convex} authClient={auth}>
+    <ConvexBetterAuth client={convex} authClient={auth} crossDomain={crossDomain}>
       <AuthClientContext value={auth}>{children}</AuthClientContext>
     </ConvexBetterAuth>
   );

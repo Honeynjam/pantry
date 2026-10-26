@@ -1,0 +1,295 @@
+"use client";
+
+import { api } from "@pantry/backend/api";
+import type { Doc } from "@pantry/backend/dataModel";
+import { PersonAvatar } from "@pantry/ui/components/avatar-stack";
+import { Badge } from "@pantry/ui/components/badge";
+import { Button } from "@pantry/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@pantry/ui/components/dropdown-menu";
+import { Keycap } from "@pantry/ui/components/keycap";
+import { MarkdownEditor, type MarkdownEditorHandle } from "@pantry/ui/components/markdown-editor";
+import { PRIORITY_LABEL, type Priority } from "@pantry/ui/lib/issue-meta";
+import { useMutation } from "convex/react";
+import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "../components/confirm-dialog";
+import { formatDay, fullDate, timeAgo } from "../lib/format";
+import { describeError } from "../screens/form-error";
+import type { Lookups } from "./lookups";
+
+type Activity = Doc<"activity">;
+type Comment = Doc<"comments">;
+
+/** Agent writes show as the token's owner plus this tag (spec §6). */
+export function ViaMcp() {
+  return (
+    <Badge variant="outline" className="h-4 px-1.5 text-2xs" title="Made by an agent through MCP, acting as this person">
+      via MCP
+    </Badge>
+  );
+}
+
+const Value = ({ children }: { children: ReactNode }) => <span className="font-medium text-foreground">{children}</span>;
+
+const names = (list: string | undefined) => (list ? list.split(", ").filter(Boolean) : []);
+
+/** One activity row as a sentence ("changed status from Todo to In Progress"). */
+export function describeActivity(row: Activity): ReactNode {
+  switch (row.type) {
+    case "created":
+      return "created the issue";
+    case "status_changed":
+      return (
+        <>
+          changed status{row.from ? <> from <Value>{row.from}</Value></> : null} to <Value>{row.to}</Value>
+        </>
+      );
+    case "priority_changed":
+      return (
+        <>
+          set priority to <Value>{PRIORITY_LABEL[Number(row.to) as Priority] ?? row.to}</Value>
+        </>
+      );
+    case "assigned":
+      if (!row.to) return <>removed the assignee <Value>{row.from}</Value></>;
+      return row.from ? (
+        <>
+          reassigned from <Value>{row.from}</Value> to <Value>{row.to}</Value>
+        </>
+      ) : (
+        <>
+          assigned <Value>{row.to}</Value>
+        </>
+      );
+    case "labels_changed": {
+      const before = names(row.from);
+      const after = names(row.to);
+      const added = after.filter((name) => !before.includes(name));
+      const removed = before.filter((name) => !after.includes(name));
+      const parts: ReactNode[] = [];
+      if (added.length) parts.push(<span key="a">added {added.length > 1 ? "labels" : "label"} <Value>{added.join(", ")}</Value></span>);
+      if (removed.length) parts.push(<span key="r">removed {removed.length > 1 ? "labels" : "label"} <Value>{removed.join(", ")}</Value></span>);
+      return parts.length === 2 ? <>{parts[0]} and {parts[1]}</> : (parts[0] ?? "changed the labels");
+    }
+    case "title_changed":
+      return (
+        <>
+          renamed the issue to <Value>“{row.to}”</Value>
+        </>
+      );
+    case "description_changed":
+      return "updated the description";
+    case "parent_changed":
+      if (!row.to) return <>removed it from <Value>{row.from}</Value></>;
+      return (
+        <>
+          made it a sub-issue of <Value>{row.to}</Value>
+        </>
+      );
+    case "due_date_changed":
+      return row.to ? (
+        <>
+          set the due date to <Value>{formatDay(row.to)}</Value>
+        </>
+      ) : (
+        "removed the due date"
+      );
+    case "commented":
+      return "commented";
+  }
+}
+
+/**
+ * Activity and comments in one chronological stream. `commented` rows are left out because the
+ * comment itself is shown.
+ */
+export function Timeline({
+  activity,
+  comments,
+  lookups,
+}: {
+  activity: Activity[];
+  comments: Comment[];
+  lookups: Lookups;
+}) {
+  const items = [
+    ...activity.filter((row) => row.type !== "commented").map((row) => ({ kind: "activity" as const, row })),
+    ...comments.map((row) => ({ kind: "comment" as const, row })),
+  ].sort((a, b) => a.row._creationTime - b.row._creationTime);
+
+  return (
+    <ol className="flex flex-col gap-1" aria-label="Activity and comments">
+      {items.map((item) =>
+        item.kind === "activity" ? (
+          <ActivityItem key={item.row._id} row={item.row} lookups={lookups} />
+        ) : (
+          <CommentItem key={item.row._id} comment={item.row} lookups={lookups} />
+        ),
+      )}
+    </ol>
+  );
+}
+
+function ActivityItem({ row, lookups }: { row: Activity; lookups: Lookups }) {
+  const actor = lookups.member(row.actorId);
+  return (
+    <li className="flex min-h-7 items-center gap-2 py-0.5 pl-1 text-xs text-muted-foreground">
+      <PersonAvatar person={{ name: actor?.displayName ?? "?", avatarUrl: actor?.avatarUrl }} size="xs" />
+      <span className="min-w-0">
+        <span className="font-medium text-foreground">{actor?.displayName ?? "Someone"}</span> {describeActivity(row)}
+      </span>
+      {row.via === "mcp" && <ViaMcp />}
+      <span aria-hidden>·</span>
+      <time dateTime={new Date(row._creationTime).toISOString()} title={fullDate(row._creationTime)} className="shrink-0">
+        {timeAgo(row._creationTime)}
+      </time>
+    </li>
+  );
+}
+
+function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups }) {
+  const author = lookups.member(comment.authorId);
+  const mine = comment.authorId === lookups.data.me._id;
+  const edit = useMutation(api.comments.edit);
+  const remove = useMutation(api.comments.remove);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const editor = useRef<MarkdownEditorHandle>(null);
+
+  async function saveEdit(body: string) {
+    if (!body.trim()) return;
+    try {
+      await edit({ commentId: comment._id, body });
+      setEditing(false);
+    } catch (err) {
+      toast.error(describeError(err, "Couldn't save the comment."));
+    }
+  }
+
+  return (
+    <li className="my-1.5 rounded-lg border border-border bg-background">
+      <div className="flex h-9 items-center gap-2 px-3 text-xs">
+        <PersonAvatar person={{ name: author?.displayName ?? "?", avatarUrl: author?.avatarUrl }} size="xs" />
+        <span className="font-medium text-foreground">{author?.displayName ?? "Someone"}</span>
+        {comment.via === "mcp" && <ViaMcp />}
+        <time
+          dateTime={new Date(comment._creationTime).toISOString()}
+          title={fullDate(comment._creationTime)}
+          className="text-muted-foreground"
+        >
+          {timeAgo(comment._creationTime)}
+        </time>
+        {comment.editedAt && (
+          <span className="text-muted-foreground" title={`Edited ${fullDate(comment.editedAt)}`}>
+            (edited)
+          </span>
+        )}
+        {mine && !editing && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="icon-xs" className="ml-auto" aria-label="Comment actions" />}
+            >
+              <MoreHorizontalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-36">
+              <DropdownMenuItem onClick={() => setEditing(true)}>
+                <PencilIcon />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDeleting(true)}>
+                <Trash2Icon />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+      {editing ? (
+        <div className="flex flex-col gap-2 px-3 pb-2.5">
+          <MarkdownEditor
+            ref={editor}
+            value={comment.body}
+            autoFocus
+            aria-label="Edit comment"
+            onSubmit={(body) => void saveEdit(body)}
+            onEscape={() => setEditing(false)}
+            className="rounded-md border border-border"
+            contentClassName="min-h-16 px-3 py-2"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => void saveEdit(editor.current?.getMarkdown() ?? comment.body)}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <MarkdownEditor value={comment.body} editable={false} contentClassName="px-3 pb-2.5" />
+      )}
+      <ConfirmDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        title="Delete this comment?"
+        description="It's removed for everyone. This can't be undone."
+        confirmLabel="Delete comment"
+        destructive
+        onConfirm={async () => {
+          try {
+            await remove({ commentId: comment._id });
+          } catch (err) {
+            toast.error(describeError(err, "Couldn't delete the comment."));
+          }
+        }}
+      />
+    </li>
+  );
+}
+
+/** New comment: markdown, Cmd/Ctrl+Enter posts it. */
+export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) {
+  const add = useMutation(api.comments.add);
+  const editor = useRef<MarkdownEditorHandle>(null);
+  const [pending, setPending] = useState(false);
+
+  async function post(body: string) {
+    if (pending || !body.trim()) return;
+    setPending(true);
+    try {
+      await add({ issueId, body });
+      editor.current?.clear();
+    } catch (err) {
+      toast.error(describeError(err, "Couldn't post the comment."));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-background transition-colors duration-(--duration-instant) focus-within:border-border-strong">
+      <MarkdownEditor
+        ref={editor}
+        value=""
+        placeholder="Leave a comment…"
+        aria-label="New comment"
+        onSubmit={(body) => void post(body)}
+        contentClassName="min-h-16 px-3 pt-2.5 pb-1"
+      />
+      <div className="flex items-center justify-end gap-2 px-2 pb-2">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Keycap keys="mod+enter" />
+        </span>
+        <Button size="sm" variant="secondary" disabled={pending} onClick={() => void post(editor.current?.getMarkdown() ?? "")}>
+          Comment
+        </Button>
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,14 @@
 
 // Client-only React screens, hooks and providers. No next/* imports: this package must build
 // statically for Tauri (M5). Hosts provide routing through NavigationProvider.
-export { NavigationProvider, routes, type LinkProps, type Navigation } from "./navigation";
+export {
+  NavigationProvider,
+  routes,
+  SETTINGS_SECTIONS,
+  type LinkProps,
+  type Navigation,
+  type SettingsSection,
+} from "./navigation";
 export { PantryProviders, useAuthClient } from "./providers";
 export { createPantryAuthClient, type PantryAuthClient } from "./auth-client";
 export { EntryGate, useEntryState, type EntryState } from "./entry";
@@ -13,3 +20,7 @@ export { SetupPage } from "./screens/setup";
 export { HomePage } from "./screens/home";
 export { ProjectPage } from "./screens/project";
 export { LoadingScreen } from "./screens/loading";
+export { SettingsPage } from "./screens/settings/settings-page";
+export { ProjectSettingsPage } from "./screens/project-settings";
+export { IssuePage } from "./screens/issue";
+export { BoardPage } from "./screens/board";

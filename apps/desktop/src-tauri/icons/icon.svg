@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Spike placeholder: the monochrome LogoMark (packages/ui) as an app icon. M5 replaces it. -->
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="#0c0c0c"/>
+  <rect x="352" y="300" width="104" height="424" fill="#fdfdfd"/>
+  <path d="M404 352 H566 A118 118 0 0 1 566 588 H404" fill="none" stroke="#fdfdfd" stroke-width="104"/>
+</svg>

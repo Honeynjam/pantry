@@ -20,10 +20,12 @@ function localConvexEnv(): Record<string, string> {
 
 const isDev = process.env.NODE_ENV !== "production";
 const local = isDev ? localConvexEnv() : {};
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? local.CONVEX_URL;
+// `convex dev` names them VITE_CONVEX_* when it finds vite in packages/backend (vitest pulls it in).
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? local.CONVEX_URL ?? local.VITE_CONVEX_URL;
 const convexSiteUrl =
   process.env.NEXT_PUBLIC_CONVEX_SITE_URL ??
   local.CONVEX_SITE_URL ??
+  local.VITE_CONVEX_SITE_URL ??
   convexUrl?.replace(/\.convex\.cloud\/?$/, ".convex.site");
 
 const nextConfig: NextConfig = {
