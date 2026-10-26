@@ -12,7 +12,9 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_brand from "../lib/brand.js";
+import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_signup from "../lib/signup.js";
+import type * as setup from "../setup.js";
 
 import type {
   ApiFromModules,
@@ -25,7 +27,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/brand": typeof lib_brand;
+  "lib/defaults": typeof lib_defaults;
   "lib/signup": typeof lib_signup;
+  setup: typeof setup;
 }>;
 
 /**
