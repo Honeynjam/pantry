@@ -5,8 +5,7 @@ Your agents read and update issues over MCP; your data lives in your own Vercel 
 
 > Status: early development (milestone M1). The Deploy button below is being tested on a fresh account.
 
-<!-- PLACEHOLDER: replace OWNER/REPO with the GitHub repo (Kris hasn't picked the name yet). -->
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOWNER%2FREPO&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
 ## Deploy your own (about 5 minutes)
 

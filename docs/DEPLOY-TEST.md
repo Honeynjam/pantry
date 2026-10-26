@@ -58,8 +58,8 @@ yet because route 1 is expected to work and an unused root config would be untes
 
 | Where | Placeholder | Replace with |
 |---|---|---|
-| `README.md`, Deploy button URL (`repository-url=…`) | `OWNER%2FREPO` (URL-encoded `OWNER/REPO`) | your GitHub `owner/repo`, URL-encoded (`/` → `%2F`) |
-| `README.md`, HTML comment above the button | `OWNER/REPO` | remove the comment once replaced |
+| `README.md`, Deploy button URL (`repository-url=…`) | `OWNER%2FREPO` (URL-encoded `OWNER/REPO`) | done: `honeynjam%2Fpantry` (26 Oct 2026) |
+| `README.md`, HTML comment above the button | `OWNER/REPO` | done: comment removed |
 
 The Deploy URL's `project-name=pantry` and `repository-name=pantry` are defaults the user can change in the form;
 they're also part of the rename checklist (spec §10b "One place for the name").
