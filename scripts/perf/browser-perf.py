@@ -71,7 +71,7 @@ def owner_identity():
 def summary(renders, names=None):
     counts = renders["counts"]
     total = sum(counts.values())
-    top = sorted(counts.items(), key=lambda kv: -kv[1])[:8]
+    top = sorted(counts.items(), key=lambda kv: -kv[1])[:40]
     rows = {name: counts.get(name, 0) for name in (names or ROW_COMPONENTS) if counts.get(name)}
     return {"commits": renders["commits"], "components": total, "rows": rows, "top": top}
 
@@ -189,6 +189,17 @@ def main():
         renders = page.evaluate("window.__renders.take()")
         results["list.remoteUpdate"] = {"wsKB": round(ws["bytes"] / 1024, 1), "wsFrames": ws["frames"], "renders": summary(renders)}
         convex("run", "--identity", identity, "issues:update", json.dumps({"issueId": target["_id"], "priority": target["priority"]}))
+        page.wait_for_timeout(1500)
+
+        # Someone (an agent, say) creates an issue in another space: only WEB's counter changes.
+        page.evaluate("window.__renders.take()")
+        ws["bytes"] = 0
+        ws["frames"] = 0
+        created = json.loads(convex("run", "--identity", identity, "issues:create", json.dumps({"spaceId": spaces()["WEB"], "title": "Perf probe elsewhere"})))
+        page.wait_for_timeout(2500)
+        renders = page.evaluate("window.__renders.take()")
+        results["list.remoteCreateElsewhere"] = {"wsKB": round(ws["bytes"] / 1024, 1), "wsFrames": ws["frames"], "renders": summary(renders)}
+        convex("run", "--identity", identity, "issues:remove", json.dumps({"issueId": created["issueId"]}))
         page.wait_for_timeout(1500)
 
         # An optimistic local change: priority via the row's picker is a mouse flow; use the P quick edit.
