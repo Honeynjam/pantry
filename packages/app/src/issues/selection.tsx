@@ -2,7 +2,7 @@
 
 import type { Id } from "@pantry/backend/dataModel";
 import { CircleDotIcon, CalendarIcon, SignalIcon, TagIcon, UserRoundIcon, UserRoundCheckIcon, XIcon } from "lucide-react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { toast } from "sonner";
 import { routes, useNavigation } from "../navigation";
 import { usePaletteActions, type PaletteAction } from "../palette/palette-actions";
@@ -24,16 +24,6 @@ export type Selection = {
   setCursor: (id: Id<"issues">) => void;
   toggle: (id: Id<"issues">) => void;
 };
-
-const SelectionContext = createContext<Selection | null>(null);
-
-export function useSelection(): Selection | null {
-  return useContext(SelectionContext);
-}
-
-export function SelectionProvider({ value, children }: { value: Selection; children: ReactNode }) {
-  return <SelectionContext value={value}>{children}</SelectionContext>;
-}
 
 const QUICK_EDITS: { kind: QuickEditKind; id: "status" | "assignee" | "labels" | "priority" | "dueDate"; label: string; icon: ReactNode }[] = [
   { kind: "status", id: "status", label: "Change status…", icon: <CircleDotIcon /> },
@@ -109,13 +99,17 @@ export function useIssueSelection({
     focusIssue(container.current, id);
   };
 
-  const toggle = (id: Id<"issues">) =>
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  // Stable, so memoised rows and cards don't re-render when only the cursor moves.
+  const toggle = useCallback(
+    (id: Id<"issues">) =>
+      setSelected((current) => {
+        const next = new Set(current);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    [],
+  );
 
   const edit = (kind: QuickEditKind) => {
     const list = targets();
@@ -199,12 +193,7 @@ export function useIssueSelection({
     ];
   });
 
-  const value: Selection = {
-    cursor,
-    selected,
-    setCursor: setCursorState,
-    toggle,
-  };
+  const value = useMemo<Selection>(() => ({ cursor, selected, setCursor: setCursorState, toggle }), [cursor, selected, toggle]);
   return { value, element: quickEdit.element };
 }
 

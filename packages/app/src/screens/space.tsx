@@ -23,9 +23,10 @@ import { useIssueActions } from "../issues/actions";
 import { FilterBar, useIssueFilters } from "../issues/filter-bar";
 import { applyFilters, EMPTY_FILTERS, hasFilters, parseGroup, serializeGroup, slug, type GroupBy } from "../issues/filters";
 import { IssueRow } from "../issues/issue-row";
-import { SelectionProvider, useIssueSelection } from "../issues/selection";
+import { useIssueSelection } from "../issues/selection";
 import { statusColor, useLookups, type Lookups, type ListIssue } from "../issues/lookups";
 import type { NewIssueDefaults } from "../issues/new-issue-dialog";
+import { useStable } from "../lib/stable";
 import { useNavigation } from "../navigation";
 import { useAppCommands } from "../shell/app-commands";
 import { projectColor } from "../shell/space-color";
@@ -69,7 +70,7 @@ export function SpaceIssues({
   renderBoard?: (props: BoardProps) => React.ReactNode;
 }) {
   const [includeDone, setIncludeDone] = useState(false);
-  const issues = useQuery(api.issues.listBySpace, { spaceId: space._id, includeDone });
+  const issues = useStable(useQuery(api.issues.listBySpace, { spaceId: space._id, includeDone }));
   const lookups = useLookups(data);
   const commands = useAppCommands();
   const { pathname, search, navigate } = useNavigation();
@@ -231,17 +232,24 @@ export function groupIssues(
   ].filter((group) => group.issues.length > 0);
 }
 
-/** Parent keys and sub-issue lists, from the issues already loaded. */
+/**
+ * Parent keys and sub-issue lists, from the issues already loaded. The sub-issue lists keep their
+ * identity while their issues don't change, so memoised parent rows and cards can skip.
+ */
 export function useIssueFamily(issues: ListIssue[]) {
-  return useMemo(() => {
+  const family = useMemo(() => {
     const byId = new Map(issues.map((issue) => [issue._id, issue]));
-    const children = new Map<Id<"issues">, ListIssue[]>();
+    const children: Record<string, ListIssue[]> = {};
     for (const issue of issues) {
-      if (!issue.parentId) continue;
-      children.set(issue.parentId, [...(children.get(issue.parentId) ?? []), issue]);
+      if (issue.parentId) (children[issue.parentId] ??= []).push(issue);
     }
     return { byId, children };
   }, [issues]);
+  const children = useStable(family.children);
+  return useMemo(
+    () => ({ byId: family.byId, children: { get: (id: Id<"issues">) => children[id] } }),
+    [family.byId, children],
+  );
 }
 
 export function IssueList({
@@ -266,11 +274,17 @@ export function IssueList({
   );
   const ordered = useMemo(() => groups.flatMap((group) => group.issues), [groups]);
   const selection = useIssueSelection({ ordered, lookups, actions, container });
+  const { cursor, selected, setCursor, toggle } = selection.value;
 
   return (
-    <SelectionProvider value={selection.value}>
+    <>
     {/* layoutScroll: the cursor highlight measures rows correctly while the list is scrolled. */}
-    <motion.div ref={container} layoutScroll className="min-h-0 flex-1 overflow-y-auto">
+    <motion.div
+      ref={container}
+      layoutScroll
+      data-any-selected={selected.size > 0 || undefined}
+      className="group/list min-h-0 flex-1 overflow-y-auto"
+    >
       {groups.map((group) => {
         const name = group.kind === "status" ? group.status.name : (group.project?.name ?? "No project");
         const rows = group.issues;
@@ -312,6 +326,10 @@ export function IssueList({
               actions={actions}
               parentKey={issue.parentId ? family.byId.get(issue.parentId)?.key : undefined}
               subIssues={family.children.get(issue._id)}
+              isCursor={cursor === issue._id}
+              isSelected={selected.has(issue._id)}
+              onCursor={setCursor}
+              onToggle={toggle}
             />
           ))}
         </section>
@@ -319,7 +337,7 @@ export function IssueList({
       })}
     </motion.div>
     {selection.element}
-    </SelectionProvider>
+    </>
   );
 }
 

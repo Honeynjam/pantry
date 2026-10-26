@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@pantry/backend/dataModel";
 import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
@@ -8,11 +9,11 @@ import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import { cn } from "@pantry/ui/lib/utils";
 import { CornerDownRightIcon } from "lucide-react";
 import { motion } from "motion/react";
+import { memo } from "react";
 import { routes, useNavigation } from "../navigation";
 import type { IssueActions } from "./actions";
 import type { Lookups, ListIssue } from "./lookups";
 import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker } from "./pickers";
-import { useSelection } from "./selection";
 import { SubIssueProgress } from "./sub-issue-progress";
 
 /**
@@ -20,28 +21,37 @@ import { SubIssueProgress } from "./sub-issue-progress";
  * date, assignee. The title is a stretched link so the whole row opens the issue; the pickers sit
  * above it and edit in place. Under a selection (J/K, X) the cursor's highlight glides between rows
  * on the morph spring and selected rows show a ticked box.
+ *
+ * Memoised: rows get the selection as plain flags and stable callbacks, and lists keep unchanged
+ * issues' identity (`useStable`), so J/K or one changed issue re-renders one or two rows, not all.
+ * Without `onToggle` the row has no selection (no checkbox, focus highlight instead of a cursor).
  */
-export function IssueRow({
+export const IssueRow = memo(function IssueRow({
   issue,
   lookups,
   actions,
   parentKey,
   subIssues,
+  isCursor = false,
+  isSelected = false,
+  onCursor,
+  onToggle,
 }: {
   issue: ListIssue;
   lookups: Lookups;
   actions: IssueActions;
   parentKey?: string;
   subIssues?: ListIssue[];
+  isCursor?: boolean;
+  isSelected?: boolean;
+  onCursor?: (id: Id<"issues">) => void;
+  onToggle?: (id: Id<"issues">) => void;
 }) {
   const { Link } = useNavigation();
   const { data } = lookups;
-  const selection = useSelection();
   // Reduced motion: no shared layoutId, so the highlight appears on the new row without travel.
   const reduceMotion = usePrefersReducedMotion();
-  const isCursor = selection?.cursor === issue._id;
-  const isSelected = selection?.selected.has(issue._id) ?? false;
-  const anySelected = (selection?.selected.size ?? 0) > 0;
+  const selectable = onToggle !== undefined;
   const labels = issue.labelIds.map(lookups.label).filter((label) => label !== undefined);
   const project = lookups.project(issue.projectId);
   return (
@@ -49,11 +59,11 @@ export function IssueRow({
       data-issue-id={issue._id}
       data-cursor={isCursor || undefined}
       data-selected={isSelected || undefined}
-      onFocus={() => selection?.setCursor(issue._id)}
+      onFocus={() => onCursor?.(issue._id)}
       className={cn(
         "group/row relative isolate flex h-row items-center gap-2 border-b border-border px-3 text-sm transition-colors duration-(--duration-instant) last:border-b-0 hover:bg-accent",
         isSelected && "bg-gray-3",
-        !selection && "focus-within:bg-accent",
+        !selectable && "focus-within:bg-accent",
       )}
     >
       {isCursor && (
@@ -64,16 +74,18 @@ export function IssueRow({
           className="pointer-events-none absolute inset-0 -z-10 bg-selected"
         />
       )}
-      {selection && (
+      {selectable && (
         <span className="relative z-10 -mr-0.5 flex w-4 shrink-0 justify-center">
           <Checkbox
             checked={isSelected}
-            onCheckedChange={() => selection.toggle(issue._id)}
+            onCheckedChange={() => onToggle(issue._id)}
             tabIndex={-1}
             aria-label={`Select ${issue.key}`}
             className={cn(
               "transition-opacity duration-(--duration-instant)",
-              !isSelected && !anySelected && "opacity-0 group-hover/row:opacity-100",
+              // Every box shows once anything is selected: the list sets data-any-selected, so rows
+              // don't re-render for it.
+              !isSelected && "opacity-0 group-hover/row:opacity-100 [[data-any-selected]_&]:opacity-100",
             )}
           />
         </span>
@@ -123,4 +135,4 @@ export function IssueRow({
       />
     </div>
   );
-}
+});

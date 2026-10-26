@@ -35,12 +35,12 @@ import { duration, ease, spring, usePrefersReducedMotion } from "@pantry/ui/lib/
 import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
 import { CornerDownRightIcon, LayersIcon, PlusIcon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { statusColor, type Lookups, type ListIssue } from "../issues/lookups";
-import { SelectionProvider, useIssueSelection, useSelection } from "../issues/selection";
+import { useIssueSelection } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { formatDay, today } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
@@ -104,6 +104,19 @@ const collision: CollisionDetection = (args) => {
   return hits.length > 0 ? hits : closestCenter(args);
 };
 
+// Sensor options live outside the component: useSensor memoises on the options object, and new
+// sensors on every render would change dnd-kit's context and re-render every card.
+/** A few pixels of travel before a drag starts, so clicks still open the issue. */
+const POINTER_SENSOR = { activationConstraint: { distance: 5 } };
+/** Space picks a card up and drops it; Enter stays free to open the issue. */
+const KEYBOARD_SENSOR = {
+  keyboardCodes: {
+    start: [KeyboardCode.Space],
+    cancel: [KeyboardCode.Esc],
+    end: [KeyboardCode.Space, KeyboardCode.Enter],
+  },
+};
+
 function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   const actions = useIssueActions();
   const family = useIssueFamily(issues);
@@ -144,19 +157,9 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
     [lanes, statuses, columns],
   );
   const selection = useIssueSelection({ ordered, lookups, actions, container });
+  const { cursor, selected, setCursor, toggle } = selection.value;
 
-  const sensors = useSensors(
-    // A few pixels of travel before a drag starts, so clicks still open the issue.
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    // Space picks a card up and drops it; Enter stays free to open the issue.
-    useSensor(KeyboardSensor, {
-      keyboardCodes: {
-        start: [KeyboardCode.Space],
-        cancel: [KeyboardCode.Esc],
-        end: [KeyboardCode.Space, KeyboardCode.Enter],
-      },
-    }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR), useSensor(KeyboardSensor, KEYBOARD_SENSOR));
 
   const issueById = (id: unknown) => issues.find((issue) => issue._id === id);
   const statusName = (id: Id<"statuses"> | undefined) => statuses.find((status) => status._id === id)?.name ?? "";
@@ -258,12 +261,17 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
           subIssues={family.children.get(issue._id)}
           dimmed={issue._id === activeId}
           justDropped={justDropped}
+          isCursor={cursor === issue._id}
+          isSelected={selected.has(issue._id)}
+          anySelected={selected.size > 0}
+          onCursor={setCursor}
+          onToggle={toggle}
         />
       );
     };
 
   return (
-    <SelectionProvider value={selection.value}>
+    <>
     <DndContext
       sensors={sensors}
       collisionDetection={collision}
@@ -376,7 +384,7 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
       </DragOverlay>
     </DndContext>
     {selection.element}
-    </SelectionProvider>
+    </>
   );
 }
 
@@ -463,7 +471,8 @@ function DropIndicator() {
   return <div aria-hidden className="pointer-events-none absolute inset-x-1 -top-[5px] z-10 h-0.5 rounded-full bg-foreground" />;
 }
 
-function Card({
+/** Memoised like list rows: J/K and one changed issue re-render one or two cards, not the board. */
+const Card = memo(function Card({
   issue,
   lane,
   lookups,
@@ -471,6 +480,11 @@ function Card({
   subIssues,
   dimmed,
   justDropped,
+  isCursor,
+  isSelected,
+  anySelected,
+  onCursor,
+  onToggle,
 }: {
   issue: ListIssue;
   lane: string;
@@ -479,13 +493,14 @@ function Card({
   subIssues?: ListIssue[];
   dimmed: boolean;
   justDropped: React.RefObject<number>;
+  isCursor: boolean;
+  isSelected: boolean;
+  anySelected: boolean;
+  onCursor: (id: Id<"issues">) => void;
+  onToggle: (id: Id<"issues">) => void;
 }) {
   const { Link, navigate } = useNavigation();
   const reduceMotion = usePrefersReducedMotion();
-  const selection = useSelection();
-  const isCursor = selection?.cursor === issue._id;
-  const isSelected = selection?.selected.has(issue._id) ?? false;
-  const anySelected = (selection?.selected.size ?? 0) > 0;
   const draggable = useDraggable({ id: issue._id, data: { lane, statusId: issue.statusId } });
   const { onKeyDown, ...listeners } = draggable.listeners ?? {};
   const droppable = useDroppable({ id: issue._id, data: { lane, statusId: issue.statusId } });
@@ -509,7 +524,7 @@ function Card({
       )}
       {...draggable.attributes}
       {...listeners}
-      onFocus={() => selection?.setCursor(issue._id)}
+      onFocus={() => onCursor(issue._id)}
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (event.key === "Enter" && !event.defaultPrevented && !draggable.isDragging) navigate(routes.issue(issue.key));
@@ -525,10 +540,10 @@ function Card({
         selected={isSelected}
         // Cards are dense: the box only takes room once something is selected (X starts it).
         select={
-          selection && anySelected ? (
+          anySelected ? (
             <Checkbox
               checked={isSelected}
-              onCheckedChange={() => selection.toggle(issue._id)}
+              onCheckedChange={() => onToggle(issue._id)}
               onPointerDown={(event) => event.stopPropagation()}
               tabIndex={-1}
               aria-label={`Select ${issue.key}`}
@@ -551,7 +566,7 @@ function Card({
       </CardBody>
     </motion.div>
   );
-}
+});
 
 function CardBody({
   issue,

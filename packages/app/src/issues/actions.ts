@@ -19,8 +19,12 @@ export type IssuePatch = Omit<FunctionArgs<typeof api.issues.update>, "issueId">
  * change back if the server refuses it.
  */
 export function useIssueActions() {
-  const update = useMutation(api.issues.update).withOptimisticUpdate((store, args) => optimisticUpdate(store, args));
-  const move = useMutation(api.issues.move).withOptimisticUpdate((store, args) => optimisticMove(store, args));
+  // withOptimisticUpdate returns a new function on every call: build them once per mutation, so the
+  // actions object stays the same between renders and memoised rows don't re-render for it.
+  const rawUpdate = useMutation(api.issues.update);
+  const rawMove = useMutation(api.issues.move);
+  const update = useMemo(() => rawUpdate.withOptimisticUpdate((store, args) => optimisticUpdate(store, args)), [rawUpdate]);
+  const move = useMemo(() => rawMove.withOptimisticUpdate((store, args) => optimisticMove(store, args)), [rawMove]);
   return useMemo(
     () => ({
       update: async (issueId: Id<"issues">, patch: IssuePatch) => {

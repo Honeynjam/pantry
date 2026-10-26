@@ -9,6 +9,7 @@ import { EntryGate } from "../entry";
 import { FilterBar, useIssueFilters } from "../issues/filter-bar";
 import { applyFilters, EMPTY_FILTERS, hasFilters } from "../issues/filters";
 import { useLookups } from "../issues/lookups";
+import { useStable } from "../lib/stable";
 import type { NewIssueDefaults } from "../issues/new-issue-dialog";
 import { useAppCommands } from "../shell/app-commands";
 import { AppShell, type WorkspaceData } from "../shell/app-shell";
@@ -33,7 +34,7 @@ export function MyIssuesPage() {
 }
 
 function MyIssues({ data }: { data: WorkspaceData }) {
-  const issues = useQuery(api.issues.listMine);
+  const issues = useStable(useQuery(api.issues.listMine));
   const lookups = useLookups(data);
   const commands = useAppCommands();
   const { filters, setFilters, setTitle } = useIssueFilters();

@@ -37,6 +37,7 @@ import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { SpaceAvatar } from "../components/space-avatar";
 import { parseFilters, slug } from "../issues/filters";
+import { useStable } from "../lib/stable";
 import { routes, useNavigation } from "../navigation";
 import { LoadingScreen } from "../screens/loading";
 import { AppCommandsProvider, useAppCommands } from "./app-commands";
@@ -284,7 +285,8 @@ export function AppShell({
   title: (data: WorkspaceData) => ReactNode;
   children: (data: WorkspaceData) => ReactNode;
 }) {
-  const data = useQuery(api.workspace.current);
+  // Stable: a change to one space or member doesn't hand every screen new statuses, labels, members.
+  const data = useStable(useQuery(api.workspace.current));
   const [open, setOpen] = useState(readSidebarOpen);
   if (data === undefined) return <LoadingScreen diagnostics={() => ({ waitingFor: "workspace.current" })} />;
   return (
