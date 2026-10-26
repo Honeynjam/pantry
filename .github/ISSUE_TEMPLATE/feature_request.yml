@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or an improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pantry is deliberately small and leaves some things out on purpose. The README and CONTRIBUTING.md list
+        what Pantry won't build
+        ([What we won't merge](https://github.com/honeynjam/pantry/blob/main/CONTRIBUTING.md#what-we-wont-merge)),
+        so please check there first. If your idea is on that list and you think it should change, say why below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What would you like Pantry to do? If it changes the UI, a sketch or screenshot helps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've tried
+      description: Workarounds, or how other tools handle it.

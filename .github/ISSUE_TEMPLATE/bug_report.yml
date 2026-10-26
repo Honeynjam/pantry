@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in Pantry doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Security problems go through a private report instead (see SECURITY.md), not a public issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: Pantry version
+      description: "`serverVersion` from `GET https://<your-app>/api/instance`, or the commit if you run from source."
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Vercel + Convex
+        - Local dev
+        - Mac app
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Browser and version, or the macOS version for the Mac app.
+      placeholder: "Chrome 141, Safari 26, Firefox 144"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead? Screenshots and console or build log lines help.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
