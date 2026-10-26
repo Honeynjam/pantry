@@ -14,7 +14,8 @@ Vercel Hobby is for non-commercial use).
 
 1. **Click "Deploy with Vercel"** above and sign in to Vercel with GitHub.
 2. **Repository:** Vercel copies this repo into your GitHub account (a clone, not a fork). Keep the name or change it.
-3. **Root Directory: set it to `apps/web`.** This is the one setting the button can't fill in for you. In the
+3. **Root Directory: set it to `apps/web`.** This is the one setting the button can't fill in for you; if you
+   miss it, the first build stops with a message telling you how to fix it in Settings. In the
    "Configure Project" form, find **Root Directory**, click **Edit**, pick `apps/web`, and confirm. Leave the
    build and install settings alone: `apps/web/vercel.json` provides the build command.
 4. **Add the Convex integration** when Vercel asks (it's pre-selected by the button): accept the terms and create a
@@ -37,7 +38,7 @@ never touch your Convex data. Every push to your repo's production branch redepl
 | Symptom | Fix |
 |---|---|
 | Build log: `CONVEX_DEPLOY_KEY is not set` | Connect the Convex integration to the project for Production and Preview, with no Custom Prefix, then redeploy. |
-| Build fails with "No Next.js version detected" or can't find `scripts/vercel-build.sh` | Root Directory isn't `apps/web`. Project → Settings → Build and Deployment → Root Directory → `apps/web`, then redeploy. |
+| Build fails with "Pantry must be built from apps/web", "No Output Directory named public", "No Next.js version detected" or can't find `scripts/vercel-build.sh` | Root Directory isn't `apps/web`. Project → Settings → Build and Deployment → Root Directory → `apps/web`, then redeploy. |
 | App is blank or says "This app has no Convex address" | `NEXT_PUBLIC_CONVEX_URL` wasn't injected: the build command must be `bash ../../scripts/vercel-build.sh` (from `apps/web/vercel.json`). |
 | Sign-in fails with an origin or URL error | Convex `SITE_URL` must match the URL you opened. Use the production URL, not a deployment-specific one; after adding a domain, redeploy. |
 | Setup screen: "One more step" | See above: set `BETTER_AUTH_SECRET` once. `GET /api/instance` shows `"needsSecret": false` when it's fixed. |
