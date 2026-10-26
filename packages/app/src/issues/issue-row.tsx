@@ -4,7 +4,7 @@ import type { Doc } from "@pantry/backend/dataModel";
 import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
-import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
+import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import { cn } from "@pantry/ui/lib/utils";
 import { CornerDownRightIcon } from "lucide-react";
 import { motion } from "motion/react";
@@ -37,7 +37,8 @@ export function IssueRow({
   const { Link } = useNavigation();
   const { data } = lookups;
   const selection = useSelection();
-  const highlight = useMotionTransition(spring.morph);
+  // Reduced motion: no shared layoutId, so the highlight appears on the new row without travel.
+  const reduceMotion = usePrefersReducedMotion();
   const isCursor = selection?.cursor === issue._id;
   const isSelected = selection?.selected.has(issue._id) ?? false;
   const anySelected = (selection?.selected.size ?? 0) > 0;
@@ -56,8 +57,8 @@ export function IssueRow({
     >
       {isCursor && (
         <motion.span
-          layoutId="issue-cursor"
-          transition={highlight}
+          layoutId={reduceMotion ? undefined : "issue-cursor"}
+          transition={spring.morph}
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 bg-selected"
         />

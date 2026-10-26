@@ -20,7 +20,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@pantry/ui/components/sidebar";
-import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
+import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
@@ -46,7 +46,7 @@ function readSidebarOpen(): boolean {
   }
 }
 
-/** One highlight for the whole nav: it glides between items on spring.morph (reduced: fades). */
+/** One highlight for the whole nav: it glides between items on spring.morph (reduced: no travel). */
 function NavItem({
   href,
   tooltip,
@@ -61,13 +61,14 @@ function NavItem({
   children: ReactNode;
 }) {
   const { Link } = useNavigation();
-  const transition = useMotionTransition(spring.morph);
+  // Reduced motion: no shared layoutId, so the highlight appears in place without travel.
+  const reduceMotion = usePrefersReducedMotion();
   return (
     <SidebarMenuItem>
       {active && (
         <motion.span
-          layoutId="sidebar-active"
-          transition={transition}
+          layoutId={reduceMotion ? undefined : "sidebar-active"}
+          transition={spring.morph}
           aria-hidden
           className="absolute inset-0 rounded-md bg-selected"
         />
