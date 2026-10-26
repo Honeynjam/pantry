@@ -17,6 +17,7 @@ import type * as issues from "../issues.js";
 import type * as labels from "../labels.js";
 import type * as lib_activity from "../lib/activity.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_avatar from "../lib/avatar.js";
 import type * as lib_brand from "../lib/brand.js";
 import type * as lib_comments from "../lib/comments.js";
 import type * as lib_defaults from "../lib/defaults.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   labels: typeof labels;
   "lib/activity": typeof lib_activity;
   "lib/auth": typeof lib_auth;
+  "lib/avatar": typeof lib_avatar;
   "lib/brand": typeof lib_brand;
   "lib/comments": typeof lib_comments;
   "lib/defaults": typeof lib_defaults;
