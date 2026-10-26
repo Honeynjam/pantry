@@ -1,0 +1,48 @@
+@import "@pantry/ui/globals.css";
+
+/* Landing-only type: larger than the app's scale, still Geist with tight tracking. */
+@theme {
+  --text-display: clamp(2.75rem, 1.6rem + 4.6vw, 5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.045em;
+  --text-headline: clamp(2rem, 1.35rem + 2.4vw, 3.25rem);
+  --text-headline--line-height: 1.06;
+  --text-headline--letter-spacing: -0.035em;
+  --text-lede: clamp(1.0625rem, 0.98rem + 0.3vw, 1.25rem);
+  --text-lede--line-height: 1.55;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+}
+
+/* A hairline frame for product windows, lit from the top in the dark. */
+@utility window-frame {
+  border-radius: 0.75rem;
+  background: var(--background);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    var(--window-shadow);
+}
+:root,
+.light {
+  --window-shadow: 0 24px 56px -24px oklch(0.2 0 0 / 0.28), 0 8px 16px -8px oklch(0.2 0 0 / 0.1);
+}
+.dark {
+  --window-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 30px 80px -20px oklch(0 0 0 / 0.7);
+}
+
+/* Feature tabs: the line under the active tab fills while it waits to advance. */
+@keyframes tab-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

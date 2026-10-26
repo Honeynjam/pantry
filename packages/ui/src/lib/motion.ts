@@ -49,6 +49,19 @@ export const tween = {
   panelExit: { duration: duration.exit, ease: ease.in },
 } as const satisfies Record<string, Transition>;
 
+/**
+ * Marketing reveals (apps/site only; the app never uses these). Longer and softer than the app
+ * tokens because they run once, as content arrives, not in answer to an action.
+ * `words`: headline words rise out of a blur one after another. `block`: a section fades up once
+ * when it scrolls into view. Reduced motion drops the blur and travel and keeps a short fade.
+ */
+export const reveal = {
+  words: { duration: 0.8, ease: ease.out, stagger: 0.045, blur: 10, distance: "0.35em" },
+  block: { duration: 0.7, ease: ease.out, stagger: 0.08, distance: 16 },
+  /** How much of an element must be on screen before it reveals. */
+  amount: 0.5,
+} as const;
+
 /** The reduced-motion branch: no travel, a short opacity cross-fade keeps feedback. */
 export const reducedTransition = { duration: duration.instant, ease: "linear" } as const satisfies Transition;
 
