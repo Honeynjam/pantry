@@ -3,18 +3,24 @@
 import { cn } from "@pantry/ui/lib/utils";
 import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import { motion } from "motion/react";
-import { UsersIcon, type LucideIcon } from "lucide-react";
+import { CircleDashedIcon, FolderIcon, TagIcon, UsersIcon, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { EntryGate } from "../../entry";
 import { routes, useNavigation, type SettingsSection } from "../../navigation";
 import { AppShell, type WorkspaceData } from "../../shell/app-shell";
 import { NotMemberScreen } from "../not-member";
+import { LabelsSettings } from "./labels";
 import { MembersSettings } from "./members";
+import { ProjectsSettings } from "./projects";
+import { StatusesSettings } from "./statuses";
 
 type SectionDef = { id: SettingsSection; label: string; icon: LucideIcon; render: (data: WorkspaceData) => ReactNode };
 
 const SECTIONS: SectionDef[] = [
   { id: "members", label: "Members", icon: UsersIcon, render: (data) => <MembersSettings data={data} /> },
+  { id: "projects", label: "Projects", icon: FolderIcon, render: (data) => <ProjectsSettings data={data} /> },
+  { id: "labels", label: "Labels", icon: TagIcon, render: (data) => <LabelsSettings data={data} /> },
+  { id: "statuses", label: "Statuses", icon: CircleDashedIcon, render: (data) => <StatusesSettings data={data} /> },
 ];
 
 /** Workspace settings: members and invites, projects, labels, statuses (spec §4). */

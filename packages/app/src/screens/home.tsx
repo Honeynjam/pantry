@@ -2,6 +2,7 @@
 
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
+import { resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { FileTextIcon } from "lucide-react";
 import { EntryGate } from "../entry";
 import { routes, useNavigation } from "../navigation";
@@ -66,7 +67,7 @@ function WorkspaceHome({ data }: { data: Parameters<Parameters<typeof AppShell>[
         <div className="flex flex-wrap gap-x-5 gap-y-2 rounded-lg border border-border px-3 py-2.5">
           {data.statuses.map((status) => (
             <span key={status._id} className="flex items-center gap-1.5 text-sm text-foreground">
-              <StatusGlyph category={status.category} color={status.color} />
+              <StatusGlyph category={status.category} color={resolveLabelColor(status.color)} />
               {status.name}
             </span>
           ))}

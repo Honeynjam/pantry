@@ -8,6 +8,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -22,10 +23,11 @@ import {
 import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
-import { HouseIcon, SettingsIcon } from "lucide-react";
+import { HouseIcon, PlusIcon, SettingsIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { routes, useNavigation } from "../navigation";
+import { NewProjectDialog } from "../components/new-project-dialog";
 import { LoadingScreen } from "../screens/loading";
 import { projectColor } from "./project-color";
 import { UserMenu } from "./user-menu";
@@ -82,6 +84,7 @@ function NavItem({
 
 function AppSidebar({ data }: { data: WorkspaceData }) {
   const { pathname } = useNavigation();
+  const [creating, setCreating] = useState(false);
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -110,6 +113,9 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupAction title="New project" aria-label="New project" onClick={() => setCreating(true)}>
+            <PlusIcon />
+          </SidebarGroupAction>
           <SidebarGroupContent>
             <SidebarMenu>
               {data.projects.map((project) => (
@@ -117,7 +123,7 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
                   key={project._id}
                   href={routes.project(project.key)}
                   tooltip={project.name}
-                  active={pathname === routes.project(project.key)}
+                  active={pathname === routes.project(project.key) || pathname.startsWith(`${routes.project(project.key)}/`)}
                   badge={project.key}
                 >
                   <span className="flex size-4 items-center justify-center" aria-hidden>
@@ -141,6 +147,7 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <NewProjectDialog open={creating} onOpenChange={setCreating} />
     </Sidebar>
   );
 }

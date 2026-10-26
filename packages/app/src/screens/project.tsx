@@ -1,11 +1,10 @@
 "use client";
 
-import { IssueKey } from "@pantry/ui/components/issue-key";
 import { InboxIcon } from "lucide-react";
 import { EntryGate } from "../entry";
 import { AppShell } from "../shell/app-shell";
-import { projectColor } from "../shell/project-color";
 import { NotMemberScreen } from "./not-member";
+import { ProjectTitle } from "./project-chrome";
 
 /** A project with no issues yet (list and board views arrive with the issues backend, M2). */
 export function ProjectPage({ projectKey }: { projectKey: string }) {
@@ -15,18 +14,7 @@ export function ProjectPage({ projectKey }: { projectKey: string }) {
         state.kind === "not-member" ? (
           <NotMemberScreen />
         ) : (
-          <AppShell
-            title={(data) => {
-              const project = data.projects.find((p) => p.key === projectKey);
-              return (
-                <>
-                  <span className="size-2 rounded-full" style={{ background: projectColor(projectKey) }} aria-hidden />
-                  <span className="font-medium text-foreground">{project?.name ?? projectKey}</span>
-                  <IssueKey value={projectKey} />
-                </>
-              );
-            }}
-          >
+          <AppShell title={(data) => <ProjectTitle data={data} projectKey={projectKey} view="list" />}>
             {(data) => {
               const project = data.projects.find((p) => p.key === projectKey);
               return (
