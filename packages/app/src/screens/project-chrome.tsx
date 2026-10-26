@@ -11,6 +11,7 @@ export type ProjectView = "list" | "board" | "settings";
 
 const VIEWS: { id: ProjectView; label: string; href: (key: string) => string }[] = [
   { id: "list", label: "List", href: routes.project },
+  { id: "board", label: "Board", href: routes.board },
   { id: "settings", label: "Settings", href: routes.projectSettings },
 ];
 
