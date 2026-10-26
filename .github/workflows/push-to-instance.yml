@@ -1,0 +1,58 @@
+# After CI passes on main, push main to the GitHub repo your own Pantry instance deploys from
+# (the copy the Deploy Button made in your account), so Vercel redeploys it.
+#
+# Off unless configured. To turn it on in your repo:
+#   1. Repo variable INSTANCE_REPO = "<owner>/<repo>" of the copy Vercel deploys from (e.g. kb1995/pantry).
+#   2. Repo secret INSTANCE_PUSH_TOKEN = a fine-grained token with access to that repo only:
+#      Contents: Read and write, Workflows: Read and write (needed when .github/workflows changes).
+#   3. Once, make that repo share history with this one: git push --force <instance remote> main.
+# Pushes are fast-forward only: if the instance repo has diverged, the run fails instead of overwriting it.
+name: Push to instance
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-to-instance
+  cancel-in-progress: false
+
+jobs:
+  push:
+    name: Push main to the instance repo
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      vars.INSTANCE_REPO != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push (fast-forward only)
+        env:
+          INSTANCE_REPO: ${{ vars.INSTANCE_REPO }}
+          INSTANCE_PUSH_TOKEN: ${{ secrets.INSTANCE_PUSH_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$INSTANCE_PUSH_TOKEN" ]; then
+            echo "::error::INSTANCE_REPO is set but the INSTANCE_PUSH_TOKEN secret is missing."
+            exit 1
+          fi
+          if [ "$INSTANCE_REPO" = "$GITHUB_REPOSITORY" ]; then
+            echo "INSTANCE_REPO is this repo; nothing to do."
+            exit 0
+          fi
+          # Only ever move the instance forward to the commit CI just passed.
+          git push "https://x-access-token:${INSTANCE_PUSH_TOKEN}@github.com/${INSTANCE_REPO}.git" "${SHA}:refs/heads/main" \
+            || { echo "::error::Push to ${INSTANCE_REPO} was rejected. If it's not a fast-forward, the instance repo has diverged: reconcile it by hand (once: git push --force <instance> main)."; exit 1; }
+          echo "Pushed ${SHA} to ${INSTANCE_REPO}@main; Vercel will redeploy."

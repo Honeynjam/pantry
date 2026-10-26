@@ -175,3 +175,75 @@ describe("invites.revoke", () => {
     await expect(t.withIdentity(owner).mutation(api.invites.revoke, { inviteId })).rejects.toThrow(/already accepted/);
   });
 });
+
+describe("invites.peek", () => {
+  beforeEach(() => stubAuthEnv());
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("works signed out and returns only status, email and workspace name for a valid link", async () => {
+    const t = await setUp();
+    const { token } = await invite(t, "Partner@Example.com");
+    const result = await t.query(api.invites.peek, { token });
+    expect(result).toStrictEqual({ status: "valid", email: "partner@example.com", workspaceName: "Home" });
+    expect(Object.keys(result).sort()).toEqual(["email", "status", "workspaceName"]);
+  });
+
+  it("reports expired, revoked and used links without the email or workspace", async () => {
+    const t = await setUp();
+    const expired = await invite(t, "late@example.com");
+    await t.run((ctx) => ctx.db.patch("invites", expired.inviteId, { expiresAt: Date.now() - 1 }));
+    const revoked = await invite(t, "gone@example.com");
+    await t.withIdentity(owner).mutation(api.invites.revoke, { inviteId: revoked.inviteId });
+    const used = await invite(t);
+    await t.withIdentity(partner).mutation(api.invites.accept, { token: used.token });
+
+    for (const [token, status] of [
+      [expired.token, "expired"],
+      [revoked.token, "revoked"],
+      [used.token, "used"],
+    ] as const) {
+      expect(await t.query(api.invites.peek, { token })).toStrictEqual({ status, email: null, workspaceName: null });
+    }
+  });
+
+  it("reports unknown, malformed and oversized tokens the same way", async () => {
+    const t = await setUp();
+    await invite(t);
+    const unknown = { status: "unknown", email: null, workspaceName: null };
+    for (const token of ["inv_doesnotexist", "", "not-a-token", `inv_${"a".repeat(500)}`]) {
+      expect(await t.query(api.invites.peek, { token })).toStrictEqual(unknown);
+    }
+  });
+
+  it("doesn't depend on whether the invited email has an account", async () => {
+    const t = await setUp();
+    const { token } = await invite(t);
+    const before = await t.query(api.invites.peek, { token });
+    // An account now exists for that email (signed up through the guard, not yet a member).
+    const res = await t.fetch("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: TEST_SITE_URL },
+      body: JSON.stringify({ email: partner.email, password: "correct-horse-battery", name: "Partner" }),
+    });
+    expect(res.status).toBe(200);
+    expect(await t.query(api.invites.peek, { token })).toStrictEqual(before);
+  });
+
+  it("is UX only: a tampered email is still rejected by the sign-up guard and by accept", async () => {
+    const t = await setUp();
+    const { token } = await invite(t);
+    expect((await t.query(api.invites.peek, { token })).email).toBe(partner.email);
+
+    // The form sends a different email than the one shown: the server guard refuses the account.
+    const res = await t.fetch("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: TEST_SITE_URL },
+      body: JSON.stringify({ email: "intruder@example.com", password: "correct-horse-battery", name: "Intruder" }),
+    });
+    expect(res.status).toBe(403);
+    // An account with another email that somehow exists can't accept the link either.
+    const intruder = { subject: "user-intruder", name: "Intruder", email: "intruder@example.com" };
+    await expect(t.withIdentity(intruder).mutation(api.invites.accept, { token })).rejects.toThrow(/different email/);
+    expect((await t.query(api.invites.peek, { token })).status).toBe("valid");
+  });
+});
