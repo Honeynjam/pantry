@@ -110,7 +110,7 @@ function splitBlocks(manager: MarkdownManagerLike, markdown: string): Block[] {
   return manager.instance
     .lexer(markdown)
     .filter((token) => token.type !== "space")
-    .map((token) => ({ raw: token.raw.replace(/\n+$/, ""), isDefinition: token.type === "def" }))
+    .map((token) => ({ raw: token.raw.replace(/^\n+|\n+$/g, ""), isDefinition: token.type === "def" }))
     .filter((block) => block.raw.trim().length > 0);
 }
 
@@ -140,13 +140,35 @@ export function preserveUnchangedBlocks(manager: MarkdownManagerLike, original: 
     return written.endsWith(context) ? written.slice(0, -context.length) : canonical(manager, block.raw);
   };
 
-  const pool = new Map<string, string[]>();
-  for (const block of originalBlocks) {
+  // Where each original block sits, so neighbours that both survive keep the text between them.
+  let cursor = 0;
+  const located = originalBlocks.map((block, index) => {
+    const start = original.indexOf(block.raw, cursor);
+    const end = start < 0 ? -1 : start + block.raw.length;
+    if (end >= 0) cursor = end;
+    return { ...block, index, start, end };
+  });
+
+  const pool = new Map<string, (typeof located)[number][]>();
+  for (const block of located) {
     const key = canonicalInContext(block);
-    pool.set(key, [...(pool.get(key) ?? []), block.raw]);
+    pool.set(key, [...(pool.get(key) ?? []), block]);
   }
-  const blocks = splitBlocks(manager, trimmedNext).map(({ raw }) => pool.get(raw)?.shift() ?? raw);
-  const joined = blocks.join("\n\n");
+  const blocks = splitBlocks(manager, trimmedNext).map(({ raw }) => {
+    const match = pool.get(raw)?.shift();
+    return match ? { raw: match.raw, from: match } : { raw, from: undefined };
+  });
+
+  let joined = "";
+  for (const [i, block] of blocks.entries()) {
+    if (i > 0) {
+      const previous = blocks[i - 1]!.from;
+      const current = block.from;
+      const adjacent = previous && current && current.index === previous.index + 1 && previous.end >= 0 && current.start >= 0;
+      joined += adjacent ? original.slice(previous.end, current.start) : "\n\n";
+    }
+    joined += block.raw;
+  }
   return original.endsWith("\n") ? `${joined}\n` : joined;
 }
 

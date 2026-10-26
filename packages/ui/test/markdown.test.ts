@@ -51,6 +51,8 @@ describe("markdown fixtures", () => {
       const saved = toMarkdown(editor, markdown);
       expect(saved.startsWith("Added by a person.\n\n")).toBe(true);
       for (const block of blocks(editor, markdown)) expect(saved).toContain(block);
+      // Untouched neighbours keep their spacing too, so the rest is the original document.
+      expect(saved).toBe(`Added by a person.\n\n${markdown}`);
       // And it loads again to the same document.
       expect(toMarkdown(load(saved), saved)).toBe(saved);
     },
@@ -89,6 +91,15 @@ describe("constructs Tiptap can't represent", () => {
     const editor = load(markdown);
     editor.commands.clearContent();
     expect(toMarkdown(editor, markdown)).toBe("");
+  });
+
+  it("keeps the original spacing between untouched neighbours", () => {
+    const markdown = "Para one.\n\n\nPara two.\n[ref]: https://example.com\nTail paragraph.\n\nLast one.\n";
+    const editor = load(markdown);
+    editor.chain().focus("end").insertContent(" Edited.").run();
+    expect(toMarkdown(editor, markdown)).toBe(
+      "Para one.\n\n\nPara two.\n[ref]: https://example.com\nTail paragraph.\n\nLast one. Edited.\n",
+    );
   });
 
   it("writes Tiptap's markdown for edited blocks", () => {

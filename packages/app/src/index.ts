@@ -21,3 +21,4 @@ export { ProjectPage } from "./screens/project";
 export { LoadingScreen } from "./screens/loading";
 export { SettingsPage } from "./screens/settings/settings-page";
 export { ProjectSettingsPage } from "./screens/project-settings";
+export { IssuePage } from "./screens/issue";
