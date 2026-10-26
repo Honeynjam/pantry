@@ -23,6 +23,7 @@ import { useIssueActions } from "../issues/actions";
 import { FilterBar, useIssueFilters } from "../issues/filter-bar";
 import { applyFilters, EMPTY_FILTERS, hasFilters, parseGroup, serializeGroup, slug, type GroupBy } from "../issues/filters";
 import { IssueRow } from "../issues/issue-row";
+import { RowPickers } from "../issues/pickers";
 import { useIssueSelection } from "../issues/selection";
 import { statusColor, useLookups, type Lookups, type ListIssue } from "../issues/lookups";
 import type { NewIssueDefaults } from "../issues/new-issue-dialog";
@@ -277,7 +278,7 @@ export function IssueList({
   const { cursor, selected, setCursor, toggle } = selection.value;
 
   return (
-    <>
+    <RowPickers statuses={lookups.data.statuses} members={lookups.data.members} me={lookups.data.me}>
     {/* layoutScroll: the cursor highlight measures rows correctly while the list is scrolled. */}
     <motion.div
       ref={container}
@@ -337,7 +338,7 @@ export function IssueList({
       })}
     </motion.div>
     {selection.element}
-    </>
+    </RowPickers>
   );
 }
 

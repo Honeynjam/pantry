@@ -7,17 +7,25 @@ import { cn } from "@pantry/ui/lib/utils";
 import { usePortalContainer } from "@pantry/ui/lib/portal";
 import { menuItem, overlaySurface, popupMotion } from "@pantry/ui/lib/styles";
 
-function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
-  return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
+function DropdownMenu<Payload = unknown>({ ...props }: MenuPrimitive.Root.Props<Payload>) {
+  return <MenuPrimitive.Root<Payload> data-slot="dropdown-menu" {...props} />;
 }
 
 function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
   return <MenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />;
 }
 
-function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
-  return <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />;
+function DropdownMenuTrigger<Payload = unknown>({ ...props }: MenuPrimitive.Trigger.Props<Payload>) {
+  return <MenuPrimitive.Trigger<Payload> data-slot="dropdown-menu-trigger" {...props} />;
 }
+
+/**
+ * One menu for many triggers (Base UI detached triggers): pass the handle to a `DropdownMenu` and to
+ * each `DropdownMenuTrigger`; the menu renders for whichever trigger opened it, with its `payload`.
+ * Long lists use this so each row renders a trigger, not a whole menu.
+ */
+const createDropdownMenuHandle = MenuPrimitive.createHandle;
+type DropdownMenuHandle<Payload> = MenuPrimitive.Handle<Payload>;
 
 function DropdownMenuContent({
   align = "start",
@@ -219,6 +227,8 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<"spa
 }
 
 export {
+  createDropdownMenuHandle,
+  type DropdownMenuHandle,
   DropdownMenu,
   DropdownMenuPortal,
   DropdownMenuTrigger,

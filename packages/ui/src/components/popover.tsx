@@ -6,13 +6,17 @@ import { cn } from "@pantry/ui/lib/utils";
 import { usePortalContainer } from "@pantry/ui/lib/portal";
 import { overlaySurface, popupMotion } from "@pantry/ui/lib/styles";
 
-function Popover({ ...props }: PopoverPrimitive.Root.Props) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+function Popover<Payload = unknown>({ ...props }: PopoverPrimitive.Root.Props<Payload>) {
+  return <PopoverPrimitive.Root<Payload> data-slot="popover" {...props} />;
 }
 
-function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
+function PopoverTrigger<Payload = unknown>({ ...props }: PopoverPrimitive.Trigger.Props<Payload>) {
+  return <PopoverPrimitive.Trigger<Payload> data-slot="popover-trigger" {...props} />;
 }
+
+/** One popover for many triggers (Base UI detached triggers); see createDropdownMenuHandle. */
+const createPopoverHandle = PopoverPrimitive.createHandle;
+type PopoverHandle<Payload> = PopoverPrimitive.Handle<Payload>;
 
 function PopoverContent({
   className,
@@ -73,4 +77,13 @@ function PopoverDescription({ className, ...props }: PopoverPrimitive.Descriptio
   );
 }
 
-export { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger };
+export {
+  createPopoverHandle,
+  type PopoverHandle,
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+};
