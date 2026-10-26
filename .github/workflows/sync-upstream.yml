@@ -1,0 +1,156 @@
+# Keeps a self-hosted Pantry up to date (spec §10). Your repo is a copy of honeynjam/pantry: Vercel's
+# Deploy button clones it, so it isn't a GitHub fork and has no "Sync fork" button. Once a week, or when
+# you run it from the Actions tab, this workflow opens a pull request in your repo that updates it to the
+# latest Pantry release. It never merges anything; merging the PR is what redeploys your app.
+# It does nothing in honeynjam/pantry itself. Setup and options: README → "Updating your instance".
+name: Sync upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Pantry release tag to update to (empty = the latest release)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Only report what would happen; push nothing and open no PR"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "23 7 * * 1" # Mondays 07:23 UTC
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Open a PR for the latest Pantry release
+    # Expression string comparison ignores case, so this also skips Honeynjam/pantry.
+    if: github.repository != 'honeynjam/pantry'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # Optional SYNC_UPSTREAM_TOKEN: only needed when a release changes .github/workflows, which
+          # GITHUB_TOKEN is not allowed to push.
+          token: ${{ secrets.SYNC_UPSTREAM_TOKEN || github.token }}
+
+      - name: Open the update PR
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_UPSTREAM_TOKEN || github.token }}
+          UPSTREAM_REPO: honeynjam/pantry
+          REQUESTED_TAG: ${{ inputs.tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          notice() { echo "::notice::$*"; }
+          lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+          err="$(mktemp)"
+
+          # Same guard as the job's `if`, in case the job runs some other way: never act in Pantry itself.
+          if [ "$(lower "$GITHUB_REPOSITORY")" = "$(lower "$UPSTREAM_REPO")" ]; then
+            notice "This is $UPSTREAM_REPO itself; nothing to sync."
+            exit 0
+          fi
+
+          base="$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)"
+          tag="${REQUESTED_TAG:-}"
+          if [ -z "$tag" ]; then
+            if ! tag="$(gh api "repos/$UPSTREAM_REPO/releases/latest" --jq .tag_name 2>"$err")"; then
+              if grep -q "404" "$err"; then
+                notice "$UPSTREAM_REPO has no published release yet; nothing to sync."
+                exit 0
+              fi
+              cat "$err" >&2
+              exit 1
+            fi
+          fi
+          if ! [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::Unexpected release tag: $tag"
+            exit 1
+          fi
+          branch="sync-upstream/$tag"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags origin "+refs/heads/$base:refs/remotes/origin/$base"
+          git fetch --no-tags "https://github.com/$UPSTREAM_REPO.git" "+refs/tags/$tag:refs/pantry-release"
+          head="$(git rev-parse "refs/remotes/origin/$base")"
+          release="$(git rev-parse "refs/pantry-release^{commit}")"
+
+          if git merge-base --is-ancestor "$release" "$head"; then
+            notice "$base already includes Pantry $tag."
+            exit 0
+          fi
+
+          existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all \
+            --json state,url --jq '.[0] | select(. != null) | "\(.state) \(.url)"')"
+          if [ -n "$existing" ]; then
+            notice "There's already a PR for Pantry $tag ($existing); not opening another."
+            exit 0
+          fi
+
+          if git merge-base "$head" "$release" >/dev/null; then
+            # Shared history (a fork, or a copy that took an update before): the PR merges the release
+            # commit itself, and GitHub shows any conflicts with your own changes.
+            mode=merge
+            commit="$release"
+          else
+            # Unrelated history: the Deploy button's copy starts with its own first commit. Make one commit
+            # with the release's files and both histories as parents, so later updates merge normally.
+            if [ "$(git rev-parse "$head^{tree}")" = "$(git rev-parse "$release^{tree}")" ]; then
+              notice "$base already has the same files as Pantry $tag."
+              exit 0
+            fi
+            mode=first-update
+            commit="$(git commit-tree "$release^{tree}" -p "$head" -p "$release" \
+              -m "Update Pantry to $tag" \
+              -m "This repo started as a copy of $UPSTREAM_REPO, not a fork. This commit takes the release's files and links the two histories, so later updates merge normally.")"
+          fi
+
+          echo "Pantry $tag → $GITHUB_REPOSITORY ($base), $mode, branch $branch at $commit"
+          git diff --stat "$head...$commit" | tail -n 1
+
+          if [ "${DRY_RUN:-}" = "true" ]; then
+            notice "Dry run: would push $branch and open a PR into $base ($mode)."
+            exit 0
+          fi
+
+          if ! git push --force origin "$commit:refs/heads/$branch" 2>"$err"; then
+            cat "$err" >&2
+            if grep -qi "workflow" "$err"; then
+              echo "::error::This release changes .github/workflows, which GITHUB_TOKEN can't push. Add a SYNC_UPSTREAM_TOKEN secret (README → Updating your instance) and run the workflow again."
+            fi
+            exit 1
+          fi
+
+          body="$(mktemp)"
+          {
+            echo "Updates this repo to [Pantry $tag](https://github.com/$UPSTREAM_REPO/releases/tag/$tag)."
+            echo
+            echo "**Merging deploys it:** Vercel rebuilds the web app and pushes the new Convex functions, as with any push to \`$base\`. Nothing changes until you merge; this workflow never merges by itself. To skip this release, close the PR."
+            echo
+            if [ "$mode" = first-update ]; then
+              echo "**First update for this repo.** It started as a copy of \`$UPSTREAM_REPO\` (not a fork), so this PR takes the release's files as they are. If you changed files yourself, those changes show up below as removed: add them back on this branch before merging. From the next release on, updates merge normally and keep your changes."
+            else
+              echo "If GitHub reports conflicts, they're between your own changes and the release: resolve them in this PR or locally before merging."
+            fi
+            echo
+            echo "Opened by the \`sync-upstream\` workflow (\`.github/workflows/sync-upstream.yml\`)."
+          } >"$body"
+
+          if ! gh pr create --repo "$GITHUB_REPOSITORY" --base "$base" --head "$branch" \
+            --title "Update Pantry to $tag" --body-file "$body" 2>"$err"; then
+            cat "$err" >&2
+            if grep -qi "not permitted to create" "$err"; then
+              echo "::error::Allow Actions to open PRs: Settings → Actions → General → Workflow permissions → \"Allow GitHub Actions to create and approve pull requests\". The branch $branch is already pushed, so you can also open the PR by hand."
+            fi
+            exit 1
+          fi

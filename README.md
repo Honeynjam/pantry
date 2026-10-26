@@ -48,6 +48,40 @@ never touch your Convex data. Every push to your repo's production branch redepl
 `GET https://<your-app>/api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion,
 needsSecret }`; it's the quickest health check.
 
+### Updating your instance
+
+The Deploy button copies this repo into your account; it doesn't fork it, so GitHub has no "Sync fork" button for
+it. Your copy includes a **Sync upstream** workflow (`.github/workflows/sync-upstream.yml`) for that. Every Monday,
+or whenever you run it, it opens a pull request in your repo that updates it to the latest Pantry release.
+**Merging the PR deploys the update** (Vercel rebuilds the web app and pushes the new Convex functions). Nothing
+changes until you merge: the workflow never merges by itself. To skip a release, close its PR; the workflow won't
+reopen it.
+
+1. **One-time setting:** in your repo, Settings → Actions → General → Workflow permissions, turn on **"Allow GitHub
+   Actions to create and approve pull requests"**. Without it the workflow pushes its branch but can't open the PR.
+2. **Run it now (optional):** Actions → Sync upstream → Run workflow. Leave "tag" empty for the latest release, or
+   tick "dry run" to see what it would do without pushing anything.
+3. **Review and merge** the "Update Pantry to vX.Y.Z" PR.
+
+Good to know:
+- **The first update replaces files.** Your copy and Pantry don't share git history, so the first PR takes the
+  release's files as they are. If you edited files yourself, those edits show up in its diff as removed; put
+  them back on the PR branch before merging. After that the histories are linked, and later updates are normal
+  merges that keep your changes (GitHub shows any conflicts in the PR).
+- **Releases that change `.github/workflows`.** GitHub won't let the built-in token push changes to workflow
+  files, and the run then fails with an error that says so. Fix: create a fine-grained personal access token for
+  this repo only, with *Contents*, *Pull requests* and *Workflows* set to read and write. Save it as the repository
+  secret `SYNC_UPSTREAM_TOKEN` and run the workflow again; it uses that token whenever the secret exists.
+- PRs opened with the built-in token don't trigger other workflows, so CI doesn't run on them. Vercel still
+  deploys once you merge.
+- GitHub pauses scheduled workflows in repos with no activity for 60 days. Re-enable it on the Actions tab, or
+  just run it by hand.
+- Prefer a real fork? Fork the repo first and import the fork into Vercel. The same workflow works there too.
+- In `honeynjam/pantry` itself the workflow does nothing.
+
+Maintainers can test the workflow locally (no Docker; throwaway repos and a stub `gh`):
+`bash scripts/test-sync-upstream.sh`.
+
 ## Develop locally
 
 Requirements: Node 24 (`nvm use`), pnpm 10 (`corepack enable` or `npm i -g pnpm@10`). No Convex account needed.
@@ -99,6 +133,7 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 | `packages/mcp` | MCP tool definitions (M4) |
 | `packages/tsconfig`, `packages/eslint-config` | Shared config |
 | `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |
+| `.github/workflows` | CI (typecheck, lint, test) and Sync upstream (update PRs for self-hosted copies) |
 | `docs/` | Spec (`PANTRY-SPEC.md`), milestone notes, deploy test checklist |
 
 ## Licence
