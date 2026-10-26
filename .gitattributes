@@ -1,0 +1,2 @@
+# Shell scripts run on Vercel and in GitHub Actions (Linux); CRLF line endings break them.
+*.sh text eol=lf

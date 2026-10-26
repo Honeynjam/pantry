@@ -14,3 +14,10 @@ coverage/
 # Convex local anonymous backend state
 .convex/
 next-env.d.ts
+# Signing material (Mac app signing and notarisation, M5). Never commit these.
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.keystore
