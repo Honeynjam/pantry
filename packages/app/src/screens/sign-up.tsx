@@ -9,6 +9,7 @@ import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 import { AuthLayout } from "./auth-layout";
 import { describeError, FormError } from "./form-error";
+import { SlowHint } from "./slow-hint";
 
 /** Invite-only sign-up. The server rejects emails without a pending invite (accepting invites: M2). */
 export function SignUpPage() {
@@ -68,6 +69,7 @@ function SignUpForm() {
           <Button type="submit" size="lg" disabled={pending} className="w-full">
             {pending ? "Creating account…" : "Create account"}
           </Button>
+          <SlowHint pending={pending} />
         </FieldGroup>
       </form>
     </AuthLayout>

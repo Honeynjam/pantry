@@ -12,6 +12,7 @@ import { EntryGate, type EntryState } from "../entry";
 import { useAuthClient } from "../providers";
 import { AuthLayout } from "./auth-layout";
 import { describeError, FormError } from "./form-error";
+import { SlowHint } from "./slow-hint";
 
 /** First run: fix a missing secret, then create the owner account and the workspace. */
 export function SetupPage() {
@@ -176,6 +177,7 @@ function CreateWorkspace({ state }: { state: Extract<EntryState, { kind: "needs-
           <Button type="submit" size="lg" disabled={pending} className="w-full">
             {pending ? "Creating workspace…" : "Create workspace"}
           </Button>
+          <SlowHint pending={pending} />
         </FieldGroup>
       </form>
     </AuthLayout>

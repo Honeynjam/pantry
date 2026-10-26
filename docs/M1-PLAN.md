@@ -171,3 +171,28 @@ themes (5.30–6.26:1 light, 8.19–9.43:1 dark).
 | `GET /api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion, needsSecret }` | ✔ tests + live; `needsSecret` flips with the env var. |
 | A redeploy keeps `BETTER_AUTH_SECRET` (you stay signed in) | ⧗ the script never overwrites an existing secret (dry-run checked); real redeploy not run. |
 | Button click to signed-in workspace under 10 minutes | ⧗ needs Kris's fresh-account run. |
+
+## Bug: stuck on "Loading…" after "Create workspace" (first real deploy, 26 Oct 2026)
+Reproduced locally against a production build with injected latency (a TCP proxy delaying Convex traffic, an HTTP
+proxy adding random serverless-like delays, 504s and hangs to `/api/auth/*`) and fixed in `packages/app`:
+
+1. **Endless render loop in production.** The client-only root used `next/dynamic(…, { ssr: false })`, which
+   puts the server-rendered page tree inside a lazy Suspense boundary. When auth state changed while that tree
+   was rendering, React restarted the render without end: 5,500–7,400 renders of the providers in 3 s, one
+   commit, the page frozen on its previous screen ("Loading…") until a reload. Bisected with probes (the loop
+   needs Next's page tree under the providers, not our gate logic) and confirmed gone after replacing the root
+   with a plain `useSyncExternalStore` client check (`apps/web/app/(app)/client-root.tsx`).
+2. **Clients created during render.** `useState(() => createAuthClient())` ran on every restarted render; each new
+   client's session store fetched the session at once (~1,600 `get-session` requests per second until Chrome
+   failed them with `ERR_INSUFFICIENT_RESOURCES`). Clients are now module-level singletons per server URL.
+3. **Unbounded auth requests.** A hung `/convex/token` request was shared by `ConvexBetterAuthProvider`'s
+   `pendingTokenRef` with every later sign-in (no new token request was ever sent; reload needed), and a hung
+   `get-session` kept the session pending forever. Better Auth's `timeout` option is skipped whenever a signal is
+   passed (always, for the session fetch), so every auth request now goes through `fetchWithTimeout` (15 s). Our
+   own Convex bridge (`convex-auth.tsx`, on Convex's `ConvexProviderWithAuth`) caches tokens per session, retries
+   token fetches with backoff, keeps retrying while a session exists, and refetches a failed session.
+4. **Safety nets:** the loading screen offers a reload after 8 s and logs the gate state; pending sign-in, sign-up
+   and setup buttons show "This is taking longer than usual. Reload" after 8 s.
+
+Not proven: which of the triggers Kris's live run hit (no access to that instance by design). The render loop
+(1) matches the symptom exactly (indefinite "Loading…", fixed by reload, workspace already created).

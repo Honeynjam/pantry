@@ -3,29 +3,17 @@
 import { api } from "@pantry/backend/api";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useEffect, type ReactNode } from "react";
+import { deriveEntryState, type EntryState } from "./entry-state";
 import { routes, useNavigation } from "./navigation";
 import { LoadingScreen } from "./screens/loading";
 
-export type EntryState =
-  | { kind: "loading" }
-  | { kind: "needs-secret" }
-  | { kind: "needs-setup"; signedIn: boolean }
-  | { kind: "signed-out" }
-  | { kind: "not-member" }
-  | { kind: "ready" };
+export type { EntryState } from "./entry-state";
 
 /** Where the visitor stands: setup, signed out, signed in without access, or in. */
 export function useEntryState(): EntryState {
   const auth = useConvexAuth();
   const status = useQuery(api.setup.status);
-  if (auth.isLoading || status === undefined) return { kind: "loading" };
-  if (status.needsSecret) return { kind: "needs-secret" };
-  // The status query re-runs after sign-in/out; wait until it agrees with the client.
-  if (status.signedIn !== auth.isAuthenticated) return { kind: "loading" };
-  if (status.needsSetup) return { kind: "needs-setup", signedIn: auth.isAuthenticated };
-  if (!auth.isAuthenticated) return { kind: "signed-out" };
-  if (!status.isMember) return { kind: "not-member" };
-  return { kind: "ready" };
+  return deriveEntryState(auth, status);
 }
 
 type Kind = EntryState["kind"];
@@ -49,16 +37,23 @@ export function EntryGate({
   allow: ReadonlyArray<Exclude<Kind, "loading">>;
   children: (state: EntryState) => ReactNode;
 }) {
-  const state = useEntryState();
-  const { navigate } = useNavigation();
+  const auth = useConvexAuth();
+  const status = useQuery(api.setup.status);
+  const state = deriveEntryState(auth, status);
+  const { navigate, pathname } = useNavigation();
   const allowed = state.kind !== "loading" && allow.includes(state.kind);
+  const target = state.kind === "loading" || allowed ? null : HOME_FOR[state.kind];
 
   useEffect(() => {
-    if (state.kind !== "loading" && !allow.includes(state.kind)) {
-      navigate(HOME_FOR[state.kind], { replace: true });
-    }
-  }, [state.kind, allow, navigate]);
+    if (target) navigate(target, { replace: true });
+  }, [target, navigate]);
 
-  if (!allowed) return <LoadingScreen />;
+  if (!allowed) {
+    return (
+      <LoadingScreen
+        diagnostics={() => ({ pathname, state, redirectingTo: target, auth, status: status ?? "pending" })}
+      />
+    );
+  }
   return <>{children(state)}</>;
 }

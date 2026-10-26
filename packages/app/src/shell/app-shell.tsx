@@ -151,7 +151,7 @@ export function AppShell({
 }) {
   const data = useQuery(api.workspace.current);
   const [open, setOpen] = useState(readSidebarOpen);
-  if (data === undefined) return <LoadingScreen />;
+  if (data === undefined) return <LoadingScreen diagnostics={() => ({ waitingFor: "workspace.current" })} />;
   return (
     <SidebarProvider
       open={open}

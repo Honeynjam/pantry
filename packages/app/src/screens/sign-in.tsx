@@ -9,6 +9,7 @@ import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 import { AuthLayout } from "./auth-layout";
 import { describeError, FormError } from "./form-error";
+import { SlowHint } from "./slow-hint";
 
 export function SignInPage() {
   return <EntryGate allow={["signed-out"]}>{() => <SignInForm />}</EntryGate>;
@@ -62,6 +63,7 @@ function SignInForm() {
           <Button type="submit" size="lg" disabled={pending} className="w-full">
             {pending ? "Signing in…" : "Sign in"}
           </Button>
+          <SlowHint pending={pending} />
         </FieldGroup>
       </form>
     </AuthLayout>

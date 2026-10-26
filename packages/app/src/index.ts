@@ -6,6 +6,7 @@ export { NavigationProvider, routes, type LinkProps, type Navigation } from "./n
 export { PantryProviders, useAuthClient } from "./providers";
 export { createPantryAuthClient, type PantryAuthClient } from "./auth-client";
 export { EntryGate, useEntryState, type EntryState } from "./entry";
+export { deriveEntryState, type SetupStatus } from "./entry-state";
 export { SignInPage } from "./screens/sign-in";
 export { SignUpPage } from "./screens/sign-up";
 export { SetupPage } from "./screens/setup";
