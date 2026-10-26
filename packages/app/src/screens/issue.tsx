@@ -29,10 +29,10 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../components/confirm-dialog";
-import { MarkdownEditor, preloadMarkdownEditor } from "../components/markdown-editor";
+import { MarkdownEditor, useMarkdownEditorReady } from "../components/markdown-editor";
 import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
@@ -94,9 +94,9 @@ function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string 
 }
 
 function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string }) {
-  // The editor loads alongside the issue (it usually wins: the query waits for auth and the socket).
-  useEffect(preloadMarkdownEditor, []);
   const result = useQuery(api.issues.get, { key: issueKey });
+  // The editor loads alongside the issue (it usually wins: the query waits for auth and the socket).
+  const editorReady = useMarkdownEditorReady();
   const lookups = useLookups(data);
   const { navigate } = useNavigation();
   // Registered before the issue loads, so Esc works at once.
@@ -105,7 +105,7 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
   useShortcut("escape", "issue", () =>
     navigate(lastListLocation() ?? routes.space(issueKey.split("-")[0]?.toUpperCase() ?? "")),
   );
-  if (result === undefined) return null;
+  if (result === undefined || (result !== null && !editorReady)) return null;
   if (result === null) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
@@ -114,12 +114,7 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
       </div>
     );
   }
-  // Until the editor has loaded (first visit only), the page stays as it is while the issue loads.
-  return (
-    <Suspense fallback={null}>
-      <IssueDetail key={result.issue._id} result={result} lookups={lookups} />
-    </Suspense>
-  );
+  return <IssueDetail key={result.issue._id} result={result} lookups={lookups} />;
 }
 
 function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups }) {

@@ -9,7 +9,7 @@ import { Keycap } from "@pantry/ui/components/keycap";
 import type { Priority } from "@pantry/ui/lib/issue-meta";
 import { useMutation } from "convex/react";
 import { ChevronRightIcon } from "lucide-react";
-import { Suspense, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { MarkdownEditor, type MarkdownEditorHandle } from "../components/markdown-editor";
 import { SpaceAvatar } from "../components/space-avatar";
@@ -163,17 +163,16 @@ function NewIssueForm({
         maxLength={200}
         className="mx-4 mt-2 bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-faint-foreground"
       />
-      {/* Same height while the editor loads (only if C comes before the shell has preloaded it). */}
-      <Suspense fallback={<div className="min-h-24" aria-busy="true" />}>
-        <MarkdownEditor
-          ref={description}
-          value=""
-          placeholder="Add a description… (markdown)"
-          aria-label="Issue description"
-          className="max-h-[45vh] overflow-y-auto"
-          contentClassName="min-h-24 px-4 py-2"
-        />
-      </Suspense>
+      <MarkdownEditor
+        ref={description}
+        value=""
+        placeholder="Add a description… (markdown)"
+        aria-label="Issue description"
+        className="max-h-[45vh] overflow-y-auto"
+        contentClassName="min-h-24 px-4 py-2"
+        // Same height while the editor loads (only if C comes before the shell has preloaded it).
+        fallback={<div className="min-h-24" aria-busy="true" />}
+      />
       <div className="flex flex-wrap items-center gap-1.5 px-4 pt-1 pb-3">
         <StatusPicker statuses={data.statuses} value={statusId} onChange={setStatusId} variant="chip" />
         <PriorityPicker value={priority} onChange={setPriority} variant="chip" />
