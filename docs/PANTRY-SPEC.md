@@ -383,7 +383,7 @@ pantry/
   packages/ui/       design tokens, Tailwind theme, shadcn components on Base UI (restyled), motion tokens, MarkdownEditor, /design showcase parts
   packages/mcp/      MCP tool definitions (zod schemas + handlers that call Convex). Used by apps/web now and the v0.2 local sidecar
   scripts/vercel-build.sh
-  CLAUDE.md  README.md  LICENSE (MIT)  .env.example
+  AGENTS.md  CLAUDE.md  README.md  LICENSE (MIT)  .env.example
 ```
 - **Vercel:** Root Directory `apps/web`; `apps/web/vercel.json` → `"buildCommand": "bash ../../scripts/vercel-build.sh"`. The script sets the two Convex env vars (§10), then from `packages/backend` runs `npx convex deploy --cmd 'cd ../../apps/web && pnpm turbo run build' --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL` (the template's own command, wrapped).
 - **Root Directory is an M1 check** (the Deploy Button can't set it): see §10 for the two ordered routes.
@@ -617,7 +617,7 @@ Client setup verified today: Claude Code takes `claude mcp add --transport http 
 - M6 is split into one-PR tasks when it starts. M5 (above) is now a v0.2 milestone; its criteria stand as written.
 
 ### Suggested `CLAUDE.md`
-Standalone copy: `CLAUDE.md` next to this spec (put it at the repo root).
+Standalone copy: `CLAUDE.md` next to this spec (put it at the repo root). It now lives in the repo as `AGENTS.md`, which the root `CLAUDE.md` imports, with scoped `AGENTS.md` files in packages/backend, packages/app and packages/ui.
 ```md
 # Pantry
 Open-source (MIT) Linear-style issue tracker for 1–3 people working with AI coding agents.
