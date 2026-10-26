@@ -26,7 +26,7 @@ async function setUp() {
     Id<"statuses">
   >;
   const create = (title: string, extra: Partial<Parameters<typeof as.mutation<typeof api.issues.create>>[1]> = {}) =>
-    as.mutation(api.issues.create, { projectId: created.projectId, title, ...extra });
+    as.mutation(api.issues.create, { spaceId: created.spaceId, title, ...extra });
   return { t, as, ...created, partnerId, status, create };
 }
 
@@ -44,7 +44,7 @@ afterEach(() => vi.useRealTimers());
 
 describe("issues.create", () => {
   it("numbers issues without gaps or duplicates under repeated creates", async () => {
-    const { t, as, create, projectId } = await setUp();
+    const { t, as, create, spaceId } = await setUp();
     const keys: string[] = [];
     for (let i = 0; i < 12; i++) keys.push((await create(`Issue ${i}`)).key);
     // Concurrent creates are serialised by Convex's transactions; none share a number.
@@ -54,8 +54,8 @@ describe("issues.create", () => {
     expect(keys.map((key) => Number(key.split("-")[1])).sort((a, b) => a - b)).toEqual(
       Array.from({ length: 20 }, (_, i) => i + 1),
     );
-    const project = await t.run((ctx) => ctx.db.get("projects", projectId));
-    expect(project?.nextIssueNumber).toBe(21);
+    const space = await t.run((ctx) => ctx.db.get("spaces", spaceId));
+    expect(space?.nextIssueNumber).toBe(21);
     const fetched = await as.query(api.issues.get, { key: "pan-3" });
     expect(fetched?.issue.title).toBe("Issue 2");
   });
@@ -88,22 +88,22 @@ describe("issues.create", () => {
     expect(await getIssue(t, issueId)).toMatchObject({ dueDate: "2026-10-28", assigneeId: partnerId, priority: 2 });
   });
 
-  it("rejects archived projects", async () => {
-    const { as, create, projectId } = await setUp();
-    await as.mutation(api.projects.archive, { projectId });
+  it("rejects archived spaces", async () => {
+    const { as, create, spaceId } = await setUp();
+    await as.mutation(api.spaces.archive, { spaceId });
     await expect(create("Nope")).rejects.toThrow(/archived/);
   });
 });
 
 describe("sub-issues", () => {
-  it("inherit the parent's project and reject a different one", async () => {
+  it("inherit the parent's space and reject a different one", async () => {
     const { t, as, create } = await setUp();
     const parent = await create("Parent");
-    const web = await as.mutation(api.projects.create, { name: "Web", key: "WEB" });
-    await expect(create("Wrong project", { parentId: parent.issueId, projectId: web.projectId })).rejects.toThrow(
-      /parent's project/,
+    const web = await as.mutation(api.spaces.create, { name: "Web", key: "WEB" });
+    await expect(create("Wrong space", { parentId: parent.issueId, spaceId: web.spaceId })).rejects.toThrow(
+      /parent's space/,
     );
-    // Through the shared helper, any projectId matching the parent works and the key follows it.
+    // Through the shared helper, any spaceId matching the parent works and the key follows it.
     const child = await create("Child", { parentId: parent.issueId });
     expect(child.key).toBe("PAN-2");
     expect((await getIssue(t, child.issueId))?.parentId).toBe(parent.issueId);
@@ -138,13 +138,13 @@ describe("sub-issues", () => {
     await as.mutation(api.issues.update, { issueId: a.issueId, parentId: c.issueId });
   });
 
-  it("can't take a parent from another project through update", async () => {
+  it("can't take a parent from another space through update", async () => {
     const { as, create } = await setUp();
-    const web = await as.mutation(api.projects.create, { name: "Web", key: "WEB" });
-    const parent = await as.mutation(api.issues.create, { projectId: web.projectId, title: "Web parent" });
+    const web = await as.mutation(api.spaces.create, { name: "Web", key: "WEB" });
+    const parent = await as.mutation(api.issues.create, { spaceId: web.spaceId, title: "Web parent" });
     const issue = await create("PAN issue");
     await expect(as.mutation(api.issues.update, { issueId: issue.issueId, parentId: parent.issueId })).rejects.toThrow(
-      /same project/,
+      /same space/,
     );
   });
 });
@@ -257,7 +257,7 @@ describe("issues.move", () => {
     for (const title of ["A", "B", "C"]) ids.push((await create(title, { statusId: status.started })).issueId);
     // Created at the top each time: column order is C, B, A.
     const order = async () =>
-      (await as.query(api.issues.listByProject, { projectId: (await getIssue(t, ids[0]!))!.projectId }))
+      (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, ids[0]!))!.spaceId }))
         .filter((issue) => issue.statusId === status.started)
         .map((issue) => issue.title);
     expect(await order()).toEqual(["C", "B", "A"]);
@@ -303,7 +303,7 @@ describe("issues.move", () => {
       await as.mutation(api.issues.move, { issueId, statusId: status.backlog, afterId: bottom.issueId });
       inserted.push(issueId);
     }
-    const column = (await as.query(api.issues.listByProject, { projectId: (await getIssue(t, top.issueId))!.projectId }))
+    const column = (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, top.issueId))!.spaceId }))
       .filter((issue) => issue.statusId === status.backlog);
     const orders = column.map((issue) => issue.sortOrder);
     expect([...orders].sort((x, y) => x - y)).toEqual(orders);
@@ -324,17 +324,17 @@ describe("issues.move", () => {
   });
 });
 
-describe("issues.listByProject / listMine / get / remove", () => {
+describe("issues.listBySpace / listMine / get / remove", () => {
   it("orders by status then sortOrder and hides old done issues unless asked", async () => {
-    const { t, as, create, status, projectId } = await setUp();
+    const { t, as, create, status, spaceId } = await setUp();
     const old = await create("Old done", { statusId: status.done });
     await t.run((ctx) => ctx.db.patch("issues", old.issueId, { completedAt: Date.now() - RECENT_DONE_MS - 1000 }));
     await create("Recent done", { statusId: status.done });
     await create("Backlog item", { statusId: status.backlog });
     await create("Todo item");
-    const titles = (await as.query(api.issues.listByProject, { projectId })).map((issue) => issue.title);
+    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map((issue) => issue.title);
     expect(titles).toEqual(["Backlog item", "Todo item", "Recent done"]);
-    const all = (await as.query(api.issues.listByProject, { projectId, includeDone: true })).map((issue) => issue.title);
+    const all = (await as.query(api.issues.listBySpace, { spaceId, includeDone: true })).map((issue) => issue.title);
     expect(all).toEqual(["Backlog item", "Todo item", "Recent done", "Old done"]);
   });
 
@@ -383,7 +383,7 @@ describe("issues.listByProject / listMine / get / remove", () => {
   });
 
   it("searches titles, with an exact key match first", async () => {
-    const { as, create, projectId } = await setUp();
+    const { as, create, spaceId } = await setUp();
     await create("Fix login redirect");
     await create("Login page copy");
     await create("Unrelated");
@@ -398,13 +398,13 @@ describe("issues.listByProject / listMine / get / remove", () => {
     expect(byKey[0]).toMatchObject({ key: "PAN-3", title: "Unrelated" });
     expect(byKey[0]).not.toHaveProperty("description");
 
-    // A bare number is a key in every project.
+    // A bare number is a key in every space.
     const byNumber = await as.query(api.issues.search, { text: "12" });
     expect(byNumber[0]?.key).toBe(twelve.key);
 
     expect(await as.query(api.issues.search, { text: "   " })).toEqual([]);
     expect(await as.query(api.issues.search, { text: "PAN-99" })).toEqual([]);
-    const scoped = await as.query(api.issues.search, { text: "login", projectId });
+    const scoped = await as.query(api.issues.search, { text: "login", spaceId });
     expect(scoped).toHaveLength(3);
   });
 

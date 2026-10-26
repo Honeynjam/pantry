@@ -7,7 +7,7 @@ const SPEC_SHORTCUTS = [
   "mod+k", "c", "shift+c", "/",
   "j", "k", "enter", "esc", "x",
   "s", "a", "i", "l", "p", "d",
-  "mod+enter", "g i", "g p", "g b", "?",
+  "mod+enter", "g i", "g s", "g b", "?",
 ];
 
 const CODES: Record<string, string> = { "/": "Slash", "?": "Slash", "[": "BracketLeft", Enter: "Enter", Escape: "Escape" };
@@ -47,7 +47,7 @@ describe("the registry and the ? help", () => {
   it("puts sequences before the single keys they share a letter with", () => {
     const index = (id: ShortcutId) => SHORTCUTS.findIndex((def) => def.id === id);
     expect(index("goMyIssues")).toBeLessThan(index("assignToMe"));
-    expect(index("goProject")).toBeLessThan(index("priority"));
+    expect(index("goSpace")).toBeLessThan(index("status"));
   });
 });
 

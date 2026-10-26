@@ -16,7 +16,8 @@ import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { PRIORITIES, PRIORITY_LABEL, resolveLabelColor } from "@pantry/ui/lib/issue-meta";
 import { focusRing } from "@pantry/ui/lib/styles";
 import { cn } from "@pantry/ui/lib/utils";
-import { ChevronDownIcon, SearchIcon, UserRoundIcon, XIcon } from "lucide-react";
+import type { Doc } from "@pantry/backend/dataModel";
+import { ChevronDownIcon, LayersIcon, SearchIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigation } from "../navigation";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
@@ -31,6 +32,7 @@ import {
   type FilterFacet,
   type Filters,
 } from "./filters";
+import { projectColor } from "../shell/space-color";
 import { statusColor, type Lookups } from "./lookups";
 
 const URL_DEBOUNCE_MS = 250;
@@ -91,12 +93,15 @@ export function FilterBar({
   setTitle,
   lookups,
   facets = ["status", "assignee", "label", "priority"],
+  projects = [],
 }: {
   filters: Filters;
   setFilters: (filters: Filters) => void;
   setTitle: (text: string) => void;
   lookups: Lookups;
   facets?: FilterFacet[];
+  /** The space's projects, for the project facet. */
+  projects?: Doc<"projects">[];
 }) {
   const input = useRef<HTMLInputElement>(null);
   useShortcutScope("list");
@@ -252,6 +257,37 @@ export function FilterBar({
               {PRIORITY_LABEL[priority]}
             </DropdownMenuCheckboxItem>
           ))}
+        </Facet>
+      )}
+
+      {facets.includes("project") && (
+        <Facet
+          label="Project"
+          active={filters.project.length}
+          summary={summary(
+            filters.project.map((value) =>
+              value === "none" ? "No project" : projects.find((row) => slug(row.name) === value)?.name,
+            ),
+          )}
+          onClear={() => clearFacet("project")}
+        >
+          {[...projects.map((project) => ({ value: slug(project.name), name: project.name, project })), { value: "none", name: "No project", project: null }].map(
+            (option) => (
+              <DropdownMenuCheckboxItem
+                key={option.value}
+                checked={filters.project.includes(option.value)}
+                onCheckedChange={() => toggle("project", option.value)}
+                closeOnClick={false}
+              >
+                {option.project ? (
+                  <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(option.project) }} aria-hidden />
+                ) : (
+                  <LayersIcon />
+                )}
+                <span className="truncate">{option.name}</span>
+              </DropdownMenuCheckboxItem>
+            ),
+          )}
         </Facet>
       )}
 

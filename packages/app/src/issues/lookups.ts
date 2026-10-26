@@ -11,6 +11,9 @@ export type Lookups = {
   status: (id: Id<"statuses">) => Doc<"statuses"> | undefined;
   label: (id: Id<"labels">) => Doc<"labels"> | undefined;
   member: (id: Id<"members"> | undefined) => Doc<"members"> | undefined;
+  project: (id: Id<"projects"> | undefined) => Doc<"projects"> | undefined;
+  /** A space's active projects, in order. */
+  projectsOf: (spaceId: Id<"spaces">) => Doc<"projects">[];
 };
 
 export function useLookups(data: WorkspaceData): Lookups {
@@ -18,11 +21,14 @@ export function useLookups(data: WorkspaceData): Lookups {
     const statuses = new Map(data.statuses.map((row) => [row._id, row]));
     const labels = new Map(data.labels.map((row) => [row._id, row]));
     const members = new Map(data.members.map((row) => [row._id, row]));
+    const projects = new Map(data.projects.map((row) => [row._id, row]));
     return {
       data,
       status: (id) => statuses.get(id),
       label: (id) => labels.get(id),
       member: (id) => (id ? members.get(id) : undefined),
+      project: (id) => (id ? projects.get(id) : undefined),
+      projectsOf: (spaceId) => data.projects.filter((row) => row.spaceId === spaceId),
     };
   }, [data]);
 }

@@ -8,6 +8,7 @@ export const category = v.union(
 );
 // 0 none, 1 urgent, 2 high, 3 medium, 4 low (Linear's order)
 export const priority = v.union(v.literal(0), v.literal(1), v.literal(2), v.literal(3), v.literal(4));
+export const spaceKind = v.union(v.literal("product"), v.literal("client"));
 
 export default defineSchema({
   workspaces: defineTable({ name: v.string(), slug: v.string(), createdBy: v.string() })
@@ -39,17 +40,33 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_workspace", ["workspaceId"]),
 
-  projects: defineTable({
+  // A product or a client (spec §5): owns the issue key, the counter, the context doc and the views.
+  spaces: defineTable({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     key: v.string(), // ^[A-Z][A-Z0-9]{1,9}$, fixed after creation in v0.1
     nextIssueNumber: v.number(),
     archivedAt: v.optional(v.number()),
+    kind: v.optional(spaceKind), // "product" when missing
   })
-    // Kept next to by_workspace_and_key (spec §10b): lists projects in creation order.
+    // Kept next to by_workspace_and_key (spec §10b): lists spaces in creation order.
     // eslint-disable-next-line @convex-dev/no-duplicate-indexes
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_and_key", ["workspaceId", "key"]),
+
+  // An optional workstream inside a space ("LinkedIn", "Launch"). An issue is in at most one.
+  projects: defineTable({
+    workspaceId: v.id("workspaces"),
+    spaceId: v.id("spaces"),
+    name: v.string(), // unique per space among active projects, ignoring case
+    color: v.optional(v.string()),
+    sortOrder: v.number(),
+    archivedAt: v.optional(v.number()),
+  })
+    // Kept next to by_space_and_name (spec §10b): a space's projects, sorted by sortOrder in code.
+    // eslint-disable-next-line @convex-dev/no-duplicate-indexes
+    .index("by_space", ["spaceId"])
+    .index("by_space_and_name", ["spaceId", "name"]),
 
   statuses: defineTable({
     workspaceId: v.id("workspaces"),
@@ -64,7 +81,8 @@ export default defineSchema({
 
   issues: defineTable({
     workspaceId: v.id("workspaces"),
-    projectId: v.id("projects"),
+    spaceId: v.id("spaces"),
+    projectId: v.optional(v.id("projects")), // must be in the issue's space
     number: v.number(),
     key: v.string(), // "PAN-42"
     title: v.string(),
@@ -81,12 +99,13 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
-    .index("by_project_and_status", ["projectId", "statusId", "sortOrder"])
+    .index("by_space_and_status", ["spaceId", "statusId", "sortOrder"])
+    .index("by_project", ["projectId"])
     .index("by_assignee_and_category", ["assigneeId", "statusCategory"])
     .index("by_parent", ["parentId"])
     .index("by_workspace_and_key", ["workspaceId", "key"])
     .index("by_workspace_and_updated", ["workspaceId", "updatedAt"])
-    .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "projectId"] }),
+    .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "spaceId", "projectId"] }),
 
   comments: defineTable({
     issueId: v.id("issues"),
@@ -104,7 +123,7 @@ export default defineSchema({
       v.literal("created"), v.literal("status_changed"), v.literal("priority_changed"),
       v.literal("assigned"), v.literal("labels_changed"), v.literal("commented"),
       v.literal("title_changed"), v.literal("description_changed"), v.literal("parent_changed"),
-      v.literal("due_date_changed"),
+      v.literal("due_date_changed"), v.literal("project_changed"),
     ),
     from: v.optional(v.string()),
     to: v.optional(v.string()),
@@ -115,13 +134,13 @@ export default defineSchema({
 
   docs: defineTable({
     workspaceId: v.id("workspaces"),
-    projectId: v.optional(v.id("projects")),
-    kind: v.literal("project_context"), // widen to "doc" later
+    spaceId: v.optional(v.id("spaces")),
+    kind: v.literal("space_context"), // widen to "doc" later
     title: v.string(),
     body: v.string(),
     updatedBy: v.id("members"),
     updatedAt: v.number(),
-  }).index("by_project_and_kind", ["projectId", "kind"]),
+  }).index("by_space_and_kind", ["spaceId", "kind"]),
 
   apiTokens: defineTable({
     userId: v.string(),

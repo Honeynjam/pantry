@@ -4,6 +4,7 @@ import type { Doc } from "@pantry/backend/dataModel";
 import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
+import { ProjectChip } from "@pantry/ui/components/project-chip";
 import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import { cn } from "@pantry/ui/lib/utils";
 import { CornerDownRightIcon } from "lucide-react";
@@ -43,6 +44,7 @@ export function IssueRow({
   const isSelected = selection?.selected.has(issue._id) ?? false;
   const anySelected = (selection?.selected.size ?? 0) > 0;
   const labels = issue.labelIds.map(lookups.label).filter((label) => label !== undefined);
+  const project = lookups.project(issue.projectId);
   return (
     <div
       data-issue-id={issue._id}
@@ -100,7 +102,8 @@ export function IssueRow({
         </Link>
         {subIssues && subIssues.length > 0 && <SubIssueProgress subIssues={subIssues} />}
       </span>
-      <span className="relative z-10 hidden max-w-64 items-center gap-1 overflow-hidden md:flex">
+      <span className="relative z-10 hidden max-w-80 items-center gap-1 overflow-hidden md:flex">
+        {project && <ProjectChip name={project.name} color={project.color} title={`Project: ${project.name}`} />}
         {labels.slice(0, 3).map((label) => (
           <LabelChip key={label._id} name={label.name} color={label.color} />
         ))}

@@ -27,13 +27,15 @@ import { Button } from "@pantry/ui/components/button";
 import { Checkbox } from "@pantry/ui/components/checkbox";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { LabelChip } from "@pantry/ui/components/label-chip";
+import { ProjectChip } from "@pantry/ui/components/project-chip";
 import { PriorityGlyph } from "@pantry/ui/components/priority-glyph";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { duration, ease, spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
-import { CornerDownRightIcon, PlusIcon } from "lucide-react";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { CornerDownRightIcon, LayersIcon, PlusIcon } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { statusColor, type Lookups } from "../issues/lookups";
@@ -42,27 +44,28 @@ import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { formatDay, today } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
 import { AppShell } from "../shell/app-shell";
+import { projectColor } from "../shell/space-color";
 import { NotMemberScreen } from "./not-member";
-import { ProjectIssues, useIssueFamily, type BoardProps } from "./project";
-import { ProjectNotFound, ProjectTitle } from "./project-chrome";
+import { SpaceIssues, useIssueFamily, type BoardProps } from "./space";
+import { SpaceNotFound, SpaceTitle } from "./space-chrome";
 
-/** A project's board (spec §4): a column per status, drag to move. */
-export function BoardPage({ projectKey }: { projectKey: string }) {
+/** A space's board (spec §4): a column per status, drag to move; optional project swimlanes. */
+export function BoardPage({ spaceKey }: { spaceKey: string }) {
   return (
     <EntryGate allow={["ready", "not-member"]}>
       {(state) =>
         state.kind === "not-member" ? (
           <NotMemberScreen />
         ) : (
-          <AppShell title={(data) => <ProjectTitle data={data} projectKey={projectKey} view="board" />}>
+          <AppShell title={(data) => <SpaceTitle data={data} spaceKey={spaceKey} view="board" />}>
             {(data) => {
-              const project = data.projects.find((p) => p.key === projectKey);
-              if (!project) return <ProjectNotFound projectKey={projectKey} />;
+              const space = data.spaces.find((row) => row.key === spaceKey);
+              if (!space) return <SpaceNotFound spaceKey={spaceKey} />;
               return (
-                <ProjectIssues
-                  key={project._id}
+                <SpaceIssues
+                  key={space._id}
                   data={data}
-                  project={project}
+                  space={space}
                   view="board"
                   renderBoard={(props) => <Board {...props} />}
                 />
@@ -75,10 +78,18 @@ export function BoardPage({ projectKey }: { projectKey: string }) {
   );
 }
 
-/** Where a dragged card would land: a status column and an index among the other cards. */
-type Target = { statusId: Id<"statuses">; index: number };
+/**
+ * A swimlane: one per project of the space plus "none" when grouped by project, else one "all".
+ * Every column and card carries its lane, so a drop knows its project as well as its status.
+ */
+type Lane = { id: string; project: Doc<"projects"> | null | undefined };
 
-const columnId = (statusId: Id<"statuses">) => `column:${statusId}`;
+/** Where a dragged card would land: a lane, a status column and an index among the other cards. */
+type Target = { lane: string; statusId: Id<"statuses">; index: number };
+type DropData = { lane: string; statusId: Id<"statuses"> };
+
+const columnId = (lane: string, statusId: Id<"statuses">) => `column:${lane}:${statusId}`;
+const cellKey = (lane: string, statusId: Id<"statuses">) => `${lane}:${statusId}`;
 
 /**
  * The card under the pointer wins over the column that contains it (pointerWithin returns both, in
@@ -92,7 +103,7 @@ const collision: CollisionDetection = (args) => {
   return hits.length > 0 ? hits : closestCenter(args);
 };
 
-function Board({ issues, lookups, newIssue }: BoardProps) {
+function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   const actions = useIssueActions();
   const family = useIssueFamily(issues);
   const reduceMotion = usePrefersReducedMotion();
@@ -102,16 +113,35 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   const justDropped = useRef(0);
   const container = useRef<HTMLDivElement>(null);
 
-  // Columns in list order. A drop shows at once: issues.move is optimistic, so `issues` already has
-  // the card in its new place (and Convex puts it back if the server refuses the move).
-  const columns = useMemo(() => {
-    const byStatus = new Map<Id<"statuses">, Doc<"issues">[]>(statuses.map((status) => [status._id, []]));
-    for (const issue of issues) byStatus.get(issue.statusId)?.push(issue);
-    return byStatus;
-  }, [issues, statuses]);
+  const projects = lookups.projectsOf(space._id);
+  const lanes = useMemo<Lane[]>(
+    () =>
+      groupBy === "project"
+        ? [...projects.map((project) => ({ id: project._id as string, project })), { id: "none", project: null }]
+        : [{ id: "all", project: undefined }],
+    [groupBy, projects],
+  );
+  const laneOf = useCallback(
+    (issue: Doc<"issues">) =>
+      groupBy !== "project" ? "all" : issue.projectId && projects.some((p) => p._id === issue.projectId) ? issue.projectId : "none",
+    [groupBy, projects],
+  );
 
-  // J/K walk the board column by column, top to bottom.
-  const ordered = useMemo(() => statuses.flatMap((status) => columns.get(status._id) ?? []), [statuses, columns]);
+  // Cells in list order. A drop shows at once: issues.move/update are optimistic, so `issues`
+  // already has the card in its new place (and Convex puts it back if the server refuses).
+  const columns = useMemo(() => {
+    const cells = new Map<string, Doc<"issues">[]>();
+    for (const lane of lanes) for (const status of statuses) cells.set(cellKey(lane.id, status._id), []);
+    for (const issue of issues) cells.get(cellKey(laneOf(issue), issue.statusId))?.push(issue);
+    return cells;
+  }, [issues, statuses, lanes, laneOf]);
+  const cell = (lane: string, statusId: Id<"statuses">) => columns.get(cellKey(lane, statusId)) ?? [];
+
+  // J/K walk the board lane by lane, column by column, top to bottom.
+  const ordered = useMemo(
+    () => lanes.flatMap((lane) => statuses.flatMap((status) => columns.get(cellKey(lane.id, status._id)) ?? [])),
+    [lanes, statuses, columns],
+  );
   const selection = useIssueSelection({ ordered, lookups, actions, container });
 
   const sensors = useSensors(
@@ -136,17 +166,18 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
     if (!over) return null;
     const dragged = active.rect.current.translated;
     const centerY = dragged ? dragged.top + dragged.height / 2 : 0;
-    const overData = over.data.current as { statusId: Id<"statuses"> } | undefined;
+    const overData = over.data.current as DropData | undefined;
     if (!overData) return null;
-    const column = columns.get(overData.statusId) ?? [];
+    const { lane, statusId } = overData;
+    const column = cell(lane, statusId);
     // Over its own slot: stay put.
-    if (over.id === active.id) return { statusId: overData.statusId, index: column.findIndex((issue) => issue._id === active.id) };
+    if (over.id === active.id) return { lane, statusId, index: column.findIndex((issue) => issue._id === active.id) };
     const others = column.filter((issue) => issue._id !== active.id);
-    if (String(over.id).startsWith("column:")) return { statusId: overData.statusId, index: others.length };
+    if (String(over.id).startsWith("column:")) return { lane, statusId, index: others.length };
     const index = others.findIndex((issue) => issue._id === over.id);
-    if (index < 0) return { statusId: overData.statusId, index: others.length };
+    if (index < 0) return { lane, statusId, index: others.length };
     const below = centerY > over.rect.top + over.rect.height / 2;
-    return { statusId: overData.statusId, index: index + (below ? 1 : 0) };
+    return { lane, statusId, index: index + (below ? 1 : 0) };
   }
 
   function onDragStart(event: DragStartEvent) {
@@ -158,7 +189,7 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   function onDragMove(event: DragMoveEvent | DragOverEvent) {
     const next = locate(event);
     setTarget((current) =>
-      current?.statusId === next?.statusId && current?.index === next?.index ? current : next,
+      current?.lane === next?.lane && current?.statusId === next?.statusId && current?.index === next?.index ? current : next,
     );
   }
 
@@ -171,26 +202,36 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
     justDropped.current = Date.now();
     if (!issue || !drop) return;
 
-    const others = (columns.get(drop.statusId) ?? []).filter((row) => row._id !== issue._id);
-    const sameColumn = drop.statusId === issue.statusId;
-    const currentIndex = (columns.get(issue.statusId) ?? []).findIndex((row) => row._id === issue._id);
+    const fromLane = laneOf(issue);
+    if (drop.lane !== fromLane) {
+      // Into another project's lane: the project changes too. Sub-issues follow their parent.
+      if (issue.parentId) {
+        toast("Sub-issues are in their parent's project", { description: "Move the parent issue to another project instead." });
+        return;
+      }
+      void actions.update(issue._id, { projectId: drop.lane === "none" ? null : (drop.lane as Id<"projects">) });
+    }
+    const others = cell(drop.lane, drop.statusId).filter((row) => row._id !== issue._id);
+    const sameColumn = drop.statusId === issue.statusId && drop.lane === fromLane;
+    const currentIndex = cell(fromLane, issue.statusId).findIndex((row) => row._id === issue._id);
     if (sameColumn && currentIndex === drop.index) return;
+    if (drop.lane !== fromLane && drop.statusId === issue.statusId && others.length === 0) return;
 
     const afterId = others[drop.index - 1]?._id;
     const beforeId = others[drop.index]?._id;
     void actions.move(issue._id, drop.statusId, { ...(afterId ? { afterId } : {}), ...(beforeId ? { beforeId } : {}) });
   }
 
+  const place = (data: unknown) => {
+    const { lane, statusId } = data as DropData;
+    const project = lanes.find((row) => row.id === lane)?.project;
+    return project === undefined ? statusName(statusId) : `${statusName(statusId)}, ${project?.name ?? "no project"}`;
+  };
   const announcements: Announcements = {
     onDragStart: ({ active }) => `Picked up ${issueById(active.id)?.key ?? "issue"}.`,
-    onDragOver: ({ active, over }) =>
-      over
-        ? `${issueById(active.id)?.key ?? "Issue"} is over ${statusName((over.data.current as { statusId: Id<"statuses"> }).statusId)}.`
-        : undefined,
+    onDragOver: ({ active, over }) => (over ? `${issueById(active.id)?.key ?? "Issue"} is over ${place(over.data.current)}.` : undefined),
     onDragEnd: ({ active, over }) =>
-      over
-        ? `Dropped ${issueById(active.id)?.key ?? "issue"} in ${statusName((over.data.current as { statusId: Id<"statuses"> }).statusId)}.`
-        : `Dropped ${issueById(active.id)?.key ?? "issue"}.`,
+      over ? `Dropped ${issueById(active.id)?.key ?? "issue"} in ${place(over.data.current)}.` : `Dropped ${issueById(active.id)?.key ?? "issue"}.`,
     onDragCancel: ({ active }) => `Moving ${issueById(active.id)?.key ?? "issue"} was cancelled.`,
   };
 
@@ -205,6 +246,20 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
       };
 
   const active = activeId ? issueById(activeId) : undefined;
+  const renderCard = (lane: string) =>
+    function render(issue: Doc<"issues">) {
+      return (
+        <Card
+          issue={issue}
+          lane={lane}
+          lookups={lookups}
+          parentKey={issue.parentId ? family.byId.get(issue.parentId)?.key : undefined}
+          subIssues={family.children.get(issue._id)}
+          dimmed={issue._id === activeId}
+          justDropped={justDropped}
+        />
+      );
+    };
 
   return (
     <SelectionProvider value={selection.value}>
@@ -226,29 +281,80 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
         },
       }}
     >
-      <div ref={container} className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
-        {statuses.map((status) => (
-          <Column
-            key={status._id}
-            status={status}
-            issues={columns.get(status._id) ?? []}
-            activeId={activeId}
-            indicator={target?.statusId === status._id ? target.index : null}
-            onNewIssue={() => newIssue({ statusId: status._id })}
-          >
-            {(issue) => (
-              <Card
-                issue={issue}
-                lookups={lookups}
-                parentKey={issue.parentId ? family.byId.get(issue.parentId)?.key : undefined}
-                subIssues={family.children.get(issue._id)}
-                dimmed={issue._id === activeId}
-                justDropped={justDropped}
+      {groupBy === "project" ? (
+        <div ref={container} className="min-h-0 flex-1 overflow-auto px-2 pb-2">
+          {/* Status headers once, above every lane. */}
+          <div className="sticky top-0 z-20 flex w-max gap-2 bg-background pt-2 pb-1">
+            {statuses.map((status) => (
+              <ColumnHeader
+                key={status._id}
+                status={status}
+                count={lanes.reduce((sum, lane) => sum + cell(lane.id, status._id).length, 0)}
+                onNewIssue={() => newIssue({ statusId: status._id })}
+                className="w-68 rounded-lg bg-gray-2"
               />
-            )}
-          </Column>
-        ))}
-      </div>
+            ))}
+          </div>
+          {lanes.map((lane) => {
+            const name = lane.project?.name ?? "No project";
+            const count = statuses.reduce((sum, status) => sum + cell(lane.id, status._id).length, 0);
+            return (
+              <section key={lane.id} aria-label={name} className="mt-2">
+                <div className="sticky left-0 flex h-8 w-fit items-center gap-2 px-1">
+                  {lane.project ? (
+                    <span className="size-2.5 rounded-[3px]" style={{ background: projectColor(lane.project) }} aria-hidden />
+                  ) : (
+                    <LayersIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                  )}
+                  <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{name}</h2>
+                  <span className="font-mono text-xs text-muted-foreground tabular">{count}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`New issue in ${name}`}
+                    onClick={() => newIssue(lane.project ? { projectId: lane.project._id } : {})}
+                  >
+                    <PlusIcon />
+                  </Button>
+                </div>
+                <div className="flex w-max gap-2">
+                  {statuses.map((status) => (
+                    <Column
+                      key={status._id}
+                      lane={lane.id}
+                      laneName={name}
+                      status={status}
+                      issues={cell(lane.id, status._id)}
+                      activeId={activeId}
+                      indicator={target?.lane === lane.id && target.statusId === status._id ? target.index : null}
+                      onNewIssue={() => newIssue({ statusId: status._id, ...(lane.project ? { projectId: lane.project._id } : {}) })}
+                      header={false}
+                    >
+                      {renderCard(lane.id)}
+                    </Column>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <div ref={container} className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
+          {statuses.map((status) => (
+            <Column
+              key={status._id}
+              lane="all"
+              status={status}
+              issues={cell("all", status._id)}
+              activeId={activeId}
+              indicator={target?.statusId === status._id ? target.index : null}
+              onNewIssue={() => newIssue({ statusId: status._id })}
+            >
+              {renderCard("all")}
+            </Column>
+          ))}
+        </div>
+      )}
       <DragOverlay dropAnimation={dropAnimation}>
         {active ? (
           <motion.div
@@ -273,42 +379,68 @@ function Board({ issues, lookups, newIssue }: BoardProps) {
   );
 }
 
+function ColumnHeader({
+  status,
+  count,
+  onNewIssue,
+  className,
+}: {
+  status: Doc<"statuses">;
+  count: number;
+  onNewIssue: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex h-9 shrink-0 items-center gap-2 px-3", className)}>
+      <StatusGlyph category={status.category} color={statusColor(status)} />
+      <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{status.name}</h2>
+      <span className="font-mono text-xs text-muted-foreground tabular">{count}</span>
+      <Button variant="ghost" size="icon-xs" className="ml-auto" aria-label={`New issue in ${status.name}`} onClick={onNewIssue}>
+        <PlusIcon />
+      </Button>
+    </div>
+  );
+}
+
 function Column({
+  lane,
+  laneName,
   status,
   issues,
   activeId,
   indicator,
   onNewIssue,
+  header = true,
   children,
 }: {
+  lane: string;
+  laneName?: string;
   status: Doc<"statuses">;
   issues: Doc<"issues">[];
   activeId: Id<"issues"> | null;
   indicator: number | null;
   onNewIssue: () => void;
+  /** Swimlanes show the status headers once, above the lanes. */
+  header?: boolean;
   children: (issue: Doc<"issues">) => ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: columnId(status._id), data: { statusId: status._id } });
+  const { setNodeRef, isOver } = useDroppable({ id: columnId(lane, status._id), data: { lane, statusId: status._id } });
   // The indicator index counts the other cards, so skip the dragged one when placing it.
   const others = issues.filter((issue) => issue._id !== activeId);
   const indicatorBefore = indicator !== null ? (others[indicator]?._id ?? "end") : null;
   return (
     <section
-      aria-label={status.name}
+      aria-label={laneName ? `${laneName}, ${status.name}` : status.name}
       className={cn(
         "flex w-68 shrink-0 flex-col rounded-lg bg-gray-2 transition-colors duration-(--duration-instant)",
         isOver && "bg-gray-3",
       )}
     >
-      <div className="flex h-9 shrink-0 items-center gap-2 px-3">
-        <StatusGlyph category={status.category} color={statusColor(status)} />
-        <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{status.name}</h2>
-        <span className="font-mono text-xs text-muted-foreground tabular">{issues.length}</span>
-        <Button variant="ghost" size="icon-xs" className="ml-auto" aria-label={`New issue in ${status.name}`} onClick={onNewIssue}>
-          <PlusIcon />
-        </Button>
-      </div>
-      <div ref={setNodeRef} className="flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+      {header && <ColumnHeader status={status} count={issues.length} onNewIssue={onNewIssue} />}
+      <div
+        ref={setNodeRef}
+        className={cn("flex flex-col gap-2 px-2 pb-2", header ? "min-h-24 flex-1 overflow-y-auto" : "min-h-16 pt-2")}
+      >
         {issues.map((issue) => (
           <div key={issue._id} className="relative">
             {indicatorBefore === issue._id && <DropIndicator />}
@@ -332,6 +464,7 @@ function DropIndicator() {
 
 function Card({
   issue,
+  lane,
   lookups,
   parentKey,
   subIssues,
@@ -339,6 +472,7 @@ function Card({
   justDropped,
 }: {
   issue: Doc<"issues">;
+  lane: string;
   lookups: Lookups;
   parentKey?: string;
   subIssues?: Doc<"issues">[];
@@ -351,9 +485,9 @@ function Card({
   const isCursor = selection?.cursor === issue._id;
   const isSelected = selection?.selected.has(issue._id) ?? false;
   const anySelected = (selection?.selected.size ?? 0) > 0;
-  const draggable = useDraggable({ id: issue._id, data: { statusId: issue.statusId } });
+  const draggable = useDraggable({ id: issue._id, data: { lane, statusId: issue.statusId } });
   const { onKeyDown, ...listeners } = draggable.listeners ?? {};
-  const droppable = useDroppable({ id: issue._id, data: { statusId: issue.statusId } });
+  const droppable = useDroppable({ id: issue._id, data: { lane, statusId: issue.statusId } });
   return (
     <motion.div
       ref={(node) => {
@@ -440,6 +574,7 @@ function CardBody({
 }) {
   const assignee = lookups.member(issue.assigneeId);
   const labels = issue.labelIds.map(lookups.label).filter((label) => label !== undefined);
+  const project = lookups.project(issue.projectId);
   const overdue = issue.dueDate !== undefined && issue.dueDate < today();
   return (
     <div
@@ -473,6 +608,7 @@ function CardBody({
         <span className="flex h-5 items-center rounded-sm border border-border px-1">
           <PriorityGlyph priority={issue.priority} size={12} />
         </span>
+        {project && <ProjectChip name={project.name} color={project.color} title={`Project: ${project.name}`} />}
         {labels.map((label) => (
           <LabelChip key={label._id} name={label.name} color={label.color} />
         ))}

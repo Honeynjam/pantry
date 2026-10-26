@@ -7,7 +7,7 @@ import { FileTextIcon } from "lucide-react";
 import { EntryGate } from "../entry";
 import { routes, useNavigation } from "../navigation";
 import { AppShell } from "../shell/app-shell";
-import { projectColor } from "../shell/project-color";
+import { spaceColor } from "../shell/space-color";
 import { NotMemberScreen } from "./not-member";
 
 export function HomePage() {
@@ -33,23 +33,23 @@ function WorkspaceHome({ data }: { data: Parameters<Parameters<typeof AppShell>[
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-10">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-xl font-semibold text-foreground">{data.workspace.name}</h1>
-        <p className="text-sm text-muted-foreground">No issues yet. Projects, statuses and members are ready to go.</p>
+        <p className="text-sm text-muted-foreground">No issues yet. Spaces, statuses and members are ready to go.</p>
       </div>
 
-      <section aria-labelledby="home-projects" className="flex flex-col gap-2">
-        <h2 id="home-projects" className="font-sans text-xs font-medium tracking-normal text-muted-foreground">
-          Projects
+      <section aria-labelledby="home-spaces" className="flex flex-col gap-2">
+        <h2 id="home-spaces" className="font-sans text-xs font-medium tracking-normal text-muted-foreground">
+          Spaces
         </h2>
         <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
-          {data.projects.map((project) => (
-            <li key={project._id}>
+          {data.spaces.map((space) => (
+            <li key={space._id}>
               <Link
-                href={routes.project(project.key)}
+                href={routes.space(space.key)}
                 className="flex h-row items-center gap-3 px-3 text-sm transition-colors duration-(--duration-instant) hover:bg-accent"
               >
-                <span className="size-2 rounded-full" style={{ background: projectColor(project.key) }} aria-hidden />
-                <span className="font-medium text-foreground">{project.name}</span>
-                <IssueKey value={project.key} />
+                <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+                <span className="font-medium text-foreground">{space.name}</span>
+                <IssueKey value={space.key} />
                 <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                   <FileTextIcon className="size-3.5" aria-hidden />
                   Context doc

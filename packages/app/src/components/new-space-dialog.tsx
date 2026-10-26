@@ -12,6 +12,7 @@ import {
 } from "@pantry/ui/components/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pantry/ui/components/field";
 import { Input } from "@pantry/ui/components/input";
+import { SegmentedControl } from "@pantry/ui/components/segmented-control";
 import { useMutation } from "convex/react";
 import { useState, type FormEvent } from "react";
 import { routes, useNavigation } from "../navigation";
@@ -26,9 +27,13 @@ export function suggestKey(name: string): string {
     .slice(0, 3);
 }
 
-/** Name + key; the key is suggested from the name until you type your own. Opens the new project. */
-export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const createProject = useMutation(api.projects.create);
+/**
+ * Name, kind (product or client) and key; the key is suggested from the name until you type your
+ * own. Opens the new space.
+ */
+export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const createSpace = useMutation(api.spaces.create);
+  const [kind, setKind] = useState<"product" | "client">("product");
   const { navigate } = useNavigation();
   const [name, setName] = useState("");
   const [key, setKey] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
   function reset() {
     setName("");
     setKey(null);
+    setKind("product");
     setError(null);
   }
 
@@ -48,12 +54,12 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
     setPending(true);
     setError(null);
     try {
-      const created = await createProject({ name, key: shownKey });
+      const created = await createSpace({ name, key: shownKey, kind });
       onOpenChange(false);
       reset();
-      navigate(routes.project(created.key));
+      navigate(routes.space(created.key));
     } catch (err) {
-      setError(describeError(err, "Couldn't create the project."));
+      setError(describeError(err, "Couldn't create the space."));
     } finally {
       setPending(false);
     }
@@ -70,26 +76,39 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
       <DialogContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>New project</DialogTitle>
+            <DialogTitle>New space</DialogTitle>
             <DialogDescription>Issues in it get keys like {shownKey || "KEY"}-1. The key can&apos;t change later.</DialogDescription>
           </DialogHeader>
           <FieldGroup className="gap-3">
             <Field>
-              <FieldLabel htmlFor="new-project-name">Name</FieldLabel>
+              <FieldLabel htmlFor="new-space-name">Name</FieldLabel>
               <Input
-                id="new-project-name"
+                id="new-space-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Website"
+                placeholder="e.g. Pantry, or Acme Ltd"
                 required
                 autoFocus
                 autoComplete="off"
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="new-project-key">Key</FieldLabel>
+              <FieldLabel>Kind</FieldLabel>
+              <SegmentedControl
+                aria-label="Kind"
+                value={kind}
+                onValueChange={setKind}
+                options={[
+                  { value: "product", label: "Product" },
+                  { value: "client", label: "Client" },
+                ]}
+              />
+              <FieldDescription>One of your products, or client work. You can change it later.</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-space-key">Key</FieldLabel>
               <Input
-                id="new-project-key"
+                id="new-space-key"
                 value={shownKey}
                 onChange={(event) => setKey(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))}
                 className="font-mono uppercase"
@@ -108,7 +127,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
               Cancel
             </Button>
             <Button type="submit" disabled={pending || !name.trim() || shownKey.length < 2}>
-              {pending ? "Creating…" : "Create project"}
+              {pending ? "Creating…" : "Create space"}
             </Button>
           </DialogFooter>
         </form>

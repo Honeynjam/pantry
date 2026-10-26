@@ -22,7 +22,7 @@ describe("setup.createWorkspace", () => {
         .query("statuses")
         .withIndex("by_workspace_and_order", (q) => q.eq("workspaceId", result.workspaceId))
         .collect(),
-      projects: await ctx.db.query("projects").collect(),
+      spaces: await ctx.db.query("spaces").collect(),
       docs: await ctx.db.query("docs").collect(),
     }));
 
@@ -48,20 +48,20 @@ describe("setup.createWorkspace", () => {
     ]);
     expect(data.statuses.map((s) => s.color)).toEqual(DEFAULT_STATUSES.map((s) => s.color));
 
-    expect(data.projects).toHaveLength(1);
-    expect(data.projects[0]).toMatchObject({
-      _id: result.projectId,
+    expect(data.spaces).toHaveLength(1);
+    expect(data.spaces[0]).toMatchObject({
+      _id: result.spaceId,
       workspaceId: result.workspaceId,
       key: brand.defaultKey,
       nextIssueNumber: 1,
     });
-    expect(data.projects[0]?.archivedAt).toBeUndefined();
+    expect(data.spaces[0]?.archivedAt).toBeUndefined();
 
     expect(data.docs).toHaveLength(1);
     expect(data.docs[0]).toMatchObject({
       workspaceId: result.workspaceId,
-      projectId: result.projectId,
-      kind: "project_context",
+      spaceId: result.spaceId,
+      kind: "space_context",
       body: SAMPLE_CONTEXT_DOC,
       updatedBy: result.memberId,
     });
@@ -87,9 +87,9 @@ describe("setup.createWorkspace", () => {
       workspaces: (await ctx.db.query("workspaces").collect()).length,
       members: (await ctx.db.query("members").collect()).length,
       statuses: (await ctx.db.query("statuses").collect()).length,
-      projects: (await ctx.db.query("projects").collect()).length,
+      spaces: (await ctx.db.query("spaces").collect()).length,
     }));
-    expect(counts).toEqual({ workspaces: 1, members: 1, statuses: 6, projects: 1 });
+    expect(counts).toEqual({ workspaces: 1, members: 1, statuses: 6, spaces: 1 });
   });
 
   it("requires a signed-in user", async () => {

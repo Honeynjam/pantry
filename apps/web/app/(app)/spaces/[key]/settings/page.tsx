@@ -1,9 +1,9 @@
 "use client";
 
-import { BoardPage } from "@pantry/app";
+import { SpaceSettingsPage } from "@pantry/app";
 import { useParams } from "next/navigation";
 
 export default function Page() {
   const params = useParams<{ key: string }>();
-  return <BoardPage projectKey={decodeURIComponent(params.key)} />;
+  return <SpaceSettingsPage spaceKey={decodeURIComponent(params.key)} />;
 }

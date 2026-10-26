@@ -1,9 +1,10 @@
 import { query } from "./_generated/server";
 import { requireMember } from "./lib/auth";
+import { activeProjects } from "./lib/spaces";
 
 /**
  * Everything the app shell needs in one subscription: the workspace, my member row, statuses (by
- * order), labels, members and active projects (spec §10b).
+ * order), labels, members, active spaces and their active projects (spec §10b).
  */
 export const current = query({
   args: {},
@@ -12,7 +13,7 @@ export const current = query({
     const workspace = await ctx.db.get("workspaces", me.workspaceId);
     if (!workspace) throw new Error("Workspace not found");
 
-    const [statuses, labels, members, projects] = await Promise.all([
+    const [statuses, labels, members, spaces] = await Promise.all([
       ctx.db
         .query("statuses")
         .withIndex("by_workspace_and_order", (q) => q.eq("workspaceId", workspace._id))
@@ -26,10 +27,12 @@ export const current = query({
         .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
         .collect(),
       ctx.db
-        .query("projects")
+        .query("spaces")
         .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
         .collect(),
     ]);
+    const activeSpaces = spaces.filter((space) => space.archivedAt === undefined);
+    const projects = (await Promise.all(activeSpaces.map((space) => activeProjects(ctx, space._id)))).flat();
 
     return {
       workspace,
@@ -37,7 +40,9 @@ export const current = query({
       statuses,
       labels,
       members,
-      projects: projects.filter((project) => project.archivedAt === undefined),
+      spaces: activeSpaces,
+      /** Active projects of active spaces, in each space's order. */
+      projects,
     };
   },
 });

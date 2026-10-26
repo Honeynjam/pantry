@@ -5,6 +5,7 @@ import type { Actor } from "./lib/activity";
 import { requireMember } from "./lib/auth";
 import { notFound } from "./lib/errors";
 import { changeStatus, createIssue, deleteIssue, getIssue, getStatus, isTerminal, updateIssue } from "./lib/issues";
+import { getProject } from "./lib/spaces";
 import { priority } from "./schema";
 
 /** Done and canceled issues older than this are hidden from lists and boards unless asked for. */
@@ -12,13 +13,20 @@ export const RECENT_DONE_MS = 14 * 24 * 60 * 60 * 1000;
 
 const app = (member: Doc<"members">): Actor => ({ member, via: "app" });
 
-/** Issues of one project, ordered by status (workspace order) then `sortOrder`. */
-export const listByProject = query({
-  args: { projectId: v.id("projects"), includeDone: v.optional(v.boolean()) },
-  handler: async (ctx, { projectId, includeDone }) => {
+/**
+ * Issues of one space, ordered by status (workspace order) then `sortOrder`; with `projectId`, only
+ * that project's (it must be in the space).
+ */
+export const listBySpace = query({
+  args: { spaceId: v.id("spaces"), projectId: v.optional(v.id("projects")), includeDone: v.optional(v.boolean()) },
+  handler: async (ctx, { spaceId, projectId, includeDone }) => {
     const me = await requireMember(ctx);
-    const project = await ctx.db.get("projects", projectId);
-    if (!project || project.workspaceId !== me.workspaceId) return notFound("Project");
+    const space = await ctx.db.get("spaces", spaceId);
+    if (!space || space.workspaceId !== me.workspaceId) return notFound("Space");
+    if (projectId) {
+      const project = await getProject(ctx, me.workspaceId, projectId);
+      if (project.spaceId !== space._id) return notFound("Project");
+    }
     const statuses = await ctx.db
       .query("statuses")
       .withIndex("by_workspace_and_order", (q) => q.eq("workspaceId", me.workspaceId))
@@ -28,10 +36,11 @@ export const listByProject = query({
       statuses.map(async (status) => {
         const issues = await ctx.db
           .query("issues")
-          .withIndex("by_project_and_status", (q) => q.eq("projectId", projectId).eq("statusId", status._id))
+          .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", status._id))
           .collect();
-        if (includeDone || !isTerminal(status.category)) return issues;
-        return issues.filter((issue) => (issue.completedAt ?? issue.updatedAt) >= since);
+        const inProject = projectId ? issues.filter((issue) => issue.projectId === projectId) : issues;
+        if (includeDone || !isTerminal(status.category)) return inProject;
+        return inProject.filter((issue) => (issue.completedAt ?? issue.updatedAt) >= since);
       }),
     );
     return columns.flat();
@@ -55,7 +64,10 @@ export const listMine = query({
   },
 });
 
-/** One issue by key (`PAN-42`, any case) with sub-issues, comments and the last 100 activity rows. */
+/**
+ * One issue by key (`PAN-42`, any case) with its space, its project (if any), sub-issues, comments
+ * and the last 100 activity rows.
+ */
 export const get = query({
   args: { key: v.string() },
   handler: async (ctx, args) => {
@@ -66,7 +78,7 @@ export const get = query({
       .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
       .first();
     if (!issue) return null;
-    const [subIssues, comments, activity, parent, project] = await Promise.all([
+    const [subIssues, comments, activity, parent, space, project] = await Promise.all([
       ctx.db
         .query("issues")
         .withIndex("by_parent", (q) => q.eq("parentId", issue._id))
@@ -81,10 +93,12 @@ export const get = query({
         .order("desc")
         .take(100),
       issue.parentId ? ctx.db.get("issues", issue.parentId) : null,
-      ctx.db.get("projects", issue.projectId),
+      ctx.db.get("spaces", issue.spaceId),
+      issue.projectId ? ctx.db.get("projects", issue.projectId) : null,
     ]);
     return {
       issue,
+      space,
       project,
       parent: parent ? { _id: parent._id, key: parent.key, title: parent.title, statusId: parent.statusId } : null,
       subIssues: subIssues.sort((a, b) => a.number - b.number),
@@ -102,6 +116,7 @@ const searchResult = (issue: Doc<"issues">) => ({
   _id: issue._id,
   key: issue.key,
   title: issue.title,
+  spaceId: issue.spaceId,
   projectId: issue.projectId,
   statusId: issue.statusId,
   priority: issue.priority,
@@ -110,12 +125,13 @@ const searchResult = (issue: Doc<"issues">) => ({
 
 /**
  * Up to 20 issues for the command palette: an exact key match first (`PAN-42`, any case), then a
- * bare number as a key in every project (`42` → PAN-42, WEB-42), then title matches from the
+ * bare number as a key in every space (`42` → PAN-42, WEB-42), then title matches from the
  * `search_title` index (relevance order; the last word matches as a prefix while you type).
+ * `spaceId` / `projectId` narrow it.
  */
 export const search = query({
-  args: { text: v.string(), projectId: v.optional(v.id("projects")) },
-  handler: async (ctx, { text, projectId }) => {
+  args: { text: v.string(), spaceId: v.optional(v.id("spaces")), projectId: v.optional(v.id("projects")) },
+  handler: async (ctx, { text, spaceId, projectId }) => {
     const me = await requireMember(ctx);
     const trimmed = text.trim();
     if (!trimmed) return [];
@@ -125,24 +141,27 @@ export const search = query({
         .query("issues")
         .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
         .first();
-      if (issue && (!projectId || issue.projectId === projectId)) found.set(issue._id, issue);
+      if (issue && (!spaceId || issue.spaceId === spaceId) && (!projectId || issue.projectId === projectId)) {
+        found.set(issue._id, issue);
+      }
     };
 
     const upper = trimmed.toUpperCase();
     if (KEY_PATTERN.test(upper)) await byKey(upper);
     if (/^\d{1,9}$/.test(trimmed)) {
-      const projects = await ctx.db
-        .query("projects")
+      const spaces = await ctx.db
+        .query("spaces")
         .withIndex("by_workspace", (q) => q.eq("workspaceId", me.workspaceId))
         .collect();
-      for (const project of projects) await byKey(`${project.key}-${Number(trimmed)}`);
+      for (const space of spaces) await byKey(`${space.key}-${Number(trimmed)}`);
     }
 
     const matches = await ctx.db
       .query("issues")
       .withSearchIndex("search_title", (q) => {
         const scoped = q.search("title", trimmed).eq("workspaceId", me.workspaceId);
-        return projectId ? scoped.eq("projectId", projectId) : scoped;
+        const inSpace = spaceId ? scoped.eq("spaceId", spaceId) : scoped;
+        return projectId ? inSpace.eq("projectId", projectId) : inSpace;
       })
       .take(SEARCH_LIMIT);
     for (const issue of matches) if (!found.has(issue._id)) found.set(issue._id, issue);
@@ -152,7 +171,8 @@ export const search = query({
 
 export const create = mutation({
   args: {
-    projectId: v.id("projects"),
+    spaceId: v.id("spaces"),
+    projectId: v.optional(v.union(v.id("projects"), v.null())),
     title: v.string(),
     description: v.optional(v.string()),
     statusId: v.optional(v.id("statuses")),
@@ -179,6 +199,7 @@ export const update = mutation({
     labelIds: v.optional(v.array(v.id("labels"))),
     dueDate: v.optional(v.union(v.string(), v.null())),
     parentId: v.optional(v.union(v.id("issues"), v.null())),
+    projectId: v.optional(v.union(v.id("projects"), v.null())),
   },
   handler: async (ctx, { issueId, ...changes }) => {
     const me = await requireMember(ctx);

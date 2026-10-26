@@ -1,6 +1,6 @@
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import { describe, expect, it } from "vitest";
-import { applyFilters, EMPTY_FILTERS, hasFilters, parseFilters, serializeFilters, toggleValue } from "./filters";
+import { applyFilters, EMPTY_FILTERS, hasFilters, parseFilters, parseGroup, serializeFilters, serializeGroup, toggleValue } from "./filters";
 
 const me = "m-me" as Id<"members">;
 const issue = (n: number, extra: Partial<Doc<"issues">>) =>
@@ -39,10 +39,11 @@ describe("URL filters", () => {
       assignee: ["me", "none"],
       label: ["bug"],
       priority: [1, 2],
+      project: ["launch", "none"],
       q: "login page",
     } as unknown as typeof EMPTY_FILTERS;
     const search = serializeFilters(filters);
-    expect(search).toBe("?status=todo,in-progress&assignee=me,none&label=bug&priority=urgent,high&q=login+page");
+    expect(search).toBe("?status=todo,in-progress&assignee=me,none&label=bug&priority=urgent,high&project=launch,none&q=login+page");
     expect(parseFilters(search)).toEqual(filters);
   });
 
@@ -72,6 +73,22 @@ describe("URL filters", () => {
     expect(keys(applyFilters(issues, parseFilters("?status=in-progress"), context))).toEqual(["PAN-2"]);
     // A status that no longer exists (renamed) matches nothing rather than being ignored.
     expect(keys(applyFilters(issues, parseFilters("?status=doing"), context))).toEqual([]);
+  });
+
+  it("filters by project name, or none", () => {
+    const withProjects = [
+      issue(1, { projectId: "p-launch" as Id<"projects"> }),
+      issue(2, { projectId: "p-social" as Id<"projects"> }),
+      issue(3, {}),
+    ];
+    const ctx = { ...context, projects: [{ _id: "p-launch" as Id<"projects">, name: "Launch" }, { _id: "p-social" as Id<"projects">, name: "Social media" }] };
+    expect(keys(applyFilters(withProjects, parseFilters("?project=launch"), ctx))).toEqual(["PAN-1"]);
+    expect(keys(applyFilters(withProjects, parseFilters("?project=social-media,none"), ctx))).toEqual(["PAN-2", "PAN-3"]);
+    expect(keys(applyFilters(withProjects, parseFilters("?project=gone"), ctx))).toEqual([]);
+    expect(parseGroup("?group=project&q=x")).toBe("project");
+    expect(parseGroup("?group=nonsense")).toBe("status");
+    expect(serializeGroup("project", "?q=x")).toBe("?q=x&group=project");
+    expect(serializeGroup("status", "?q=x&group=project")).toBe("?q=x");
   });
 
   it("filters by title words (and key), any case", () => {

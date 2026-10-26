@@ -35,7 +35,7 @@ import { ConfirmDialog } from "../components/confirm-dialog";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
-import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, StatusPicker } from "../issues/pickers";
+import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "../issues/pickers";
 import { useIssueQuickEdit } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { CommentComposer, Timeline } from "../issues/timeline";
@@ -46,7 +46,7 @@ import { AppShell, type WorkspaceData } from "../shell/app-shell";
 import { lastListLocation } from "../shell/locations";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
 import { usePaletteActions } from "../palette/palette-actions";
-import { projectColor } from "../shell/project-color";
+import { spaceColor } from "../shell/space-color";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
 
@@ -71,18 +71,18 @@ export function IssuePage({ issueKey }: { issueKey: string }) {
 
 function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string }) {
   const { Link } = useNavigation();
-  const projectKey = issueKey.split("-")[0]?.toUpperCase() ?? "";
-  const project = data.projects.find((p) => p.key === projectKey);
+  const spaceKey = issueKey.split("-")[0]?.toUpperCase() ?? "";
+  const space = data.spaces.find((row) => row.key === spaceKey);
   return (
     <>
-      {project && (
+      {space && (
         <>
           <Link
-            href={routes.project(project.key)}
+            href={routes.space(space.key)}
             className="flex min-w-0 items-center gap-2 rounded-sm text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground"
           >
-            <span className="size-2 shrink-0 rounded-full" style={{ background: projectColor(project.key) }} aria-hidden />
-            <span className="truncate">{project.name}</span>
+            <span className="size-2 shrink-0 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+            <span className="truncate">{space.name}</span>
           </Link>
           <ChevronRightIcon className="size-3.5 shrink-0 text-faint-foreground" aria-hidden />
         </>
@@ -98,9 +98,9 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
   const { navigate } = useNavigation();
   // Registered before the issue loads, so Esc works at once.
   useShortcutScope("issue");
-  // Back to the list or board it was opened from (filters included), else the project's list.
+  // Back to the list or board it was opened from (filters included), else the space's list.
   useShortcut("escape", "issue", () =>
-    navigate(lastListLocation() ?? routes.project(issueKey.split("-")[0]?.toUpperCase() ?? "")),
+    navigate(lastListLocation() ?? routes.space(issueKey.split("-")[0]?.toUpperCase() ?? "")),
   );
   if (result === undefined) return null;
   if (result === null) {
@@ -115,18 +115,18 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
 }
 
 function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups }) {
-  const { issue, project, parent, subIssues, comments, activity } = result;
+  const { issue, space, parent, subIssues, comments, activity } = result;
   const actions = useIssueActions();
   const commands = useAppCommands();
-  const canHaveSubIssues = issue.parentId === undefined && project?.archivedAt === undefined;
+  const canHaveSubIssues = issue.parentId === undefined && space?.archivedAt === undefined;
   const newSubIssue = () => {
-    if (project && canHaveSubIssues) commands.newIssue({ project, parent: issue });
+    if (space && canHaveSubIssues) commands.newIssue({ space, parent: issue });
   };
 
   const quickEdit = useIssueQuickEdit(issue, lookups, actions);
   useShortcut("newSubIssue", "issue", () => {
     if (!canHaveSubIssues) {
-      toast(issue.parentId ? "Sub-issues can't have sub-issues" : "This project is archived");
+      toast(issue.parentId ? "Sub-issues can't have sub-issues" : "This space is archived");
       return;
     }
     newSubIssue();
@@ -215,7 +215,7 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
           </section>
         </article>
       </div>
-      <PropertiesPanel issue={issue} project={project} parent={parent} lookups={lookups} actions={actions} subIssueCount={subIssues.length} />
+      <PropertiesPanel issue={issue} space={space} parent={parent} lookups={lookups} actions={actions} subIssueCount={subIssues.length} />
       {quickEdit}
     </div>
   );
@@ -339,14 +339,14 @@ function PropertyRow({ label, children }: { label: string; children: React.React
 
 function PropertiesPanel({
   issue,
-  project,
+  space,
   parent,
   lookups,
   actions,
   subIssueCount,
 }: {
   issue: Doc<"issues">;
-  project: Doc<"projects"> | null;
+  space: Doc<"spaces"> | null;
   parent: IssueData["parent"];
   lookups: Lookups;
   actions: IssueActions;
@@ -403,9 +403,17 @@ function PropertiesPanel({
           />
         </PropertyRow>
         <PropertyRow label="Project">
+          <ProjectPicker
+            projects={lookups.projectsOf(issue.spaceId)}
+            value={issue.projectId}
+            onChange={(projectId) => void actions.update(issue._id, { projectId })}
+            lockedReason={issue.parentId ? "Sub-issues are in their parent's project" : undefined}
+          />
+        </PropertyRow>
+        <PropertyRow label="Space">
           <span className="flex h-7 min-w-0 items-center gap-2 px-2 text-sm text-foreground">
             <FolderIcon className="size-3.5 text-muted-foreground" aria-hidden />
-            <span className="truncate">{project?.name ?? "—"}</span>
+            <span className="truncate">{space?.name ?? "—"}</span>
           </span>
         </PropertyRow>
         <PropertyRow label="Parent">
@@ -425,7 +433,7 @@ function PropertiesPanel({
 }
 
 /**
- * Pick or clear the parent: open top-level issues of the same project. Hidden for issues that have
+ * Pick or clear the parent: open top-level issues of the same space. Hidden for issues that have
  * sub-issues (one level only; the server enforces it too).
  */
 function ParentPicker({
@@ -442,7 +450,7 @@ function ParentPicker({
   const { Link } = useNavigation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const candidates = useQuery(api.issues.listByProject, open ? { projectId: issue.projectId } : "skip");
+  const candidates = useQuery(api.issues.listBySpace, open ? { spaceId: issue.spaceId } : "skip");
 
   if (subIssueCount > 0) {
     return <span className="flex h-7 items-center px-2 text-sm text-muted-foreground">Has sub-issues</span>;
@@ -549,7 +557,7 @@ function IssueMenu({ issue, subIssueCount }: { issue: Doc<"issues">; subIssueCou
   const remove = useMutation(api.issues.remove);
   const { navigate } = useNavigation();
   const [deleting, setDeleting] = useState(false);
-  const projectKey = issue.key.split("-")[0]!;
+  const spaceKey = issue.key.split("-")[0]!;
   const copy = copyText;
   return (
     <>
@@ -588,7 +596,7 @@ function IssueMenu({ issue, subIssueCount }: { issue: Doc<"issues">; subIssueCou
           try {
             await remove({ issueId: issue._id });
             toast(`Deleted ${issue.key}`);
-            navigate(routes.project(projectKey));
+            navigate(routes.space(spaceKey));
           } catch (err) {
             toast.error(describeError(err, "Couldn't delete the issue."));
           }

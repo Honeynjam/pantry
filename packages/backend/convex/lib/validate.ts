@@ -1,7 +1,7 @@
 import { fail } from "./errors";
 
-/** Project keys: 2–10 characters, a letter then letters or digits (`PAN`, `WEB2`). */
-export const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9]{1,9}$/;
+/** Space keys: 2–10 characters, a letter then letters or digits (`PAN`, `WEB2`). */
+export const SPACE_KEY_PATTERN = /^[A-Z][A-Z0-9]{1,9}$/;
 
 /**
  * Colours are a curated palette name (`violet`, resolved to a design token by the app) or a hex value

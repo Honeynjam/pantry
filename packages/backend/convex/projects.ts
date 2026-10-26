@@ -2,82 +2,103 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, type MutationCtx } from "./_generated/server";
 import { requireMember } from "./lib/auth";
-import { SAMPLE_CONTEXT_DOC } from "./lib/defaults";
-import { fail, notFound } from "./lib/errors";
-import { cleanName, PROJECT_KEY_PATTERN } from "./lib/validate";
-
-/** A project in the caller's workspace, archived or not; "not found" for anything else. */
-export async function getProjectInWorkspace(
-  ctx: MutationCtx,
-  workspaceId: Id<"workspaces">,
-  projectId: Id<"projects">,
-): Promise<Doc<"projects">> {
-  const project = await ctx.db.get("projects", projectId);
-  if (!project || project.workspaceId !== workspaceId) return notFound("Project");
-  return project;
-}
+import { fail } from "./lib/errors";
+import { setIssueProject } from "./lib/issues";
+import { activeProjects, getProject, getSpace, nameKey } from "./lib/spaces";
+import { checkColor, cleanName } from "./lib/validate";
 
 /**
- * New project with its context doc. The key is unique per workspace, archived projects included
- * (their issues keep their keys), and fixed after creation.
+ * Projects: optional workstreams inside a space ("LinkedIn", "Marketing", "Launch"). A name, an
+ * optional colour, an order and an archive flag; an issue is in at most one. Names are unique per
+ * space among active projects, ignoring case (MCP looks them up by name).
  */
+
+async function checkNameFree(ctx: MutationCtx, spaceId: Id<"spaces">, name: string, except?: Id<"projects">) {
+  const taken = (await activeProjects(ctx, spaceId)).find(
+    (project) => project._id !== except && nameKey(project.name) === nameKey(name),
+  );
+  if (taken) fail("NAME_TAKEN", `There's already a project called ${taken.name} in this space.`);
+}
+
 export const create = mutation({
-  args: { name: v.string(), key: v.string() },
+  args: { spaceId: v.id("spaces"), name: v.string(), color: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
-    const name = cleanName(args.name, "Project name");
-    const key = args.key.trim().toUpperCase();
-    if (!PROJECT_KEY_PATTERN.test(key)) {
-      fail("INVALID_KEY", "Keys are 2–10 letters or digits and start with a letter, like PAN or WEB2.");
-    }
-    const taken = await ctx.db
-      .query("projects")
-      .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
-      .first();
-    if (taken) {
-      fail(
-        "KEY_TAKEN",
-        taken.archivedAt === undefined
-          ? `${key} is already the key of ${taken.name}.`
-          : `${key} belongs to an archived project (${taken.name}). Pick another key.`,
-      );
-    }
-
-    const projectId = await ctx.db.insert("projects", {
+    const space = await getSpace(ctx, me.workspaceId, args.spaceId);
+    if (space.archivedAt !== undefined) fail("ARCHIVED", `${space.name} is archived.`);
+    const name = cleanName(args.name, "Project name", 60);
+    await checkNameFree(ctx, space._id, name);
+    const last = (await activeProjects(ctx, space._id)).at(-1);
+    return ctx.db.insert("projects", {
       workspaceId: me.workspaceId,
+      spaceId: space._id,
       name,
-      key,
-      nextIssueNumber: 1,
+      ...(args.color !== undefined ? { color: checkColor(args.color) } : {}),
+      sortOrder: (last?.sortOrder ?? 0) + 1,
     });
-    await ctx.db.insert("docs", {
-      workspaceId: me.workspaceId,
-      projectId,
-      kind: "project_context",
-      title: `${name} context`,
-      body: SAMPLE_CONTEXT_DOC,
-      updatedBy: me._id,
-      updatedAt: Date.now(),
-    });
-    return { projectId, key };
   },
 });
 
-/** Rename. The key can't change (issue keys and agents' references depend on it). */
+/** Rename and recolour (`color: null` removes the colour). */
 export const update = mutation({
-  args: { projectId: v.id("projects"), name: v.string() },
+  args: {
+    projectId: v.id("projects"),
+    name: v.optional(v.string()),
+    color: v.optional(v.union(v.string(), v.null())),
+  },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
-    await getProjectInWorkspace(ctx, me.workspaceId, args.projectId);
-    await ctx.db.patch("projects", args.projectId, { name: cleanName(args.name, "Project name") });
+    const project = await getProject(ctx, me.workspaceId, args.projectId);
+    const patch: Partial<Doc<"projects">> = {};
+    if (args.name !== undefined) {
+      const name = cleanName(args.name, "Project name", 60);
+      if (project.archivedAt === undefined) await checkNameFree(ctx, project.spaceId, name, project._id);
+      patch.name = name;
+    }
+    if (args.color !== undefined) patch.color = args.color === null ? undefined : checkColor(args.color);
+    await ctx.db.patch("projects", project._id, patch);
   },
 });
 
-/** Hides the project from the sidebar and lists; its issues and key stay. */
+/**
+ * Archive: the project leaves the sidebar and pickers, and every issue in it stays in the space with
+ * no project (each an issue write: `updatedAt` and one `project_changed` row).
+ */
 export const archive = mutation({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
-    const project = await getProjectInWorkspace(ctx, me.workspaceId, args.projectId);
-    if (project.archivedAt === undefined) await ctx.db.patch("projects", project._id, { archivedAt: Date.now() });
+    const project = await getProject(ctx, me.workspaceId, args.projectId);
+    if (project.archivedAt !== undefined) return;
+    const issues = await ctx.db
+      .query("issues")
+      .withIndex("by_project", (q) => q.eq("projectId", project._id))
+      .collect();
+    const now = Date.now();
+    for (const issue of issues) {
+      // Sub-issues are cleared along with their parent; re-read so none is written twice.
+      const current = await ctx.db.get("issues", issue._id);
+      if (current?.projectId === project._id) await setIssueProject(ctx, { member: me, via: "app" }, current, null, now);
+    }
+    await ctx.db.patch("projects", project._id, { archivedAt: now });
+  },
+});
+
+/** New order for a space's active projects: every one of them, each once. */
+export const reorder = mutation({
+  args: { spaceId: v.id("spaces"), projectIds: v.array(v.id("projects")) },
+  handler: async (ctx, args) => {
+    const me = await requireMember(ctx);
+    const space = await getSpace(ctx, me.workspaceId, args.spaceId);
+    const current = await activeProjects(ctx, space._id);
+    const ids = new Set(current.map((project) => project._id));
+    const same =
+      args.projectIds.length === current.length &&
+      new Set(args.projectIds).size === args.projectIds.length &&
+      args.projectIds.every((id) => ids.has(id));
+    if (!same) fail("INVALID_ORDER", "The new order has to list each of the space's projects once.");
+    for (const [index, projectId] of args.projectIds.entries()) {
+      await ctx.db.patch("projects", projectId, { sortOrder: index + 1 });
+    }
   },
 });

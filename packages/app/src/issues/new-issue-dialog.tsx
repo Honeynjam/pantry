@@ -16,37 +16,38 @@ import { routes, useNavigation } from "../navigation";
 import { useShortcutScope } from "../use-shortcuts";
 import { describeError, FormError } from "../screens/form-error";
 import type { WorkspaceData } from "../shell/app-shell";
-import { projectColor } from "../shell/project-color";
-import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, StatusPicker } from "./pickers";
+import { spaceColor } from "../shell/space-color";
+import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "./pickers";
 
 export type NewIssueDefaults = {
   statusId?: Id<"statuses">;
-  parent?: Pick<Doc<"issues">, "_id" | "key" | "title">;
+  parent?: Pick<Doc<"issues">, "_id" | "key" | "title" | "projectId">;
   assigneeId?: Id<"members">;
+  projectId?: Id<"projects">;
 };
 
 /**
  * Title, markdown description and properties; Cmd/Ctrl+Enter creates. Sub-issues pass `parent` and
- * land in the parent's project (the server enforces it too).
+ * land in the parent's space and project (the server enforces it too).
  */
 export function NewIssueDialog({
   open,
   onOpenChange,
   data,
-  project,
+  space,
   defaults = {},
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: WorkspaceData;
-  project: Doc<"projects">;
+  space: Doc<"spaces">;
   defaults?: NewIssueDefaults;
 }) {
   useShortcutScope("overlay", open);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-2xl" showCloseButton={false}>
-        {open && <NewIssueForm data={data} project={project} defaults={defaults} onDone={() => onOpenChange(false)} />}
+        {open && <NewIssueForm data={data} space={space} defaults={defaults} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   );
@@ -58,12 +59,12 @@ function defaultStatus(data: WorkspaceData) {
 
 function NewIssueForm({
   data,
-  project,
+  space,
   defaults,
   onDone,
 }: {
   data: WorkspaceData;
-  project: Doc<"projects">;
+  space: Doc<"spaces">;
   defaults: NewIssueDefaults;
   onDone: () => void;
 }) {
@@ -76,6 +77,9 @@ function NewIssueForm({
   const [assigneeId, setAssigneeId] = useState<Id<"members"> | undefined>(defaults.assigneeId);
   const [labelIds, setLabelIds] = useState<Id<"labels">[]>([]);
   const [dueDate, setDueDate] = useState<string | undefined>();
+  // A sub-issue always takes its parent's project.
+  const [projectId, setProjectId] = useState<Id<"projects"> | undefined>(defaults.parent ? defaults.parent.projectId : defaults.projectId);
+  const projects = data.projects.filter((row) => row.spaceId === space._id);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
@@ -92,7 +96,8 @@ function NewIssueForm({
     setError(null);
     try {
       const created = await create({
-        projectId: project._id,
+        spaceId: space._id,
+        ...(projectId && !defaults.parent ? { projectId } : {}),
         title,
         description: description.current?.getMarkdown() ?? "",
         statusId,
@@ -126,8 +131,8 @@ function NewIssueForm({
       className="flex flex-col"
     >
       <div className="flex items-center gap-1.5 px-4 pt-3.5 text-xs text-muted-foreground">
-        <span className="size-2 rounded-full" style={{ background: projectColor(project.key) }} aria-hidden />
-        <span className="text-foreground">{project.name}</span>
+        <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+        <span className="text-foreground">{space.name}</span>
         <ChevronRightIcon className="size-3" aria-hidden />
         {defaults.parent ? (
           <span className="flex min-w-0 items-center gap-1.5">
@@ -178,6 +183,15 @@ function NewIssueForm({
         />
         <LabelsPicker labels={data.labels} value={labelIds} onChange={setLabelIds} variant="chip" />
         <DueDatePicker value={dueDate} onChange={(day) => setDueDate(day ?? undefined)} variant="chip" />
+        {(projects.length > 0 || projectId) && (
+          <ProjectPicker
+            projects={projects}
+            value={projectId}
+            onChange={(id) => setProjectId(id ?? undefined)}
+            variant="chip"
+            lockedReason={defaults.parent ? "Sub-issues are in their parent's project" : undefined}
+          />
+        )}
       </div>
       {error && (
         <div className="px-4 pb-3">

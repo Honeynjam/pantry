@@ -102,6 +102,17 @@ export function describeActivity(row: Activity): ReactNode {
       ) : (
         "removed the due date"
       );
+    case "project_changed":
+      if (!row.to) return <>removed it from the project <Value>{row.from}</Value></>;
+      return row.from ? (
+        <>
+          moved it from <Value>{row.from}</Value> to the project <Value>{row.to}</Value>
+        </>
+      ) : (
+        <>
+          added it to the project <Value>{row.to}</Value>
+        </>
+      );
     case "commented":
       return "commented";
   }

@@ -11,19 +11,19 @@ import { AppShell, type WorkspaceData } from "../../shell/app-shell";
 import { NotMemberScreen } from "../not-member";
 import { LabelsSettings } from "./labels";
 import { MembersSettings } from "./members";
-import { ProjectsSettings } from "./projects";
+import { SpacesSettings } from "./spaces";
 import { StatusesSettings } from "./statuses";
 
 type SectionDef = { id: SettingsSection; label: string; icon: LucideIcon; render: (data: WorkspaceData) => ReactNode };
 
 const SECTIONS: SectionDef[] = [
   { id: "members", label: "Members", icon: UsersIcon, render: (data) => <MembersSettings data={data} /> },
-  { id: "projects", label: "Projects", icon: FolderIcon, render: (data) => <ProjectsSettings data={data} /> },
+  { id: "spaces", label: "Spaces", icon: FolderIcon, render: (data) => <SpacesSettings data={data} /> },
   { id: "labels", label: "Labels", icon: TagIcon, render: (data) => <LabelsSettings data={data} /> },
   { id: "statuses", label: "Statuses", icon: CircleDashedIcon, render: (data) => <StatusesSettings data={data} /> },
 ];
 
-/** Workspace settings: members and invites, projects, labels, statuses (spec §4). */
+/** Workspace settings: members and invites, spaces, labels, statuses (spec §4). */
 export function SettingsPage({ section }: { section: string }) {
   const current = SECTIONS.find((item) => item.id === section);
   return (

@@ -46,7 +46,7 @@ function issue(n: number, category: (typeof statuses)[number]["category"], sortO
     _id: id<"issues">(`i-${n}`),
     _creationTime: n,
     workspaceId: id<"workspaces">("w"),
-    projectId: id<"projects">("p"),
+    spaceId: id<"spaces">("sp"),
     number: n,
     key: `PAN-${n}`,
     title: `Issue ${n}`,
@@ -65,11 +65,12 @@ function issue(n: number, category: (typeof statuses)[number]["category"], sortO
 function setUp() {
   const store = fakeStore();
   const list = [issue(1, "unstarted", 1, { assigneeId: me._id }), issue(2, "unstarted", 2), issue(3, "started", 1, { assigneeId: me._id })];
-  store.setQuery(api.workspace.current, {}, { me, statuses, members: [me, other], labels: [], projects: [] });
-  store.setQuery(api.issues.listByProject, { projectId: id<"projects">("p") }, list);
+  store.setQuery(api.workspace.current, {}, { me, statuses, members: [me, other], labels: [], spaces: [], projects: [] });
+  store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, list);
   store.setQuery(api.issues.listMine, {}, [list[2], list[0]]);
   store.setQuery(api.issues.get, { key: "PAN-1" }, {
     issue: list[0],
+    space: null,
     project: null,
     parent: null,
     subIssues: [],
@@ -77,7 +78,7 @@ function setUp() {
     activity: [],
   });
   const before = {
-    list: store.getQuery(api.issues.listByProject, { projectId: id<"projects">("p") }),
+    list: store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }),
     mine: store.getQuery(api.issues.listMine, {}),
   };
   return { store, list, before };
@@ -89,7 +90,7 @@ describe("optimistic updates", () => {
   it("moves an issue: new status, category, completedAt, top of the column, re-sorted", () => {
     const { store, before } = setUp();
     optimisticMove(store, { issueId: id("i-1"), statusId: id("s-done") }, 500);
-    const list = store.getQuery(api.issues.listByProject, { projectId: id<"projects">("p") })!;
+    const list = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(keys(list)).toEqual(["PAN-2", "PAN-3", "PAN-1"]);
     expect(list[2]).toMatchObject({ statusId: "s-done", statusCategory: "done", completedAt: 500, updatedAt: 500, sortOrder: 1 });
     // My issues drops it (done isn't open); the issue page shows the new status.
@@ -103,7 +104,7 @@ describe("optimistic updates", () => {
   it("places a drop between neighbours, and reorders without bumping updatedAt", () => {
     const { store } = setUp();
     optimisticMove(store, { issueId: id("i-2"), statusId: id("s-unstarted"), beforeId: id("i-1") }, 500);
-    const list = store.getQuery(api.issues.listByProject, { projectId: id<"projects">("p") })!;
+    const list = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(keys(list)).toEqual(["PAN-2", "PAN-1", "PAN-3"]);
     expect(list[0]).toMatchObject({ sortOrder: 0, updatedAt: 100 });
     expect(placeInColumn(list, { afterId: id("i-2") }, id("i-3"))).toBe(0.5);
@@ -112,7 +113,7 @@ describe("optimistic updates", () => {
   it("updates priority and assignee everywhere, and keeps My issues in step", () => {
     const { store, before } = setUp();
     optimisticUpdate(store, { issueId: id("i-2"), priority: 1, assigneeId: me._id }, 600);
-    const list = store.getQuery(api.issues.listByProject, { projectId: id<"projects">("p") })!;
+    const list = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(list[1]).toMatchObject({ priority: 1, assigneeId: "m-me", updatedAt: 600 });
     expect(keys(store.getQuery(api.issues.listMine, {}))).toEqual(["PAN-2", "PAN-3", "PAN-1"]);
 
@@ -122,6 +123,25 @@ describe("optimistic updates", () => {
     expect(page.issue.dueDate).toBe("2026-11-30");
     expect(keys(store.getQuery(api.issues.listMine, {}))).toEqual(["PAN-2", "PAN-3"]);
     expect(before.list?.[1]?.priority).toBe(0);
+  });
+
+  it("moves an issue and its sub-issues to another project", () => {
+    const store = fakeStore();
+    const parent = issue(1, "unstarted", 1, { projectId: id<"projects">("p-a") });
+    const child = issue(2, "unstarted", 2, { projectId: id<"projects">("p-a"), parentId: parent._id });
+    store.setQuery(api.workspace.current, {}, { me, statuses, members: [me], labels: [], spaces: [], projects: [] });
+    store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, [parent, child]);
+    store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp"), projectId: id<"projects">("p-a") }, [parent, child]);
+    optimisticUpdate(store, { issueId: parent._id, projectId: id("p-b") }, 900);
+    const all = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
+    expect(all.map((row) => row.projectId)).toEqual(["p-b", "p-b"]);
+    // The list narrowed to the old project drops both.
+    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp"), projectId: id<"projects">("p-a") })).toEqual([]);
+    optimisticUpdate(store, { issueId: parent._id, projectId: null }, 901);
+    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!.map((row) => row.projectId)).toEqual([undefined, undefined]);
+    // A sub-issue can't take its own project: left for the server to refuse.
+    optimisticUpdate(store, { issueId: child._id, projectId: id("p-c") }, 902);
+    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![1]!.projectId).toBeUndefined();
   });
 
   it("adds a comment from me at the end of the thread", () => {
@@ -138,6 +158,6 @@ describe("optimistic updates", () => {
     const { store, before } = setUp();
     optimisticMove(store, { issueId: id("i-99"), statusId: id("s-done") });
     optimisticUpdate(store, { issueId: id("i-99"), priority: 2 });
-    expect(store.getQuery(api.issues.listByProject, { projectId: id<"projects">("p") })).toBe(before.list);
+    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })).toBe(before.list);
   });
 });

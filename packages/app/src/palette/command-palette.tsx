@@ -25,6 +25,7 @@ import {
   HouseIcon,
   KanbanIcon,
   KeyboardIcon,
+  LayersIcon,
   ListIcon,
   LogOutIcon,
   MonitorIcon,
@@ -40,13 +41,14 @@ import { statusColor } from "../issues/lookups";
 import { routes, useNavigation, type SettingsSection } from "../navigation";
 import { useAuthClient } from "../providers";
 import { useAppCommands } from "../shell/app-commands";
-import { projectColor } from "../shell/project-color";
+import { projectColor, spaceColor } from "../shell/space-color";
+import { slug } from "../issues/filters";
 import { shortcut } from "../shortcuts";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
 import { screenActions, useScreenActionsVersion, type PaletteAction, type PaletteGroup } from "./palette-actions";
 import { highlightRuns, rankGroups, type Ranked } from "./rank";
 
-const GROUPS: PaletteGroup[] = ["Issues", "Projects", "Navigation", "Actions"];
+const GROUPS: PaletteGroup[] = ["Issues", "Spaces", "Navigation", "Actions"];
 const SEARCH_DEBOUNCE_MS = 120;
 const KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]{1,9}-\d+$/;
 
@@ -102,7 +104,7 @@ function useIssueSearch(query: string): IssueHit[] {
 
 function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (query: string) => void; close: () => void }) {
   const commands = useAppCommands();
-  const { data, currentProject } = commands;
+  const { data, currentSpace } = commands;
   const { navigate } = useNavigation();
   const { setTheme } = useTheme();
   const authClient = useAuthClient();
@@ -123,7 +125,8 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
       icon,
       run: () => navigate(routes.settings(section)),
     });
-    const project = currentProject;
+    const space = currentSpace;
+    const spaceById = new Map(data.spaces.map((row) => [row._id, row]));
     const exactKey = KEY_PATTERN.test(query.trim()) ? query.trim().toUpperCase() : null;
     return [
       ...hits.map<Row>((issue) => ({
@@ -135,14 +138,31 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         boost: issue.key === exactKey ? 5000 : 0,
         run: () => navigate(routes.issue(issue.key)),
       })),
-      ...data.projects.map<Row>((row) => ({
-        id: `project:${row._id}`,
+      ...data.spaces.map<Row>((row) => ({
+        id: `space:${row._id}`,
         label: row.name,
-        group: "Projects",
+        group: "Spaces",
+        description: row.kind === "client" ? "Client" : undefined,
         keywords: [row.key],
-        icon: <span className="size-2 rounded-full" style={{ background: projectColor(row.key) }} />,
-        run: () => navigate(routes.project(row.key)),
+        icon: <span className="size-2 rounded-full" style={{ background: spaceColor(row.key) }} />,
+        run: () => navigate(routes.space(row.key)),
       })),
+      // Projects open their space's list filtered to them.
+      ...data.projects.flatMap<Row>((row) => {
+        const parent = spaceById.get(row.spaceId);
+        if (!parent) return [];
+        return [
+          {
+            id: `project:${row._id}`,
+            label: row.name,
+            group: "Spaces",
+            description: `Project in ${parent.name}`,
+            keywords: [parent.key, parent.name],
+            icon: <span className="size-2 rounded-[2px]" style={{ background: projectColor(row) }} />,
+            run: () => navigate(`${routes.space(parent.key)}?project=${encodeURIComponent(slug(row.name))}`),
+          },
+        ];
+      }),
       { id: "nav:home", label: "Go to Home", group: "Navigation", icon: <HouseIcon />, run: () => navigate(routes.home) },
       {
         id: "nav:my-issues",
@@ -153,46 +173,46 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         shortcut: "goMyIssues",
         run: () => navigate(routes.myIssues),
       },
-      ...(project
+      ...(space
         ? [
             {
-              id: "nav:project-list",
-              label: "Go to the project's list",
+              id: "nav:space-list",
+              label: "Go to the space's list",
               group: "Navigation",
-              description: project.name,
+              description: space.name,
               icon: <ListIcon />,
-              shortcut: "goProject",
-              run: () => navigate(routes.project(project.key)),
+              shortcut: "goSpace",
+              run: () => navigate(routes.space(space.key)),
             } satisfies Row,
             {
-              id: "nav:project-board",
-              label: "Go to the project's board",
+              id: "nav:space-board",
+              label: "Go to the space's board",
               group: "Navigation",
-              description: project.name,
+              description: space.name,
               icon: <KanbanIcon />,
               shortcut: "goBoard",
-              run: () => navigate(routes.board(project.key)),
+              run: () => navigate(routes.board(space.key)),
             } satisfies Row,
             {
-              id: "nav:project-settings",
-              label: "Project settings",
+              id: "nav:space-settings",
+              label: "Space settings",
               group: "Navigation",
-              description: project.name,
-              keywords: ["context doc", "rename", "archive"],
+              description: space.name,
+              keywords: ["context doc", "projects", "rename", "archive", "kind", "client"],
               icon: <FolderIcon />,
-              run: () => navigate(routes.projectSettings(project.key)),
+              run: () => navigate(routes.spaceSettings(space.key)),
             } satisfies Row,
           ]
         : []),
       settings("members", "Members and invites", <UsersIcon />, ["invite", "people"]),
-      settings("projects", "Projects", <FolderIcon />, ["archive"]),
+      settings("spaces", "Spaces", <FolderIcon />, ["archive", "products", "clients"]),
       settings("labels", "Labels", <TagIcon />, ["tags", "colours", "colors"]),
       settings("statuses", "Statuses", <CogIcon />, ["workflow", "columns"]),
       {
         id: "action:new-issue",
         label: "New issue",
         group: "Actions",
-        description: project ? `In ${project.name}` : undefined,
+        description: space ? `In ${space.name}` : undefined,
         keywords: ["create", "add"],
         icon: <PlusIcon />,
         shortcut: "newIssue",
@@ -200,13 +220,27 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
       },
       ...screenActions(),
       {
-        id: "action:new-project",
-        label: "New project",
+        id: "action:new-space",
+        label: "New space",
         group: "Actions",
-        keywords: ["create", "add"],
+        description: "A product or a client",
+        keywords: ["create", "add", "product", "client"],
         icon: <FolderIcon />,
-        run: () => commands.newProject(),
+        run: () => commands.newSpace(),
       },
+      ...(space
+        ? [
+            {
+              id: "action:new-project",
+              label: "New project",
+              group: "Actions",
+              description: `In ${space.name}`,
+              keywords: ["create", "add", "workstream"],
+              icon: <LayersIcon />,
+              run: () => navigate(`${routes.spaceSettings(space.key)}#projects`),
+            } satisfies Row,
+          ]
+        : []),
       {
         id: "action:shortcuts",
         label: "Show keyboard shortcuts",

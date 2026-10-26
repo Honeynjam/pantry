@@ -14,9 +14,13 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@pantry/ui/components/sidebar";
@@ -25,13 +29,16 @@ import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
 import { RollingNumber } from "@pantry/ui/components/rolling-number";
-import { CircleUserRoundIcon, HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { ChevronRightIcon, CircleUserRoundIcon, HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import type { Doc } from "@pantry/backend/dataModel";
+import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
+import { parseFilters, slug } from "../issues/filters";
 import { routes, useNavigation } from "../navigation";
 import { LoadingScreen } from "../screens/loading";
 import { AppCommandsProvider, useAppCommands } from "./app-commands";
-import { projectColor } from "./project-color";
+import { projectColor, spaceColor } from "./space-color";
 import { UserMenu } from "./user-menu";
 
 export type WorkspaceData = FunctionReturnType<typeof api.workspace.current>;
@@ -52,12 +59,14 @@ function NavItem({
   tooltip,
   active,
   badge,
+  action,
   children,
 }: {
   href: string;
   tooltip: string;
   active: boolean;
   badge?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   const { Link } = useNavigation();
@@ -81,13 +90,95 @@ function NavItem({
         {children}
       </SidebarMenuButton>
       {badge !== undefined && <SidebarMenuBadge>{badge}</SidebarMenuBadge>}
+      {action}
     </SidebarMenuItem>
+  );
+}
+
+/**
+ * A space in the sidebar, with a chevron that shows its projects (the current space starts open).
+ * A project opens the space's list (or board, if that's on screen) filtered to it.
+ */
+function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Doc<"projects">[] }) {
+  const { pathname, search, Link } = useNavigation();
+  const reduceMotion = usePrefersReducedMotion();
+  const list = routes.space(space.key);
+  const board = routes.board(space.key);
+  const onSpace = pathname === list || pathname.startsWith(`${list}/`);
+  const onView = pathname === list || pathname === board;
+  const filtered = onView ? parseFilters(search).project : [];
+  const activeProject = filtered.length === 1 ? filtered[0] : undefined;
+  const [toggled, setToggled] = useState<boolean | null>(null);
+  const open = projects.length > 0 && (toggled ?? onSpace);
+
+  return (
+    <>
+      <NavItem
+        href={list}
+        tooltip={space.name}
+        active={onSpace && !(activeProject && projects.some((project) => slug(project.name) === activeProject))}
+        badge={<span className={cn(projects.length > 0 && "mr-5")}>{space.key}</span>}
+        action={
+          projects.length > 0 ? (
+            <SidebarMenuAction
+              aria-label={open ? `Hide ${space.name}'s projects` : `Show ${space.name}'s projects`}
+              aria-expanded={open}
+              onClick={() => setToggled(!open)}
+            >
+              <ChevronRightIcon
+                className={cn(
+                  "size-3.5! transition-transform duration-(--duration-fast) ease-(--ease-out) motion-reduce:transition-none",
+                  open && "rotate-90",
+                )}
+              />
+            </SidebarMenuAction>
+          ) : undefined
+        }
+      >
+        <span className="flex size-4 items-center justify-center" aria-hidden>
+          <span className="size-2 rounded-full" style={{ background: spaceColor(space.key) }} />
+        </span>
+        <span>{space.name}</span>
+      </NavItem>
+      {open && (
+        <SidebarMenuSub aria-label={`${space.name} projects`}>
+          {projects.map((project) => {
+            const value = slug(project.name);
+            const active = activeProject === value;
+            return (
+              <SidebarMenuSubItem key={project._id}>
+                {active && (
+                  <motion.span
+                    layoutId={reduceMotion ? undefined : "sidebar-active"}
+                    transition={spring.morph}
+                    aria-hidden
+                    className="absolute inset-0 -translate-x-px rounded-md bg-selected"
+                  />
+                )}
+                <SidebarMenuSubButton
+                  render={
+                    <Link
+                      href={`${pathname === board ? board : list}?project=${encodeURIComponent(value)}`}
+                      aria-current={active ? "page" : undefined}
+                    />
+                  }
+                  className={cn("relative", active && "font-medium text-foreground hover:bg-transparent")}
+                >
+                  <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(project) }} aria-hidden />
+                  <span>{project.name}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      )}
+    </>
   );
 }
 
 function AppSidebar({ data }: { data: WorkspaceData }) {
   const { pathname } = useNavigation();
-  const { openPalette, newProject } = useAppCommands();
+  const { openPalette, newSpace } = useAppCommands();
   const mine = useQuery(api.issues.listMine);
   return (
     <Sidebar collapsible="icon">
@@ -134,25 +225,18 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupAction title="New project" aria-label="New project" onClick={newProject}>
+          <SidebarGroupLabel>Spaces</SidebarGroupLabel>
+          <SidebarGroupAction title="New space" aria-label="New space" onClick={newSpace}>
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
             <SidebarMenu>
-              {data.projects.map((project) => (
-                <NavItem
-                  key={project._id}
-                  href={routes.project(project.key)}
-                  tooltip={project.name}
-                  active={pathname === routes.project(project.key) || pathname.startsWith(`${routes.project(project.key)}/`)}
-                  badge={project.key}
-                >
-                  <span className="flex size-4 items-center justify-center" aria-hidden>
-                    <span className="size-2 rounded-full" style={{ background: projectColor(project.key) }} />
-                  </span>
-                  <span>{project.name}</span>
-                </NavItem>
+              {data.spaces.map((space) => (
+                <SpaceNavItem
+                  key={space._id}
+                  space={space}
+                  projects={data.projects.filter((project) => project.spaceId === space._id)}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { env, mutation, query } from "./_generated/server";
 import { getAuthUserId, requireAuthUserId } from "./lib/auth";
-import { DEFAULT_STATUSES, SAMPLE_CONTEXT_DOC, SAMPLE_PROJECT, slugify } from "./lib/defaults";
+import { DEFAULT_STATUSES, SAMPLE_CONTEXT_DOC, SAMPLE_SPACE, slugify } from "./lib/defaults";
 
 const MAX_NAME_LENGTH = 80;
 
@@ -33,7 +33,7 @@ export const status = query({
 
 /**
  * First-run bootstrap: the first signed-in user becomes the owner of the instance's only workspace,
- * with the six default statuses and a sample project plus its context doc.
+ * with the six default statuses and a sample space (no projects) plus its context doc.
  *
  * Exception to "every public function calls requireMember": no member exists yet, so this checks for
  * a signed-in Better Auth user instead and refuses once any member exists.
@@ -80,24 +80,24 @@ export const createWorkspace = mutation({
       await ctx.db.insert("statuses", { workspaceId, ...status, order });
     }
 
-    const projectId = await ctx.db.insert("projects", {
+    const spaceId = await ctx.db.insert("spaces", {
       workspaceId,
-      name: SAMPLE_PROJECT.name,
-      key: SAMPLE_PROJECT.key,
+      name: SAMPLE_SPACE.name,
+      key: SAMPLE_SPACE.key,
       nextIssueNumber: 1,
     });
 
     await ctx.db.insert("docs", {
       workspaceId,
-      projectId,
-      kind: "project_context",
-      title: `${SAMPLE_PROJECT.name} context`,
+      spaceId,
+      kind: "space_context",
+      title: `${SAMPLE_SPACE.name} context`,
       body: SAMPLE_CONTEXT_DOC,
       updatedBy: ownerId,
       updatedAt: Date.now(),
     });
 
-    return { workspaceId, memberId: ownerId, projectId };
+    return { workspaceId, memberId: ownerId, spaceId };
   },
 });
 

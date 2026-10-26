@@ -2,11 +2,12 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity, type Actor } from "./activity";
 import { fail, notFound } from "./errors";
+import { getProjectForSpace, getSpace } from "./spaces";
 
 /**
  * Issue rules shared by the app (`issues.*`, via "app") and, from M4, the MCP functions (via "mcp"),
- * so both follow the same rules: numbering, the sub-issue rule, the one status-change helper,
- * ordering and activity rows.
+ * so both follow the same rules: numbering, the sub-issue rule (same space and project as the
+ * parent), the one status-change helper, ordering and activity rows.
  */
 
 export type Priority = Doc<"issues">["priority"];
@@ -94,13 +95,14 @@ export function checkDueDate(day: string): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Sub-issues: one level, no loops, same project as the parent
+// Sub-issues: one level, no loops, same space and project as the parent
 // ---------------------------------------------------------------------------------------------
 
 /**
  * The one sub-issue rule, for `issues.create`, `issues.update` and MCP `create_sub_issue`:
  * the parent is in the workspace, isn't the issue itself, isn't a sub-issue, and an issue that
- * has sub-issues can't become one. Returns the parent, whose project the sub-issue takes.
+ * has sub-issues can't become one; an existing issue must be in the parent's space. Returns the
+ * parent, whose space and project the sub-issue takes.
  */
 export async function checkParent(
   ctx: QueryCtx,
@@ -122,8 +124,8 @@ export async function checkParent(
     if (grandchild) {
       fail("INVALID_PARENT", `${child.key} has sub-issues of its own, so it can't become a sub-issue.`);
     }
-    if (child.projectId !== parent.projectId) {
-      fail("INVALID_PARENT", "A sub-issue has to be in the same project as its parent.");
+    if (child.spaceId !== parent.spaceId) {
+      fail("INVALID_PARENT", "A sub-issue has to be in the same space as its parent.");
     }
   }
   return parent;
@@ -133,10 +135,10 @@ export async function checkParent(
 // Ordering inside a status column
 // ---------------------------------------------------------------------------------------------
 
-async function column(ctx: QueryCtx, projectId: Id<"projects">, statusId: Id<"statuses">) {
+async function column(ctx: QueryCtx, spaceId: Id<"spaces">, statusId: Id<"statuses">) {
   return ctx.db
     .query("issues")
-    .withIndex("by_project_and_status", (q) => q.eq("projectId", projectId).eq("statusId", statusId))
+    .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", statusId))
     .collect();
 }
 
@@ -148,12 +150,12 @@ async function column(ctx: QueryCtx, projectId: Id<"projects">, statusId: Id<"st
  */
 export async function placeInColumn(
   ctx: MutationCtx,
-  projectId: Id<"projects">,
+  spaceId: Id<"spaces">,
   statusId: Id<"statuses">,
   placement: Placement,
   issueId?: Id<"issues">,
 ): Promise<number> {
-  const others = (await column(ctx, projectId, statusId)).filter((row) => row._id !== issueId);
+  const others = (await column(ctx, spaceId, statusId)).filter((row) => row._id !== issueId);
   let index = -1;
   if (placement.afterId) {
     const at = others.findIndex((row) => row._id === placement.afterId);
@@ -197,7 +199,7 @@ export async function changeStatus(
   placement: Placement = {},
 ) {
   if (status.workspaceId !== issue.workspaceId) return notFound("Status");
-  const sortOrder = await placeInColumn(ctx, issue.projectId, status._id, placement, issue._id);
+  const sortOrder = await placeInColumn(ctx, issue.spaceId, status._id, placement, issue._id);
   if (status._id === issue.statusId) {
     if (sortOrder !== issue.sortOrder) await ctx.db.patch("issues", issue._id, { sortOrder });
     return;
@@ -228,7 +230,9 @@ export async function changeStatus(
 // ---------------------------------------------------------------------------------------------
 
 export type CreateIssueInput = {
-  projectId?: Id<"projects">;
+  spaceId?: Id<"spaces">;
+  /** Optional workstream in the space; null or missing means none. */
+  projectId?: Id<"projects"> | null;
   title: string;
   description?: string;
   statusId?: Id<"statuses">;
@@ -240,21 +244,27 @@ export type CreateIssueInput = {
 };
 
 /**
- * New issue: number from `projects.nextIssueNumber` (bumped here, transactionally), top of its
- * status column, one `created` activity row. A sub-issue takes its parent's project; a different
- * `projectId` is rejected.
+ * New issue: number from `spaces.nextIssueNumber` (bumped here, transactionally), top of its status
+ * column, one `created` activity row. The project, if any, must be an active project of the space.
+ * A sub-issue takes its parent's space and project; a different `spaceId` or `projectId` is
+ * rejected.
  */
 export async function createIssue(ctx: MutationCtx, actor: Actor, input: CreateIssueInput) {
   const workspaceId = actor.member.workspaceId;
   const parent = input.parentId ? await checkParent(ctx, workspaceId, input.parentId) : null;
-  if (parent && input.projectId && input.projectId !== parent.projectId) {
+  if (parent && input.spaceId && input.spaceId !== parent.spaceId) {
+    fail("INVALID_PARENT", "A sub-issue is always in its parent's space.");
+  }
+  if (parent && input.projectId !== undefined && (input.projectId ?? undefined) !== parent.projectId) {
     fail("INVALID_PARENT", "A sub-issue is always in its parent's project.");
   }
-  const projectId = parent?.projectId ?? input.projectId;
-  if (!projectId) return fail("INVALID_PROJECT", "Pick a project for the issue.");
-  const project = await ctx.db.get("projects", projectId);
-  if (!project || project.workspaceId !== workspaceId) return notFound("Project");
-  if (project.archivedAt !== undefined) fail("ARCHIVED", `${project.name} is archived.`);
+  const spaceId = parent?.spaceId ?? input.spaceId;
+  if (!spaceId) return fail("INVALID_SPACE", "Pick a space for the issue.");
+  const space = await getSpace(ctx, workspaceId, spaceId);
+  if (space.archivedAt !== undefined) fail("ARCHIVED", `${space.name} is archived.`);
+  const projectId = parent ? parent.projectId : (input.projectId ?? undefined);
+  // A sub-issue just shares its parent's project; anything else must be an active project of the space.
+  if (projectId && !parent) await getProjectForSpace(ctx, workspaceId, space, projectId);
 
   const status = input.statusId
     ? await getStatus(ctx, workspaceId, input.statusId)
@@ -262,14 +272,15 @@ export async function createIssue(ctx: MutationCtx, actor: Actor, input: CreateI
   if (input.assigneeId) await getMember(ctx, workspaceId, input.assigneeId);
   const labels = await getLabels(ctx, workspaceId, input.labelIds ?? []);
 
-  const number = project.nextIssueNumber;
-  await ctx.db.patch("projects", project._id, { nextIssueNumber: number + 1 });
-  const key = `${project.key}-${number}`;
+  const number = space.nextIssueNumber;
+  await ctx.db.patch("spaces", space._id, { nextIssueNumber: number + 1 });
+  const key = `${space.key}-${number}`;
   const now = Date.now();
-  const sortOrder = await placeInColumn(ctx, project._id, status._id, {});
+  const sortOrder = await placeInColumn(ctx, space._id, status._id, {});
   const issueId = await ctx.db.insert("issues", {
     workspaceId,
-    projectId: project._id,
+    spaceId: space._id,
+    ...(projectId ? { projectId } : {}),
     number,
     key,
     title: cleanTitle(input.title),
@@ -290,6 +301,33 @@ export async function createIssue(ctx: MutationCtx, actor: Actor, input: CreateI
   return { issueId, key };
 }
 
+/**
+ * Put an issue in a project (or none), with `updatedAt` and one `project_changed` row. Its
+ * sub-issues follow, so they always share their parent's project. Used by `updateIssue` and by
+ * `projects.archive` (which clears the project of every issue in it).
+ */
+export async function setIssueProject(
+  ctx: MutationCtx,
+  actor: Actor,
+  issue: Doc<"issues">,
+  project: Doc<"projects"> | null,
+  now = Date.now(),
+) {
+  const nextId = project?._id;
+  if (nextId === issue.projectId) return;
+  const previous = issue.projectId ? await ctx.db.get("projects", issue.projectId) : null;
+  await ctx.db.patch("issues", issue._id, { projectId: nextId, updatedAt: now });
+  await logActivity(ctx, actor, issue, "project_changed", {
+    ...(previous ? { from: previous.name } : {}),
+    ...(project ? { to: project.name } : {}),
+  });
+  const children = await ctx.db
+    .query("issues")
+    .withIndex("by_parent", (q) => q.eq("parentId", issue._id))
+    .collect();
+  for (const child of children) await setIssueProject(ctx, actor, child, project, now);
+}
+
 export type UpdateIssueInput = {
   title?: string;
   description?: string;
@@ -298,11 +336,15 @@ export type UpdateIssueInput = {
   labelIds?: Id<"labels">[];
   dueDate?: string | null;
   parentId?: Id<"issues"> | null;
+  /** A project of the issue's space, or null for none. Sub-issues follow their parent's. */
+  projectId?: Id<"projects"> | null;
 };
 
 /**
  * Field changes (never status: that's `changeStatus`). One activity row per field that actually
- * changed; `updatedAt` only moves when something did. Parent changes go through `checkParent`.
+ * changed; `updatedAt` only moves when something did. Parent changes go through `checkParent`; a
+ * new parent brings its project along. A project change on a parent moves its sub-issues too; a
+ * sub-issue can't take a project of its own.
  */
 export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"issues">, input: UpdateIssueInput) {
   const workspaceId = issue.workspaceId;
@@ -369,10 +411,31 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
     });
   }
 
-  if (rows.length === 0) return;
-  await ctx.db.patch("issues", issue._id, { ...patch, updatedAt: Date.now() });
-  for (const row of rows) {
-    await logActivity(ctx, actor, issue, row.type, { from: row.from, to: row.to });
+  // The project: asked for directly, or brought along by a new parent.
+  const newParent = patch.parentId !== undefined ? await ctx.db.get("issues", patch.parentId) : null;
+  const parentAfter = "parentId" in patch ? newParent : issue.parentId ? await ctx.db.get("issues", issue.parentId) : null;
+  let project: Doc<"projects"> | null | undefined; // undefined: unchanged
+  if (input.projectId !== undefined) {
+    if (parentAfter && (input.projectId ?? undefined) !== parentAfter.projectId) {
+      fail("INVALID_PARENT", `A sub-issue is always in its parent's project. Change ${parentAfter.key}'s project instead.`);
+    }
+    if ((input.projectId ?? undefined) !== issue.projectId) {
+      const space = await getSpace(ctx, workspaceId, issue.spaceId);
+      project = input.projectId ? await getProjectForSpace(ctx, workspaceId, space, input.projectId) : null;
+    }
+  } else if (newParent && newParent.projectId !== issue.projectId) {
+    project = newParent.projectId ? await ctx.db.get("projects", newParent.projectId) : null;
+  }
+
+  if (rows.length > 0) {
+    await ctx.db.patch("issues", issue._id, { ...patch, updatedAt: Date.now() });
+    for (const row of rows) {
+      await logActivity(ctx, actor, issue, row.type, { from: row.from, to: row.to });
+    }
+  }
+  if (project !== undefined) {
+    const current = (await ctx.db.get("issues", issue._id))!;
+    await setIssueProject(ctx, actor, current, project);
   }
 }
 

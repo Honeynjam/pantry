@@ -42,7 +42,7 @@ export const SHORTCUT_IDS = [
   "submit",
   "escape",
   "goMyIssues",
-  "goProject",
+  "goSpace",
   "goBoard",
   "next",
   "previous",
@@ -68,8 +68,8 @@ const editable = ["list", "issue"] as const;
  */
 export const SHORTCUTS: ReadonlyArray<ShortcutDef> = [
   { id: "goMyIssues", binding: "g i", display: "g i", label: "Go to My issues", group: "Navigation", where: everywhere },
-  { id: "goProject", binding: "g p", display: "g p", label: "Go to the project's list", group: "Navigation", where: everywhere },
-  { id: "goBoard", binding: "g b", display: "g b", label: "Go to the project's board", group: "Navigation", where: everywhere },
+  { id: "goSpace", binding: "g s", display: "g s", label: "Go to the space's list", group: "Navigation", where: everywhere },
+  { id: "goBoard", binding: "g b", display: "g b", label: "Go to the space's board", group: "Navigation", where: everywhere },
 
   { id: "palette", binding: "$mod+k", display: "mod+k", label: "Open the command palette", group: "General", where: everywhere, allowInInputs: true },
   { id: "newIssue", binding: "c", display: "c", label: "New issue", group: "General", where: everywhere },

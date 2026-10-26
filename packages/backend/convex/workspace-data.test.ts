@@ -19,15 +19,15 @@ async function otherWorkspace(t: TestConvex) {
   return t.run(async (ctx) => {
     const workspaceId = await ctx.db.insert("workspaces", { name: "Other", slug: "other", createdBy: outsider.subject });
     await ctx.db.insert("members", { workspaceId, userId: outsider.subject, displayName: "Out", role: "owner" });
-    const projectId = await ctx.db.insert("projects", { workspaceId, name: "Other", key: "OTH", nextIssueNumber: 1 });
+    const spaceId = await ctx.db.insert("spaces", { workspaceId, name: "Other", key: "OTH", nextIssueNumber: 1 });
     const labelId = await ctx.db.insert("labels", { workspaceId, name: "Theirs", color: "red" });
-    return { workspaceId, projectId, labelId };
+    return { workspaceId, spaceId, labelId };
   });
 }
 
 async function seedIssue(
   t: TestConvex,
-  fields: { workspaceId: Id<"workspaces">; projectId: Id<"projects">; memberId: Id<"members">; labelIds: Id<"labels">[] },
+  fields: { workspaceId: Id<"workspaces">; spaceId: Id<"spaces">; memberId: Id<"members">; labelIds: Id<"labels">[] },
 ) {
   return t.run(async (ctx) => {
     const status = await ctx.db
@@ -37,7 +37,7 @@ async function seedIssue(
     const number = Math.floor(Math.random() * 1e6);
     return ctx.db.insert("issues", {
       workspaceId: fields.workspaceId,
-      projectId: fields.projectId,
+      spaceId: fields.spaceId,
       number,
       key: `PAN-${number}`,
       title: "Seeded",
@@ -53,53 +53,53 @@ async function seedIssue(
   });
 }
 
-describe("projects", () => {
-  it("creates a project with its context doc", async () => {
+describe("spaces", () => {
+  it("creates a space with its context doc", async () => {
     const { t, as } = await setUp();
-    const { projectId, key } = await as.mutation(api.projects.create, { name: "  Web   app ", key: "web" });
+    const { spaceId, key } = await as.mutation(api.spaces.create, { name: "  Web   app ", key: "web" });
     expect(key).toBe("WEB");
     const current = await as.query(api.workspace.current, {});
-    expect(current.projects.map((p) => [p.name, p.key, p.nextIssueNumber])).toContainEqual(["Web app", "WEB", 1]);
-    const doc = await as.query(api.docs.getContext, { projectId });
+    expect(current.spaces.map((p) => [p.name, p.key, p.nextIssueNumber])).toContainEqual(["Web app", "WEB", 1]);
+    const doc = await as.query(api.docs.getContext, { spaceId });
     expect(doc?.body).toBe(SAMPLE_CONTEXT_DOC);
     expect(await t.run((ctx) => ctx.db.query("docs").collect())).toHaveLength(2);
   });
 
-  it("keeps keys unique per workspace, archived projects included", async () => {
-    const { as, projectId } = await setUp();
-    await expect(as.mutation(api.projects.create, { name: "Dup", key: brand.defaultKey })).rejects.toThrow(
+  it("keeps keys unique per workspace, archived spaces included", async () => {
+    const { as, spaceId } = await setUp();
+    await expect(as.mutation(api.spaces.create, { name: "Dup", key: brand.defaultKey })).rejects.toThrow(
       /already the key/,
     );
-    await as.mutation(api.projects.archive, { projectId });
-    await expect(as.mutation(api.projects.create, { name: "Dup", key: brand.defaultKey.toLowerCase() })).rejects.toThrow(
-      /archived project/,
+    await as.mutation(api.spaces.archive, { spaceId });
+    await expect(as.mutation(api.spaces.create, { name: "Dup", key: brand.defaultKey.toLowerCase() })).rejects.toThrow(
+      /archived space/,
     );
   });
 
   it("allows the same key in another workspace", async () => {
     const { t, as } = await setUp();
     await otherWorkspace(t);
-    await expect(t.withIdentity(outsider).mutation(api.projects.create, { name: "Mine", key: "WEB" })).resolves.toBeTruthy();
-    await expect(as.mutation(api.projects.create, { name: "Web", key: "WEB" })).resolves.toBeTruthy();
+    await expect(t.withIdentity(outsider).mutation(api.spaces.create, { name: "Mine", key: "WEB" })).resolves.toBeTruthy();
+    await expect(as.mutation(api.spaces.create, { name: "Web", key: "WEB" })).resolves.toBeTruthy();
   });
 
   it.each(["P", "1AB", "AB-C", "ABCDEFGHIJK", ""])("rejects the key %j", async (key) => {
     const { as } = await setUp();
-    await expect(as.mutation(api.projects.create, { name: "X", key })).rejects.toThrow(/Keys are 2–10/);
+    await expect(as.mutation(api.spaces.create, { name: "X", key })).rejects.toThrow(/Keys are 2–10/);
   });
 
   it("renames and archives, but never across workspaces", async () => {
-    const { t, as, projectId } = await setUp();
-    await as.mutation(api.projects.update, { projectId, name: "Renamed" });
+    const { t, as, spaceId } = await setUp();
+    await as.mutation(api.spaces.update, { spaceId, name: "Renamed" });
     const other = await otherWorkspace(t);
-    await expect(as.mutation(api.projects.update, { projectId: other.projectId, name: "Mine now" })).rejects.toThrow(
+    await expect(as.mutation(api.spaces.update, { spaceId: other.spaceId, name: "Mine now" })).rejects.toThrow(
       /not found/,
     );
-    await expect(as.mutation(api.projects.archive, { projectId: other.projectId })).rejects.toThrow(/not found/);
-    await as.mutation(api.projects.archive, { projectId });
+    await expect(as.mutation(api.spaces.archive, { spaceId: other.spaceId })).rejects.toThrow(/not found/);
+    await as.mutation(api.spaces.archive, { spaceId });
     const current = await as.query(api.workspace.current, {});
-    expect(current.projects).toEqual([]);
-    const archived = await t.run((ctx) => ctx.db.get("projects", projectId));
+    expect(current.spaces).toEqual([]);
+    const archived = await t.run((ctx) => ctx.db.get("spaces", spaceId));
     expect(archived).toMatchObject({ name: "Renamed", key: brand.defaultKey });
   });
 });
@@ -116,12 +116,12 @@ describe("labels", () => {
   });
 
   it("removal pulls the label from every issue's labelIds, with an activity row each", async () => {
-    const { t, as, workspaceId, projectId, memberId } = await setUp();
+    const { t, as, workspaceId, spaceId, memberId } = await setUp();
     const bug = await as.mutation(api.labels.create, { name: "Bug", color: "red" });
     const ui = await as.mutation(api.labels.create, { name: "UI", color: "blue" });
-    const both = await seedIssue(t, { workspaceId, projectId, memberId, labelIds: [bug, ui] });
-    const onlyBug = await seedIssue(t, { workspaceId, projectId, memberId, labelIds: [bug] });
-    const untouched = await seedIssue(t, { workspaceId, projectId, memberId, labelIds: [ui] });
+    const both = await seedIssue(t, { workspaceId, spaceId, memberId, labelIds: [bug, ui] });
+    const onlyBug = await seedIssue(t, { workspaceId, spaceId, memberId, labelIds: [bug] });
+    const untouched = await seedIssue(t, { workspaceId, spaceId, memberId, labelIds: [ui] });
 
     await as.mutation(api.labels.remove, { labelId: bug });
 
@@ -187,17 +187,17 @@ describe("statuses", () => {
 
 describe("docs", () => {
   it("saves the context doc and records who did it", async () => {
-    const { as, projectId, memberId } = await setUp();
-    await as.mutation(api.docs.saveContext, { projectId, body: "# New\n\nBody\n" });
-    const doc = await as.query(api.docs.getContext, { projectId });
+    const { as, spaceId, memberId } = await setUp();
+    await as.mutation(api.docs.saveContext, { spaceId, body: "# New\n\nBody\n" });
+    const doc = await as.query(api.docs.getContext, { spaceId });
     expect(doc).toMatchObject({ body: "# New\n\nBody\n", updatedBy: { _id: memberId, displayName: "Kris" } });
   });
 
   it("is scoped to the caller's workspace", async () => {
     const { t, as } = await setUp();
     const other = await otherWorkspace(t);
-    await expect(as.query(api.docs.getContext, { projectId: other.projectId })).rejects.toThrow(/not found/);
-    await expect(as.mutation(api.docs.saveContext, { projectId: other.projectId, body: "x" })).rejects.toThrow(
+    await expect(as.query(api.docs.getContext, { spaceId: other.spaceId })).rejects.toThrow(/not found/);
+    await expect(as.mutation(api.docs.saveContext, { spaceId: other.spaceId, body: "x" })).rejects.toThrow(
       /not found/,
     );
   });

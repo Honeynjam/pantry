@@ -6,10 +6,11 @@ import { PRIORITIES, type Priority } from "@pantry/ui/lib/issue-meta";
  * text. They live in the URL (so they survive a reload and can be shared) and apply client-side
  * to the issues already loaded. Within a facet any value matches; across facets all must.
  *
- *   ?status=todo,in-review&assignee=me,none,<memberId>&label=bug&priority=urgent,high&q=login
+ *   ?status=todo,in-review&assignee=me,none,<memberId>&label=bug&priority=urgent,high&project=launch,none&q=login
  *
- * Statuses and labels go by name (unique per workspace, so readable and unambiguous); a rename
- * drops them from old links. People go by id, since display names can repeat.
+ * Statuses, labels and projects go by name (unique per workspace, or per space for projects, so
+ * readable and unambiguous); a rename drops them from old links. People go by id, since display
+ * names can repeat. `group=project` (list and board grouping) lives next to them but isn't a filter.
  */
 export type AssigneeFilter = "me" | "none" | Id<"members">;
 
@@ -20,6 +21,8 @@ export type Filters = {
   /** Label name slugs. */
   label: string[];
   priority: Priority[];
+  /** Project name slugs in the current space, or "none". */
+  project: string[];
   q: string;
 };
 
@@ -28,7 +31,7 @@ export const slug = (name: string) => name.trim().toLowerCase().replace(/\s+/g, 
 
 export type FilterFacet = Exclude<keyof Filters, "q">;
 
-export const EMPTY_FILTERS: Filters = { status: [], assignee: [], label: [], priority: [], q: "" };
+export const EMPTY_FILTERS: Filters = { status: [], assignee: [], label: [], priority: [], project: [], q: "" };
 
 /** Priority names in URLs: readable, and stable if the numbering ever changes. */
 const PRIORITY_PARAM: Record<Priority, string> = { 0: "none", 1: "urgent", 2: "high", 3: "medium", 4: "low" };
@@ -48,6 +51,7 @@ export function parseFilters(search: string): Filters {
         .map((name) => PRIORITY_FROM_PARAM.get(name.toLowerCase()))
         .filter((priority) => priority !== undefined),
     ),
+    project: unique(list(params.get("project")).map(slug)),
     q: params.get("q") ?? "",
   };
 }
@@ -63,6 +67,7 @@ export function serializeFilters(filters: Filters, search = ""): string {
   set("assignee", filters.assignee);
   set("label", filters.label);
   set("priority", filters.priority.map((priority) => PRIORITY_PARAM[priority]));
+  set("project", filters.project);
   if (filters.q.trim()) params.set("q", filters.q);
   else params.delete("q");
   // Commas stay readable in the address bar.
@@ -72,7 +77,7 @@ export function serializeFilters(filters: Filters, search = ""): string {
 
 export function hasFilters(filters: Filters): boolean {
   return (
-    filters.status.length + filters.assignee.length + filters.label.length + filters.priority.length > 0 ||
+    filters.status.length + filters.assignee.length + filters.label.length + filters.priority.length + filters.project.length > 0 ||
     filters.q.trim() !== ""
   );
 }
@@ -87,16 +92,20 @@ export type FilterContext = {
   me: Id<"members">;
   statuses: ReadonlyArray<Pick<Doc<"statuses">, "_id" | "name">>;
   labels: ReadonlyArray<Pick<Doc<"labels">, "_id" | "name">>;
+  /** The current space's projects (names are unique per space). */
+  projects?: ReadonlyArray<Pick<Doc<"projects">, "_id" | "name">>;
 };
 
 /** The issues that pass every active facet and contain every word of the title text. */
 export function applyFilters<T extends Doc<"issues">>(issues: ReadonlyArray<T>, filters: Filters, context: FilterContext): T[] {
   const words = filters.q.toLowerCase().split(/\s+/).filter(Boolean);
   // Names to ids. A name that matches nothing (renamed, deleted) still filters, to nothing.
-  const byName = (rows: FilterContext["statuses"] | FilterContext["labels"], slugs: string[]) =>
+  const byName = (rows: ReadonlyArray<{ _id: string; name: string }>, slugs: string[]) =>
     new Set<string>(rows.filter((row) => slugs.includes(slug(row.name))).map((row) => row._id));
   const status = byName(context.statuses, filters.status);
   const label = byName(context.labels, filters.label);
+  const project = byName(context.projects ?? [], filters.project);
+  const noProject = filters.project.includes("none");
   const priority = new Set(filters.priority);
   const assignee = new Set<string>(filters.assignee.map((value) => (value === "me" ? context.me : value)));
   return issues.filter((issue) => {
@@ -104,10 +113,26 @@ export function applyFilters<T extends Doc<"issues">>(issues: ReadonlyArray<T>, 
     if (filters.priority.length && !priority.has(issue.priority)) return false;
     if (filters.label.length && !issue.labelIds.some((id) => label.has(id))) return false;
     if (filters.assignee.length && !assignee.has(issue.assigneeId ?? "none")) return false;
+    if (filters.project.length && !(issue.projectId ? project.has(issue.projectId) : noProject)) return false;
     if (words.length) {
       const haystack = `${issue.key} ${issue.title}`.toLowerCase();
       if (!words.every((word) => haystack.includes(word))) return false;
     }
     return true;
   });
+}
+
+/** List and board grouping: by status (the default) or by project (spaces only). */
+export type GroupBy = "status" | "project";
+
+export function parseGroup(search: string): GroupBy {
+  return new URLSearchParams(search).get("group") === "project" ? "project" : "status";
+}
+
+export function serializeGroup(group: GroupBy, search: string): string {
+  const params = new URLSearchParams(search);
+  if (group === "project") params.set("group", "project");
+  else params.delete("group");
+  const query = params.toString().replace(/%2C/g, ",");
+  return query ? `?${query}` : "";
 }

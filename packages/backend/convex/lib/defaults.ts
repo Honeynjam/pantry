@@ -22,17 +22,17 @@ export const DEFAULT_STATUSES: ReadonlyArray<{
   { name: "Canceled", category: "canceled", color: "#787a80" },
 ];
 
-export const SAMPLE_PROJECT = {
+export const SAMPLE_SPACE = {
   name: brand.name,
   key: brand.defaultKey,
 };
 
-export const SAMPLE_CONTEXT_DOC = `# Project context
+export const SAMPLE_CONTEXT_DOC = `# Space context
 
-Agents read this before they start work on an issue in this project (MCP \`get_project_context\`).
+Agents read this before they start work on an issue in this space (MCP \`get_space_context\`).
 Keep it short and current.
 
-## What this project is
+## What this space is
 
 One or two sentences on what you're building and for whom.
 

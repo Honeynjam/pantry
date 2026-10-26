@@ -4,25 +4,25 @@ import type { Doc } from "@pantry/backend/dataModel";
 import { useSidebar } from "@pantry/ui/components/sidebar";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { NewProjectDialog } from "../components/new-project-dialog";
+import { NewSpaceDialog } from "../components/new-space-dialog";
 import { NewIssueDialog, type NewIssueDefaults } from "../issues/new-issue-dialog";
 import { CommandPalette } from "../palette/command-palette";
 import { routes, useNavigation } from "../navigation";
 import { useShortcut, useShortcutListener } from "../use-shortcuts";
 import type { WorkspaceData } from "./app-shell";
-import { lastProject, projectKeyFromPath, rememberProject } from "./locations";
+import { lastSpace, spaceKeyFromPath, rememberSpace } from "./locations";
 import { ShortcutHelp } from "./shortcut-help";
 
-export type NewIssueRequest = NewIssueDefaults & { project?: Doc<"projects"> };
+export type NewIssueRequest = NewIssueDefaults & { space?: Doc<"spaces"> };
 
 export type AppCommands = {
   data: WorkspaceData;
-  /** The project on screen, else the last one visited, else the first. */
-  currentProject: Doc<"projects"> | undefined;
+  /** The space on screen, else the last one visited, else the first. */
+  currentSpace: Doc<"spaces"> | undefined;
   openPalette: () => void;
   openHelp: () => void;
   newIssue: (request?: NewIssueRequest) => void;
-  newProject: () => void;
+  newSpace: () => void;
   toggleSidebar: () => void;
 };
 
@@ -45,31 +45,31 @@ export function AppCommandsProvider({ data, children }: { data: WorkspaceData; c
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [creating, setCreating] = useState<NewIssueRequest | null>(null);
-  const [creatingProject, setCreatingProject] = useState(false);
+  const [creatingSpace, setCreatingSpace] = useState(false);
 
-  const keyOnScreen = projectKeyFromPath(pathname);
-  useEffect(() => rememberProject(keyOnScreen), [keyOnScreen]);
-  const currentProject =
-    data.projects.find((project) => project.key === keyOnScreen) ??
-    data.projects.find((project) => project.key === lastProject()) ??
-    data.projects[0];
+  const keyOnScreen = spaceKeyFromPath(pathname);
+  useEffect(() => rememberSpace(keyOnScreen), [keyOnScreen]);
+  const currentSpace =
+    data.spaces.find((space) => space.key === keyOnScreen) ??
+    data.spaces.find((space) => space.key === lastSpace()) ??
+    data.spaces[0];
 
   const newIssue = useCallback(
     (request: NewIssueRequest = {}) => {
-      if (!request.project && !currentProject) {
-        toast("Create a project first", { description: "Issues live in projects. Add one from the sidebar." });
+      if (!request.space && !currentSpace) {
+        toast("Create a space first", { description: "Issues live in spaces. Add one from the sidebar." });
         return;
       }
       setCreating(request);
     },
-    [currentProject],
+    [currentSpace],
   );
 
-  const goToProject = (view: "list" | "board") => {
-    if (!currentProject) return false;
-    const list = routes.project(currentProject.key);
-    const board = routes.board(currentProject.key);
-    // Between a project's list and board, the filters come along.
+  const goToSpace = (view: "list" | "board") => {
+    if (!currentSpace) return false;
+    const list = routes.space(currentSpace.key);
+    const board = routes.board(currentSpace.key);
+    // Between a space's list and board, the filters come along.
     const carry = pathname === list || pathname === board ? search : "";
     navigate((view === "list" ? list : board) + carry);
   };
@@ -80,35 +80,35 @@ export function AppCommandsProvider({ data, children }: { data: WorkspaceData; c
   useShortcut("sidebar", "global", () => toggleSidebar());
   useShortcut("newIssue", "global", () => newIssue());
   useShortcut("goMyIssues", "global", () => navigate(routes.myIssues));
-  useShortcut("goProject", "global", () => goToProject("list"));
-  useShortcut("goBoard", "global", () => goToProject("board"));
+  useShortcut("goSpace", "global", () => goToSpace("list"));
+  useShortcut("goBoard", "global", () => goToSpace("board"));
 
   const value = useMemo<AppCommands>(
     () => ({
       data,
-      currentProject,
+      currentSpace,
       openPalette: () => setPaletteOpen(true),
       openHelp: () => setHelpOpen(true),
       newIssue,
-      newProject: () => setCreatingProject(true),
+      newSpace: () => setCreatingSpace(true),
       toggleSidebar,
     }),
-    [data, currentProject, newIssue, toggleSidebar],
+    [data, currentSpace, newIssue, toggleSidebar],
   );
 
-  const project = creating?.project ?? currentProject;
+  const space = creating?.space ?? currentSpace;
   return (
     <AppCommandsContext value={value}>
       {children}
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <NewProjectDialog open={creatingProject} onOpenChange={setCreatingProject} />
+      <NewSpaceDialog open={creatingSpace} onOpenChange={setCreatingSpace} />
       <ShortcutHelp open={helpOpen} onOpenChange={setHelpOpen} />
-      {project && (
+      {space && (
         <NewIssueDialog
           open={creating !== null}
           onOpenChange={(open) => !open && setCreating(null)}
           data={data}
-          project={project}
+          space={space}
           defaults={creating ?? {}}
         />
       )}

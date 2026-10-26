@@ -15,15 +15,15 @@ describe("workspace.current", () => {
     expect(current.statuses.map((s) => s.order)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(current.members).toHaveLength(1);
     expect(current.labels).toEqual([]);
-    expect(current.projects.map((p) => p.key)).toEqual([brand.defaultKey]);
+    expect(current.spaces.map((p) => p.key)).toEqual([brand.defaultKey]);
   });
 
-  it("hides archived projects", async () => {
+  it("hides archived spaces", async () => {
     const t = setupTest();
-    const { projectId } = await t.withIdentity(owner).mutation(api.setup.createWorkspace, {});
-    await t.run((ctx) => ctx.db.patch("projects", projectId, { archivedAt: Date.now() }));
+    const { spaceId } = await t.withIdentity(owner).mutation(api.setup.createWorkspace, {});
+    await t.run((ctx) => ctx.db.patch("spaces", spaceId, { archivedAt: Date.now() }));
     const current = await t.withIdentity(owner).query(api.workspace.current, {});
-    expect(current.projects).toEqual([]);
+    expect(current.spaces).toEqual([]);
   });
 
   it("rejects signed-out callers and non-members", async () => {

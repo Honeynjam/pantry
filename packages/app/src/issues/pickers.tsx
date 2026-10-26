@@ -21,9 +21,10 @@ import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { PRIORITY_LABEL, resolveLabelColor, type Priority } from "@pantry/ui/lib/issue-meta";
 import { focusRing } from "@pantry/ui/lib/styles";
 import { cn } from "@pantry/ui/lib/utils";
-import { CalendarIcon, TagIcon, UserRoundIcon } from "lucide-react";
+import { CalendarIcon, LayersIcon, TagIcon, UserRoundIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { addDays, formatDay, today } from "../lib/format";
+import { projectColor } from "../shell/space-color";
 import { statusColor } from "./lookups";
 
 /**
@@ -340,5 +341,83 @@ export function DueDatePicker({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/**
+ * The issue's project inside its space, or none. Sub-issues can't pick their own (they follow the
+ * parent), so the picker shows the parent's and explains why it's fixed.
+ */
+export function ProjectPicker({
+  projects,
+  value,
+  onChange,
+  variant = "full",
+  className,
+  lockedReason,
+}: {
+  projects: Doc<"projects">[];
+  value: Id<"projects"> | undefined;
+  onChange: (projectId: Id<"projects"> | null) => void;
+  variant?: Exclude<PickerVariant, "icon">;
+  className?: string;
+  /** Shown instead of the menu (e.g. "Set by the parent issue"). */
+  lockedReason?: string;
+}) {
+  const current = projects.find((project) => project._id === value);
+  const label = (
+    <>
+      {current ? (
+        <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(current) }} aria-hidden />
+      ) : (
+        <LayersIcon className="size-3.5 text-muted-foreground" aria-hidden />
+      )}
+      <span className={cn("truncate", !current && "text-muted-foreground")}>
+        {current?.name ?? (variant === "chip" ? "Project" : "No project")}
+      </span>
+    </>
+  );
+  if (lockedReason) {
+    return (
+      <span className={cn(pickerTrigger(variant, className), "hover:bg-transparent")} title={lockedReason}>
+        {label}
+      </span>
+    );
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={pickerTrigger(variant, className)}
+        aria-label={`Project: ${current?.name ?? "none"}. Change project`}
+      >
+        {label}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-52" align="start">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Project</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={value ?? "none"}
+            onValueChange={(next) => {
+              const projectId = next === "none" ? null : (next as Id<"projects">);
+              if ((projectId ?? undefined) !== value) onChange(projectId);
+            }}
+          >
+            <DropdownMenuRadioItem value="none" closeOnClick>
+              <LayersIcon />
+              No project
+            </DropdownMenuRadioItem>
+            {projects.map((project) => (
+              <DropdownMenuRadioItem key={project._id} value={project._id} closeOnClick>
+                <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(project) }} aria-hidden />
+                <span className="truncate">{project.name}</span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          {projects.length === 0 && (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">No projects in this space yet. Add them in space settings.</div>
+          )}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

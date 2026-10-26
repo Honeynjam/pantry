@@ -2,7 +2,7 @@ import {
   HomePage,
   NavigationProvider,
   PantryProviders,
-  ProjectPage,
+  SpacePage,
   routes,
   SetupPage,
   SignInPage,
@@ -38,7 +38,7 @@ export function App() {
 function Routes() {
   const navigation = useMemoryNavigation(routes.home);
   const { pathname } = navigation;
-  const projectKey = pathname.match(/^\/projects\/([^/]+)$/)?.[1];
+  const spaceKey = pathname.match(/^\/spaces\/([^/]+)$/)?.[1];
   return (
     <NavigationProvider value={navigation}>
       {pathname === routes.signIn ? (
@@ -47,8 +47,8 @@ function Routes() {
         <SignUpPage />
       ) : pathname === routes.setup ? (
         <SetupPage />
-      ) : projectKey ? (
-        <ProjectPage projectKey={decodeURIComponent(projectKey)} />
+      ) : spaceKey ? (
+        <SpacePage spaceKey={decodeURIComponent(spaceKey)} />
       ) : (
         <HomePage />
       )}

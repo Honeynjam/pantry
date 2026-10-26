@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import type { ShortcutId } from "../shortcuts";
 
-export type PaletteGroup = "Issues" | "Projects" | "Navigation" | "Actions";
+export type PaletteGroup = "Issues" | "Spaces" | "Navigation" | "Actions";
 
 /** One palette row. `id` must be unique in the palette; `run` happens after the palette closes. */
 export type PaletteAction = {

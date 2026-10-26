@@ -5,16 +5,16 @@ import { fail, notFound } from "./lib/errors";
 
 const MAX_BODY = 100_000;
 
-/** The project's context doc (agents read it first over MCP). */
+/** The space's context doc (agents read it first over MCP). */
 export const getContext = query({
-  args: { projectId: v.id("projects") },
-  handler: async (ctx, { projectId }) => {
+  args: { spaceId: v.id("spaces") },
+  handler: async (ctx, { spaceId }) => {
     const me = await requireMember(ctx);
-    const project = await ctx.db.get("projects", projectId);
-    if (!project || project.workspaceId !== me.workspaceId) return notFound("Project");
+    const space = await ctx.db.get("spaces", spaceId);
+    if (!space || space.workspaceId !== me.workspaceId) return notFound("Space");
     const doc = await ctx.db
       .query("docs")
-      .withIndex("by_project_and_kind", (q) => q.eq("projectId", projectId).eq("kind", "project_context"))
+      .withIndex("by_space_and_kind", (q) => q.eq("spaceId", spaceId).eq("kind", "space_context"))
       .first();
     if (!doc) return null;
     const editor = await ctx.db.get("members", doc.updatedBy);
@@ -30,15 +30,15 @@ export const getContext = query({
 
 /** Saves the markdown body (the editor saves on blur and Cmd/Ctrl+Enter, never per keystroke). */
 export const saveContext = mutation({
-  args: { projectId: v.id("projects"), body: v.string() },
-  handler: async (ctx, { projectId, body }) => {
+  args: { spaceId: v.id("spaces"), body: v.string() },
+  handler: async (ctx, { spaceId, body }) => {
     const me = await requireMember(ctx);
-    const project = await ctx.db.get("projects", projectId);
-    if (!project || project.workspaceId !== me.workspaceId) return notFound("Project");
+    const space = await ctx.db.get("spaces", spaceId);
+    if (!space || space.workspaceId !== me.workspaceId) return notFound("Space");
     if (body.length > MAX_BODY) fail("TOO_LONG", `The context doc can be at most ${MAX_BODY.toLocaleString("en")} characters.`);
     const doc = await ctx.db
       .query("docs")
-      .withIndex("by_project_and_kind", (q) => q.eq("projectId", projectId).eq("kind", "project_context"))
+      .withIndex("by_space_and_kind", (q) => q.eq("spaceId", spaceId).eq("kind", "space_context"))
       .first();
     const now = Date.now();
     if (doc) {
@@ -47,9 +47,9 @@ export const saveContext = mutation({
     } else {
       await ctx.db.insert("docs", {
         workspaceId: me.workspaceId,
-        projectId,
-        kind: "project_context",
-        title: `${project.name} context`,
+        spaceId,
+        kind: "space_context",
+        title: `${space.name} context`,
         body,
         updatedBy: me._id,
         updatedAt: now,

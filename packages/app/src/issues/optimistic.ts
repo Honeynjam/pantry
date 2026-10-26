@@ -27,7 +27,7 @@ function workspace(store: OptimisticLocalStore) {
 
 /** The freshest cached copy of an issue, from whichever query has it. */
 function findIssue(store: OptimisticLocalStore, issueId: Id<"issues">): Issue | undefined {
-  for (const { value } of store.getAllQueries(api.issues.listByProject)) {
+  for (const { value } of store.getAllQueries(api.issues.listBySpace)) {
     const hit = value?.find((issue) => issue._id === issueId);
     if (hit) return hit;
   }
@@ -136,13 +136,13 @@ export function optimisticMove(store: OptimisticLocalStore, args: MoveArgs, now 
   };
 
   let moved: Issue | undefined;
-  for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listByProject)) {
+  for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listBySpace)) {
     if (!value?.some((issue) => issue._id === args.issueId)) continue;
     const column = value.filter((issue) => issue.statusId === status._id);
     const updated = build(value.find((issue) => issue._id === args.issueId)!, column);
     moved = updated;
     store.setQuery(
-      api.issues.listByProject,
+      api.issues.listBySpace,
       queryArgs,
       sortByStatus(value.map((issue) => (issue._id === args.issueId ? updated : issue)), statusOrder),
     );
@@ -159,12 +159,23 @@ export function optimisticMove(store: OptimisticLocalStore, args: MoveArgs, now 
   syncMine(store, result);
 }
 
-/** `issues.update`: title, priority, assignee, labels and due date show at once. */
+/**
+ * `issues.update`: title, priority, assignee, labels, due date and project show at once. A project
+ * change also moves the issue's sub-issues, as the server does. A sub-issue's own project change is
+ * refused by the server, so it's left alone here.
+ */
 export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, now = Date.now()) {
   const current = findIssue(store, args.issueId);
   if (!current) return;
-  const apply = (issue: Issue): Issue => {
+  const setsProject = args.projectId !== undefined && !current.parentId;
+  const withProject = (issue: Issue): Issue => {
     const next: Issue = { ...issue, updatedAt: now };
+    if (args.projectId === null) delete next.projectId;
+    else if (args.projectId !== undefined) next.projectId = args.projectId;
+    return next;
+  };
+  const apply = (issue: Issue): Issue => {
+    const next: Issue = setsProject ? withProject(issue) : { ...issue, updatedAt: now };
     if (args.title !== undefined) next.title = args.title.trim().replace(/\s+/g, " ");
     if (args.description !== undefined) next.description = args.description;
     if (args.priority !== undefined) next.priority = args.priority;
@@ -180,16 +191,22 @@ export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, 
     // Parent changes reshape sub-issue lists and run server checks: they wait for the server.
     return next;
   };
+  const isChild = (issue: Issue) => setsProject && issue.parentId === args.issueId;
 
-  for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listByProject)) {
-    if (!value?.some((issue) => issue._id === args.issueId)) continue;
-    store.setQuery(
-      api.issues.listByProject,
-      queryArgs,
-      value.map((issue) => (issue._id === args.issueId ? apply(issue) : issue)),
-    );
+  for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listBySpace)) {
+    if (!value?.some((issue) => issue._id === args.issueId || isChild(issue))) continue;
+    const next = value.map((issue) => (issue._id === args.issueId ? apply(issue) : isChild(issue) ? withProject(issue) : issue));
+    // A list narrowed to one project drops what left it.
+    const narrowed = queryArgs.projectId ? next.filter((issue) => issue.projectId === queryArgs.projectId) : next;
+    store.setQuery(api.issues.listBySpace, queryArgs, narrowed);
   }
   replaceEverywhere(store, args.issueId, apply);
+  if (setsProject) {
+    for (const { args: queryArgs, value } of store.getAllQueries(api.issues.get)) {
+      if (!value || value.issue._id !== args.issueId || value.subIssues.length === 0) continue;
+      store.setQuery(api.issues.get, queryArgs, { ...value, subIssues: value.subIssues.map(withProject) });
+    }
+  }
   syncMine(store, apply(current));
 }
 

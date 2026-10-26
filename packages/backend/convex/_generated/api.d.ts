@@ -22,11 +22,13 @@ import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_issues from "../lib/issues.js";
 import type * as lib_signup from "../lib/signup.js";
+import type * as lib_spaces from "../lib/spaces.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as lib_version from "../lib/version.js";
 import type * as projects from "../projects.js";
 import type * as setup from "../setup.js";
+import type * as spaces from "../spaces.js";
 import type * as statuses from "../statuses.js";
 import type * as workspace from "../workspace.js";
 
@@ -51,11 +53,13 @@ declare const fullApi: ApiFromModules<{
   "lib/errors": typeof lib_errors;
   "lib/issues": typeof lib_issues;
   "lib/signup": typeof lib_signup;
+  "lib/spaces": typeof lib_spaces;
   "lib/tokens": typeof lib_tokens;
   "lib/validate": typeof lib_validate;
   "lib/version": typeof lib_version;
   projects: typeof projects;
   setup: typeof setup;
+  spaces: typeof spaces;
   statuses: typeof statuses;
   workspace: typeof workspace;
 }>;

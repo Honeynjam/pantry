@@ -13,7 +13,7 @@ import type { NewIssueDefaults } from "../issues/new-issue-dialog";
 import { useAppCommands } from "../shell/app-commands";
 import { AppShell, type WorkspaceData } from "../shell/app-shell";
 import { NotMemberScreen } from "./not-member";
-import { IssueList, issueCount, NoMatches } from "./project";
+import { IssueList, issueCount, NoMatches } from "./space";
 
 /** My issues (spec §4): open issues assigned to me (Todo, In Progress, In Review) across projects. */
 export function MyIssuesPage() {
