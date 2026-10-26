@@ -34,7 +34,8 @@ import type { Doc } from "@pantry/backend/dataModel";
 import type { Project } from "@pantry/backend/model";
 import { cn } from "@pantry/ui/lib/utils";
 import { motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { preloadMarkdownEditor, whenIdle } from "../components/markdown-editor";
 import { SpaceAvatar } from "../components/space-avatar";
 import { parseFilters, slug } from "../issues/filters";
 import { useStable } from "../lib/stable";
@@ -288,6 +289,8 @@ export function AppShell({
   // Stable: a change to one space or member doesn't hand every screen new statuses, labels, members.
   const data = useStable(useQuery(api.workspace.current));
   const [open, setOpen] = useState(readSidebarOpen);
+  // C opens the new-issue dialog from anywhere: have its editor ready by then.
+  useEffect(() => whenIdle(preloadMarkdownEditor), []);
   if (data === undefined) return <LoadingScreen diagnostics={() => ({ waitingFor: "workspace.current" })} />;
   return (
     <SidebarProvider

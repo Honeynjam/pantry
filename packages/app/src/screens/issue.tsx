@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@pantry/ui/components/dropdown-menu";
 import { IssueKey } from "@pantry/ui/components/issue-key";
-import { MarkdownEditor } from "@pantry/ui/components/markdown-editor";
 import { Popover, PopoverContent, PopoverTrigger } from "@pantry/ui/components/popover";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { cn } from "@pantry/ui/lib/utils";
@@ -29,9 +28,10 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../components/confirm-dialog";
+import { MarkdownEditor, preloadMarkdownEditor } from "../components/markdown-editor";
 import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
@@ -93,6 +93,8 @@ function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string 
 }
 
 function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string }) {
+  // The editor loads alongside the issue (it usually wins: the query waits for auth and the socket).
+  useEffect(preloadMarkdownEditor, []);
   const result = useQuery(api.issues.get, { key: issueKey });
   const lookups = useLookups(data);
   const { navigate } = useNavigation();
@@ -111,7 +113,12 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
       </div>
     );
   }
-  return <IssueDetail key={result.issue._id} result={result} lookups={lookups} />;
+  // Until the editor has loaded (first visit only), the page stays as it is while the issue loads.
+  return (
+    <Suspense fallback={null}>
+      <IssueDetail key={result.issue._id} result={result} lookups={lookups} />
+    </Suspense>
+  );
 }
 
 function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups }) {

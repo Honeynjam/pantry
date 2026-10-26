@@ -6,7 +6,6 @@ import type { Project } from "@pantry/backend/model";
 import { Button } from "@pantry/ui/components/button";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { Keycap } from "@pantry/ui/components/keycap";
-import { MarkdownEditor } from "@pantry/ui/components/markdown-editor";
 import { useMutation, useQuery } from "convex/react";
 import { ColorPicker } from "@pantry/ui/components/color-picker";
 import { Input } from "@pantry/ui/components/input";
@@ -15,8 +14,9 @@ import { LABEL_COLORS } from "@pantry/ui/lib/issue-meta";
 import { PantryAvatarPicker } from "@pantry/ui/components/pantry-avatar-picker";
 import type { PantryAvatarValue } from "@pantry/ui/lib/pantry-avatars";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { MarkdownEditor, preloadMarkdownEditor } from "../components/markdown-editor";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import { InlineInput } from "../components/inline-input";
 import { SpaceAvatar, spaceAvatar } from "../components/space-avatar";
@@ -294,6 +294,7 @@ function ProjectsSettings({ space, projects }: { space: Doc<"spaces">; projects:
 }
 
 function ContextDoc({ space }: { space: Doc<"spaces"> }) {
+  useEffect(preloadMarkdownEditor, []);
   const doc = useQuery(api.docs.getContext, { spaceId: space._id });
   const save = useMutation(api.docs.saveContext);
   const [saving, setSaving] = useState(false);
@@ -319,22 +320,24 @@ function ContextDoc({ space }: { space: Doc<"spaces"> }) {
         {doc === undefined ? (
           <div className="h-48" aria-busy="true" />
         ) : (
-          <MarkdownEditor
-            value={doc?.body ?? ""}
-            aria-label={`${space.name} context doc`}
-            placeholder="What agents should know before working in this space…"
-            contentClassName="min-h-48 px-4 py-3"
-            onSave={async (body) => {
-              setSaving(true);
-              try {
-                await save({ spaceId: space._id, body });
-              } catch (err) {
-                toast.error(describeError(err, "Couldn't save the context doc."));
-              } finally {
-                setSaving(false);
-              }
-            }}
-          />
+          <Suspense fallback={<div className="h-48" aria-busy="true" />}>
+            <MarkdownEditor
+              value={doc?.body ?? ""}
+              aria-label={`${space.name} context doc`}
+              placeholder="What agents should know before working in this space…"
+              contentClassName="min-h-48 px-4 py-3"
+              onSave={async (body) => {
+                setSaving(true);
+                try {
+                  await save({ spaceId: space._id, body });
+                } catch (err) {
+                  toast.error(describeError(err, "Couldn't save the context doc."));
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            />
+          </Suspense>
         )}
       </div>
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

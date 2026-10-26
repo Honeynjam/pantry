@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@pantry/ui/components/dropdown-menu";
 import { Keycap } from "@pantry/ui/components/keycap";
-import { MarkdownEditor, type MarkdownEditorHandle } from "@pantry/ui/components/markdown-editor";
 import { PRIORITY_LABEL, type Priority } from "@pantry/ui/lib/issue-meta";
 import { cn } from "@pantry/ui/lib/utils";
 import { useMutation } from "convex/react";
@@ -23,6 +22,7 @@ import { ConfirmDialog } from "../components/confirm-dialog";
 import { formatDay, fullDate, timeAgo } from "../lib/format";
 import { describeError } from "../screens/form-error";
 import type { Lookups } from "./lookups";
+import { MarkdownEditor, type MarkdownEditorHandle } from "../components/markdown-editor";
 import { isOptimisticId, optimisticComment } from "./optimistic";
 
 type Activity = Doc<"activity">;
