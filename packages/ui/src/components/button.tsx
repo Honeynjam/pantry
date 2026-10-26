@@ -4,7 +4,8 @@ import { cn } from "@pantry/ui/lib/utils";
 
 /**
  * Dense buttons: 28px default, 13px medium text, hairline borders, press scale from the motion
- * tokens. One amber `default` per view; everything else is secondary, ghost or outline.
+ * tokens. One monochrome `default` per view (near-black in light, near-white in dark);
+ * everything else is secondary, ghost or outline.
  */
 const buttonVariants = cva(
   [
@@ -18,8 +19,8 @@ const buttonVariants = cva(
       variant: {
         default: [
           "bg-primary text-primary-foreground",
-          "shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_oklch(0.45_0.12_60/0.35)] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.25)]",
-          "hover:bg-[color-mix(in_oklch,var(--primary),white_12%)] dark:hover:bg-[color-mix(in_oklch,var(--primary),white_10%)]",
+          "shadow-[inset_0_1px_0_oklch(1_0_0/0.12)] dark:shadow-[inset_0_-1px_0_oklch(0_0_0/0.12)]",
+          "hover:bg-primary-hover",
           "disabled:bg-muted disabled:shadow-none",
         ].join(" "),
         secondary: [
@@ -40,7 +41,7 @@ const buttonVariants = cva(
           "hover:bg-[color-mix(in_oklch,var(--destructive),black_8%)]",
           "disabled:bg-muted",
         ].join(" "),
-        link: "h-auto! px-0! text-primary-text underline-offset-4 hover:underline active:scale-100",
+        link: "h-auto! px-0! text-primary-text underline decoration-gray-8 underline-offset-4 hover:decoration-current active:scale-100",
       },
       size: {
         default: "h-control px-2.5 text-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",

@@ -63,7 +63,7 @@ export function ColorSection() {
     <Section
       id="colour"
       title="Colour"
-      description="A 12-step neutral scale carries both themes. Colour appears only in status, priority and label glyphs, plus one amber accent used sparingly. Everything is OKLCH; greys carry a whisper of warmth (tint hue 70, chroma 0.0035)."
+      description="Monochrome. A 12-step neutral scale carries both themes and the primary action; colour appears only where it carries meaning: status, priority (urgent) and user-picked label colours. Everything is OKLCH; greys are pure (chroma 0)."
     >
       <SubSection title="Neutral scale" hint="--gray-1 … --gray-12">
         <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
@@ -104,12 +104,12 @@ export function ColorSection() {
         </div>
       </SubSection>
 
-      <SubSection title="Accent" hint="--primary (amber, Q6 ★)">
+      <SubSection title="Primary" hint="--primary · monochrome (Q6: c)">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { name: "--primary", note: "buttons, selection, focus ring" },
-            { name: "--primary-text", note: "amber text, AA on the page" },
-            { name: "--primary-subtle", note: "tinted fills (badges)" },
+            { name: "--primary", note: "primary button, logo mark (gray-12)" },
+            { name: "--primary-hover", note: "primary button hover" },
+            { name: "--primary-foreground", note: "text on primary" },
           ].map((token) => (
             <div key={token.name} className="flex flex-col gap-1.5">
               <Swatch color={`var(${token.name})`} className="h-10" />
@@ -159,12 +159,12 @@ export function ColorSection() {
         </Specimen>
       </SubSection>
 
-      <SubSection title="Feedback" hint="--success / --warning / --destructive">
+      <SubSection title="Feedback" hint="state colours: errors, destructive actions, success · always with text or an icon">
         <Specimen className="gap-2">
           <Badge variant="success">Synced</Badge>
           <Badge variant="warning">Token expires soon</Badge>
           <Badge variant="destructive">Revoked</Badge>
-          <Badge variant="default">via MCP</Badge>
+          <Badge variant="outline">via MCP</Badge>
           <Badge variant="secondary">12</Badge>
           <Badge variant="outline">Draft</Badge>
         </Specimen>

@@ -128,7 +128,7 @@ const STATUS_KEYS: Record<StatusCategory, string> = {
 function Buttons() {
   return (
     <SubSection title="Button" hint="default 28px · sm 24px · lg 32px">
-      <Specimen label="variants: one amber primary per view">
+      <Specimen label="variants: one monochrome primary per view">
         <Button>Create issue</Button>
         <Button variant="secondary">Cancel</Button>
         <Button variant="outline">Filter</Button>
@@ -213,12 +213,11 @@ function BadgesAndAvatars() {
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <SubSection title="Badge" hint="counts and states, not categories">
         <Specimen>
-          <Badge>via MCP</Badge>
+          <Badge variant="outline">via MCP</Badge>
           <Badge variant="secondary">3</Badge>
           <Badge variant="outline">Owner</Badge>
           <Badge variant="solid">New</Badge>
-          <Badge variant="success">Active</Badge>
-          <Badge variant="destructive">Revoked</Badge>
+          <Badge variant="secondary">Draft</Badge>
         </Specimen>
       </SubSection>
       <SubSection title="Avatar and stack" hint="16 / 20 / 24 / 32">
@@ -622,7 +621,7 @@ function SidebarDemo() {
   const brand = useDesignBrand();
   const [active, setActive] = React.useState("my-issues");
   const projects = [
-    { id: "pan", name: brand.name, color: "amber" },
+    { id: "pan", name: brand.name, color: "violet" },
     { id: "site", name: "Website", color: "blue" },
     { id: "ops", name: "Ops", color: "green" },
   ];

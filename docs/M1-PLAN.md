@@ -31,7 +31,7 @@ Written 26 Oct 2026 before coding. Source of truth: `docs/PANTRY-SPEC.md` §10b.
 ### 4. Design system
 - shadcn CLI 4.22 in monorepo mode with `--base base`: `components.json` in `packages/ui` and `apps/web`, components in `packages/ui/src/components`, imported from `@pantry/ui/components/*`.
 - Compare `base-mira` and `base-nova` on the same component set, pick one, record why.
-- Tokens in `packages/ui/src/styles/globals.css` (OKLCH): 12-step neutral scale for light and dark, shadcn semantic variables mapped onto it, amber primary, success / warning / destructive, six status-category colours, five priority colours, curated label palette, fonts, type scale, density (row heights), radii, motion CSS variables. `@theme inline` maps them to utilities.
+- Tokens in `packages/ui/src/styles/globals.css` (OKLCH): 12-step neutral scale for light and dark, shadcn semantic variables mapped onto it, monochrome primary (amber in the first draft; changed to monochrome by Kris, Q6 c), success / warning / destructive, six status-category colours, five priority colours, curated label palette, fonts, type scale, density (row heights), radii, motion CSS variables. `@theme inline` maps them to utilities.
 - Fonts: Geist (display) / Inter (UI) / Geist Mono via `@fontsource-variable/*` (self-hosted, no `next/font`, so `packages/app` and Tauri get the same files).
 - `ThemeProvider` (system / light / dark, `.dark` on `<html>`, no `next-themes`) + a no-flash inline script.
 - Motion tokens in `packages/ui/src/lib/motion.ts` (springs `smooth` / `snappy` / `morph`, tween durations and eases) with `useReducedMotion` helpers.
@@ -57,7 +57,7 @@ Written 26 Oct 2026 before coding. Source of truth: `docs/PANTRY-SPEC.md` §10b.
 14. **`convex/_generated` is committed** so `pnpm turbo typecheck` works in CI and on a fresh clone without a backend.
 
 ## ★ defaults used (§12)
-- Q2 email + password only. Q3 Hobby. Q4 production-only deploys. Q5 Geist / Inter / Geist Mono. Q6 amber accent. Q7 start fresh. Q8 Claude Code + Cursor with static bearer tokens. Q9 Mac app in v0.1 as M5. Q10 demo on the free plan with hourly reset.
+- Q2 email + password only. Q3 Hobby. Q4 production-only deploys. Q5 Geist / Inter / Geist Mono. Q6 answered by Kris on 26 Oct 2026: (c) none, monochrome. Q7 start fresh. Q8 Claude Code + Cursor with static bearer tokens. Q9 Mac app in v0.1 as M5. Q10 demo on the free plan with hourly reset.
 - Defaults list: six fixed statuses, hard delete, hide done/canceled after 14 days, one-level sub-issues, 7-day invites, shadcn style compared in task 4, Tiptap 3 (M2).
 
 ## Outcome notes (written after tasks 1–4)
@@ -87,12 +87,44 @@ keyboard-only outline, popups moved from keyframe animations to interruptible tr
   `/design`; may help Tauri multi-window later).
 - The shadcn Sidebar's built-in `Cmd+B` and cookie persistence are removed: `[` goes through the shortcut registry
   (M3) and the app persists the collapsed state per device.
-- Neutral greys carry a tiny warm tint (`--tint-hue: 70; --tint-chroma: 0.0035`) so they don't read as flat
-  placeholder grey next to amber. Setting `--tint-chroma: 0` gives pure grey; this is also the hook for the later
-  neutral-tint setting.
+- Greys are pure (`--tint-chroma: 0`). The first draft had a warm tint for amber; after the monochrome change a
+  0.003 cool tint was compared side by side and was indistinguishable next to the status colours, so pure grey won.
+  `--tint-hue` / `--tint-chroma` stay as the hook for the later neutral-tint setting.
 - Dialogs sit in the upper part of the viewport (like a palette) rather than dead centre.
 - The default "In Progress" colour changed to `#e5ae00` (from the first draft) so the half-pie stays legible on white.
 
 ### Not verified
 - Windows/Linux keycap rendering (Ctrl instead of ⌘) was only checked by reading the code.
 - No automated visual or a11y tests yet; contrast was checked by eye in screenshots, not with a tool.
+
+## Revision: monochrome (Kris, 26 Oct 2026)
+Kris reviewed `/design` and answered Q6 (c): "go monochrome, like MonoCode, with the same vibe as Linear".
+- `--primary` = `--gray-12`: near-black + white text in light, near-white + dark text in dark. `--primary-hover`,
+  `--primary-text` (links: text colour + underline) and `--primary-subtle` all map to greys. `--ring` = `--gray-10`.
+  Selection is a 20% foreground tint. The logo mark uses `--primary`, so it's monochrome too.
+- "via MCP" is the neutral outline badge (the muted fill vanished on hovered rows).
+- Label palette's `amber` became `yellow` (hue 95) so no swatch reads as the old accent.
+- Dark greys 9–11 were raised (0.52/0.57/0.72 → 0.57/0.61/0.77) so small muted text reaches APCA Lc 60 and
+  placeholders Lc 30, matching light mode's comfort.
+- Colour left on `/design` (checked by a script that walks every element's computed colours): status, priority
+  and label glyphs, the sidebar demo's project dots (user-picked label colours) and feedback states (error text,
+  destructive button, the labelled Feedback badges). Nothing else.
+
+### Contrast (computed from the tokens: WCAG 2.x ratio / APCA Lc)
+| Pair | Light | Dark |
+|---|---|---|
+| Primary button text on primary | 17.59 / -104.7 | 16.64 / 94.8 |
+| Primary button text on hover | 12.33 / -99.9 | 12.77 / 78.9 |
+| Body text on page | 17.74 / 103.4 | 16.64 / -95.7 |
+| Muted text on page | 6.14 / 79.8 | 9.43 / -61.6 |
+| Muted text on sidebar | 5.93 / 77.4 | 9.10 / -61.3 |
+| Muted text in menus/dialogs | 6.26 / 81.2 | 8.64 / -60.8 |
+| Muted text on hovered row | 5.30 / 69.9 | 8.19 / -60.2 |
+| Faint text (placeholders, hints) | 3.30 / 59.7 | 4.38 / -30.4 |
+| Focus ring vs page (non-text, ≥3:1) | 3.95 | 5.16 |
+| Focus ring vs sidebar (non-text, ≥3:1) | 3.81 | 4.98 |
+
+Primary, body and muted text pass WCAG AA (4.5:1) in both themes. Faint text (`--faint-foreground`, gray-9) is
+3.30:1 light / 4.38:1 dark: fine for placeholders and decorative hints, but it is also used for a few small labels
+(menu group labels, sidebar group labels, the "then" between keycaps), where strict WCAG AA would want 4.5:1.
+Raising light gray-9 to ~L 0.555 would get there but nearly merges faint and muted text; left for Kris to decide.

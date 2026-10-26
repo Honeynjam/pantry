@@ -32,7 +32,7 @@ export const LABEL_COLORS = [
   "gray",
   "red",
   "orange",
-  "amber",
+  "yellow",
   "lime",
   "green",
   "teal",

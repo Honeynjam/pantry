@@ -2,7 +2,8 @@
  * Pantry design tokens: the single source for apps/web, apps/desktop and apps/site.
  *
  * Direction (spec §9c/§9d): dense, near-monochrome, hairline borders, small type.
- * Colour lives only in status / priority / label glyphs plus one amber accent.
+ * Monochrome (MonoCode × Linear): primary, selection and focus come from the neutral scale.
+ * Colour appears only where it carries meaning: status, priority and user-picked label colours.
  * Every colour is OKLCH. Light values sit on :root and .light, dark values on .dark,
  * so any subtree can be themed (the /design page renders both side by side).
  */
@@ -25,10 +26,11 @@
  * Theme-independent tokens
  * ------------------------------------------------------------------------------------------- */
 :root {
-  /* Neutral tint: hue + chroma applied to the whole grey scale. 0 chroma = pure grey.
-     A whisper of warmth keeps greys from reading as placeholder #808080 (later: tint picker). */
-  --tint-hue: 70;
-  --tint-chroma: 0.0035;
+  /* Neutral tint: hue + chroma applied to the whole grey scale. Pure grey (chroma 0) by default:
+     a 0.003 cool tint was indistinguishable next to the status colours, so monochrome stays literal.
+     The variables remain the hook for the later neutral-tint setting. */
+  --tint-hue: 265;
+  --tint-chroma: 0;
 
   /* Type */
   --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -99,10 +101,6 @@
   --gray-11: oklch(0.49 var(--tint-chroma) var(--tint-hue));
   --gray-12: oklch(0.2 calc(var(--tint-chroma) * 1.5) var(--tint-hue));
 
-  /* Amber, the one accent */
-  --amber: oklch(0.77 0.16 66);
-  --amber-strong: oklch(0.56 0.13 62); /* amber text on light surfaces (AA on gray-1) */
-  --amber-subtle: oklch(0.96 0.04 75);
 
   /* shadcn semantic tokens */
   --background: var(--gray-1);
@@ -111,10 +109,12 @@
   --card-foreground: var(--gray-12);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--gray-12);
-  --primary: var(--amber);
-  --primary-foreground: oklch(0.22 0.04 60);
-  --primary-text: var(--amber-strong);
-  --primary-subtle: var(--amber-subtle);
+  /* Primary is monochrome: near-black with white text (Linear's restraint, MonoCode's pill inverted) */
+  --primary: var(--gray-12);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.32 calc(var(--tint-chroma) * 1.5) var(--tint-hue));
+  --primary-text: var(--gray-12); /* links: text colour + underline, never a hue */
+  --primary-subtle: var(--gray-4);
   --secondary: var(--gray-3);
   --secondary-foreground: var(--gray-12);
   --muted: var(--gray-3);
@@ -127,10 +127,10 @@
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.6 0.14 155);
   --warning: oklch(0.7 0.15 75);
-  --border: oklch(0.2 0.01 var(--tint-hue) / 0.1); /* alpha: recedes on any light surface */
-  --border-strong: oklch(0.2 0.01 var(--tint-hue) / 0.16);
-  --input: oklch(0.2 0.01 var(--tint-hue) / 0.14);
-  --ring: oklch(0.72 0.16 66);
+  --border: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.1); /* alpha: recedes on any light surface */
+  --border-strong: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.16);
+  --input: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.14);
+  --ring: var(--gray-10); /* keyboard focus: neutral, >= 3:1 on every surface */
 
   --sidebar: var(--gray-2);
   --sidebar-foreground: var(--gray-12);
@@ -164,7 +164,7 @@
   --label-gray: oklch(0.62 0.01 270);
   --label-red: oklch(0.63 0.2 25);
   --label-orange: oklch(0.7 0.17 50);
-  --label-amber: oklch(0.77 0.16 75);
+  --label-yellow: oklch(0.8 0.15 95);
   --label-lime: oklch(0.76 0.17 128);
   --label-green: oklch(0.66 0.15 155);
   --label-teal: oklch(0.68 0.11 190);
@@ -174,10 +174,10 @@
   --label-pink: oklch(0.67 0.18 350);
 
   /* Elevation: overlays only (menus, popovers, dialogs, toasts). Everything else uses borders. */
-  --shadow-overlay: 0 0 0 1px var(--border), 0 2px 4px -1px oklch(0.2 0.01 70 / 0.06),
-    0 8px 20px -4px oklch(0.2 0.01 70 / 0.1), 0 20px 40px -12px oklch(0.2 0.01 70 / 0.12);
-  --shadow-raised: 0 0 0 1px var(--border), 0 1px 2px oklch(0.2 0.01 70 / 0.06);
-  --overlay-backdrop: oklch(0.2 0.01 70 / 0.18);
+  --shadow-overlay: 0 0 0 1px var(--border), 0 2px 4px -1px oklch(0.2 0.005 265 / 0.06),
+    0 8px 20px -4px oklch(0.2 0.005 265 / 0.1), 0 20px 40px -12px oklch(0.2 0.005 265 / 0.12);
+  --shadow-raised: 0 0 0 1px var(--border), 0 1px 2px oklch(0.2 0.005 265 / 0.06);
+  --overlay-backdrop: oklch(0.2 0.005 265 / 0.18);
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -194,14 +194,11 @@
   --gray-6: oklch(0.278 var(--tint-chroma) var(--tint-hue));
   --gray-7: oklch(0.318 var(--tint-chroma) var(--tint-hue));
   --gray-8: oklch(0.39 var(--tint-chroma) var(--tint-hue));
-  --gray-9: oklch(0.52 var(--tint-chroma) var(--tint-hue));
-  --gray-10: oklch(0.57 var(--tint-chroma) var(--tint-hue));
-  --gray-11: oklch(0.72 var(--tint-chroma) var(--tint-hue));
+  --gray-9: oklch(0.57 var(--tint-chroma) var(--tint-hue));
+  --gray-10: oklch(0.61 var(--tint-chroma) var(--tint-hue));
+  --gray-11: oklch(0.77 var(--tint-chroma) var(--tint-hue));
   --gray-12: oklch(0.945 calc(var(--tint-chroma) * 0.6) var(--tint-hue));
 
-  --amber: oklch(0.79 0.145 70); /* a touch less chroma so it doesn't vibrate on near-black */
-  --amber-strong: oklch(0.82 0.13 72);
-  --amber-subtle: oklch(0.28 0.05 65);
 
   --background: var(--gray-1);
   --foreground: var(--gray-12);
@@ -209,10 +206,12 @@
   --card-foreground: var(--gray-12);
   --popover: var(--gray-3); /* elevated surfaces get lighter in the dark */
   --popover-foreground: var(--gray-12);
-  --primary: var(--amber);
-  --primary-foreground: oklch(0.2 0.04 60);
-  --primary-text: var(--amber-strong);
-  --primary-subtle: var(--amber-subtle);
+  /* Near-white pill with dark text (MonoCode's "Download for Mac" button) */
+  --primary: var(--gray-12);
+  --primary-foreground: var(--gray-1);
+  --primary-hover: oklch(0.86 calc(var(--tint-chroma) * 0.6) var(--tint-hue));
+  --primary-text: var(--gray-12);
+  --primary-subtle: var(--gray-5);
   --secondary: var(--gray-4);
   --secondary-foreground: var(--gray-12);
   --muted: var(--gray-3);
@@ -228,7 +227,7 @@
   --border: var(--gray-6); /* solid: alpha borders glow on dark */
   --border-strong: var(--gray-7);
   --input: var(--gray-7);
-  --ring: oklch(0.79 0.145 70);
+  --ring: var(--gray-10);
 
   --sidebar: var(--gray-1);
   --sidebar-foreground: var(--gray-12);
@@ -286,6 +285,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-text: var(--primary-text);
   --color-primary-subtle: var(--primary-subtle);
   --color-secondary: var(--secondary);
@@ -415,7 +415,7 @@
     font-feature-settings: "calt" 0;
   }
   ::selection {
-    background: color-mix(in oklch, var(--primary) 32%, transparent);
+    background: color-mix(in oklch, var(--foreground) 20%, transparent);
   }
   /* Keyboard focus only: a visible ring on :focus-visible, nothing on pointer focus. */
   :focus {

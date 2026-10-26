@@ -172,8 +172,9 @@ function Intro({ compact = false }: { compact?: boolean }) {
         Dense, quiet, keyboard-first
       </h1>
       <p className="text-base text-muted-foreground">
-        Plane&apos;s three-zone density with MonoCode&apos;s near-monochrome calm. Greys do the structure, amber marks
-        the one thing to do next, and colour is reserved for status, priority and labels.
+        Plane&apos;s three-zone density, MonoCode&apos;s monochrome and Linear&apos;s restraint. Greys do the structure,
+        the primary action is simply the highest-contrast thing on screen, and colour only appears where it means
+        something: status, priority and the label colours you pick.
       </p>
     </div>
   );
