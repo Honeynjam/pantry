@@ -30,6 +30,32 @@ pnpm turbo typecheck lint test # what CI runs
 `pnpm dev` starts Convex with `CONVEX_AGENT_MODE=anonymous`, which runs a local Convex backend on your machine with no
 Convex account. Set `CONVEX_AGENT_MODE=` (empty) to use your own Convex dev deployment instead.
 
+The local Convex deployment needs two env vars for sign-in (local deployment only):
+
+```bash
+cd packages/backend
+npx convex env set SITE_URL http://localhost:3000
+npx convex env set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
+```
+
+### Design system review page
+
+`packages/ui` holds the tokens, theme provider, motion tokens and components. A dev-only page shows all of them in
+light and dark:
+
+```bash
+pnpm --filter @pantry/web dev   # then open http://localhost:3000/design
+```
+
+Use the header controls to switch theme, show light and dark side by side, or preview reduced motion. Production
+builds return 404 for `/design` unless `PANTRY_DESIGN_PAGE=1` is set at build time.
+
+### Tests
+
+```bash
+pnpm turbo test                 # convex-test + vitest for packages/backend
+```
+
 ## Licence
 
 MIT, see [LICENSE](LICENSE).

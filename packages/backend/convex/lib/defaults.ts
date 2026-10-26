@@ -16,7 +16,7 @@ export const DEFAULT_STATUSES: ReadonlyArray<{
 }> = [
   { name: "Backlog", category: "backlog", color: "#84868c" },
   { name: "Todo", category: "unstarted", color: "#9b9ea6" },
-  { name: "In Progress", category: "started", color: "#e8b616" },
+  { name: "In Progress", category: "started", color: "#e5ae00" },
   { name: "In Review", category: "review", color: "#9172ee" },
   { name: "Done", category: "done", color: "#29ac68" },
   { name: "Canceled", category: "canceled", color: "#787a80" },

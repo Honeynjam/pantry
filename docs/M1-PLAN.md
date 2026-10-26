@@ -59,3 +59,40 @@ Written 26 Oct 2026 before coding. Source of truth: `docs/PANTRY-SPEC.md` §10b.
 ## ★ defaults used (§12)
 - Q2 email + password only. Q3 Hobby. Q4 production-only deploys. Q5 Geist / Inter / Geist Mono. Q6 amber accent. Q7 start fresh. Q8 Claude Code + Cursor with static bearer tokens. Q9 Mac app in v0.1 as M5. Q10 demo on the free plan with hourly reset.
 - Defaults list: six fixed statuses, hard delete, hide done/canceled after 14 days, one-level sub-issues, 7-day invites, shadcn style compared in task 4, Tiptap 3 (M2).
+
+## Outcome notes (written after tasks 1–4)
+
+### shadcn style: `base-mira` (★ default kept)
+Both styles were generated with the same 14 components and diffed (`shadcn init --base base --preset mira|nova`).
+
+| | base-mira | base-nova |
+|---|---|---|
+| Button / input height | 28px (`h-7`) | 32–36px (`h-8`/`h-9`) |
+| Control text | 12px (`text-xs`) | 14px (`text-sm`) |
+| Focus ring | 2px at 30% | 3px at 50% |
+| Radius | `rounded-md` | `rounded-lg` / `rounded-4xl` badges |
+| Badge | 10px text, pill | 12px text, very round |
+
+Mira is already the dense, compact style the spec asks for (32px rows, 28px controls); nova would need every size
+taken down a step. Both were then restyled anyway: text moved up to our 13px UI size, rings replaced by a
+keyboard-only outline, popups moved from keyframe animations to interruptible transitions on our motion tokens.
+
+### Other decisions made in task 4
+- Popups (menu, popover, tooltip, dialog, sheet) animate with CSS transitions on Base UI's
+  `data-starting-style` / `data-ending-style`, timed by the motion CSS variables, so they're interruptible and have a
+  `motion-reduce` branch that keeps the fade and drops the scale/slide. Springs (`spring.smooth/snappy/morph`) live in
+  `packages/ui/src/lib/motion.ts` and have sampled CSS `linear()` mirrors (`--ease-spring-*`) for CSS-only motion
+  (tabs indicator, sidebar width, sheet).
+- `PortalContainerProvider` lets a themed subtree portal its popups into itself (used by the light/dark split on
+  `/design`; may help Tauri multi-window later).
+- The shadcn Sidebar's built-in `Cmd+B` and cookie persistence are removed: `[` goes through the shortcut registry
+  (M3) and the app persists the collapsed state per device.
+- Neutral greys carry a tiny warm tint (`--tint-hue: 70; --tint-chroma: 0.0035`) so they don't read as flat
+  placeholder grey next to amber. Setting `--tint-chroma: 0` gives pure grey; this is also the hook for the later
+  neutral-tint setting.
+- Dialogs sit in the upper part of the viewport (like a palette) rather than dead centre.
+- The default "In Progress" colour changed to `#e5ae00` (from the first draft) so the half-pie stays legible on white.
+
+### Not verified
+- Windows/Linux keycap rendering (Ctrl instead of ⌘) was only checked by reading the code.
+- No automated visual or a11y tests yet; contrast was checked by eye in screenshots, not with a tool.

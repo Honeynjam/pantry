@@ -1,4 +1,7 @@
 {
   "extends": "@pantry/tsconfig/react-library.json",
+  "compilerOptions": {
+    "paths": { "@pantry/ui/*": ["./src/*"] }
+  },
   "include": ["src", "*.ts"]
 }
