@@ -32,6 +32,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../components/confirm-dialog";
+import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
@@ -46,7 +47,6 @@ import { AppShell, type WorkspaceData } from "../shell/app-shell";
 import { lastListLocation } from "../shell/locations";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
 import { usePaletteActions } from "../palette/palette-actions";
-import { spaceColor } from "../shell/space-color";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
 
@@ -81,7 +81,7 @@ function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string 
             href={routes.space(space.key)}
             className="flex min-w-0 items-center gap-2 rounded-sm text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground"
           >
-            <span className="size-2 shrink-0 rounded-full" style={{ background: spaceColor(space.key) }} aria-hidden />
+            <SpaceAvatar space={space} size="xs" />
             <span className="truncate">{space.name}</span>
           </Link>
           <ChevronRightIcon className="size-3.5 shrink-0 text-faint-foreground" aria-hidden />

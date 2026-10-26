@@ -37,11 +37,12 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { SpaceAvatar } from "../components/space-avatar";
 import { statusColor } from "../issues/lookups";
 import { routes, useNavigation, type SettingsSection } from "../navigation";
 import { useAuthClient } from "../providers";
 import { useAppCommands } from "../shell/app-commands";
-import { projectColor, spaceColor } from "../shell/space-color";
+import { projectColor } from "../shell/space-color";
 import { slug } from "../issues/filters";
 import { shortcut } from "../shortcuts";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
@@ -144,7 +145,7 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         group: "Spaces",
         description: row.kind === "client" ? "Client" : undefined,
         keywords: [row.key],
-        icon: <span className="size-2 rounded-full" style={{ background: spaceColor(row.key) }} />,
+        icon: <SpaceAvatar space={row} size="xs" />,
         run: () => navigate(routes.space(row.key)),
       })),
       // Projects open their space's list filtered to them.

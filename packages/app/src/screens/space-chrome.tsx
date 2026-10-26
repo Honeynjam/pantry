@@ -3,9 +3,9 @@
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { cn } from "@pantry/ui/lib/utils";
 import { InboxIcon } from "lucide-react";
+import { SpaceAvatar } from "../components/space-avatar";
 import { routes, useNavigation } from "../navigation";
 import type { WorkspaceData } from "../shell/app-shell";
-import { spaceColor } from "../shell/space-color";
 
 export type SpaceView = "list" | "board" | "settings";
 
@@ -31,7 +31,7 @@ export function SpaceTitle({
   const carry = (id: SpaceView) => (id === "settings" ? "" : search);
   return (
     <>
-      <span className="size-2 shrink-0 rounded-full" style={{ background: spaceColor(spaceKey) }} aria-hidden />
+      <SpaceAvatar space={space ?? { key: spaceKey }} size="sm" />
       <span className="truncate font-medium text-foreground">{space?.name ?? spaceKey}</span>
       <IssueKey value={spaceKey} />
       {space && (

@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AvatarStack, PersonAvatar } from "@pantry/ui/components/avatar-stack";
+import { PantryAvatar } from "@pantry/ui/components/pantry-avatar";
+import { PantryAvatarPicker } from "@pantry/ui/components/pantry-avatar-picker";
+import { PANTRY_SHAPE_NAMES, pickPantryAvatar, type PantryAvatarValue } from "@pantry/ui/lib/pantry-avatars";
 import { Badge } from "@pantry/ui/components/badge";
 import { Button } from "@pantry/ui/components/button";
 import {
@@ -231,8 +234,32 @@ function BadgesAndAvatars() {
           <AvatarStack people={PEOPLE.slice(0, 2)} size="sm" />
         </Specimen>
       </SubSection>
+      <SubSection title="Pantry avatar" hint="seeded by space key · 16 / 20 / 24 / 32 / 48">
+        <Specimen>
+          {PANTRY_SHAPE_NAMES.map((shape) => (
+            <PantryAvatar key={shape} seed={shape} shape={shape} size="lg" />
+          ))}
+        </Specimen>
+        <Specimen>
+          <PantryAvatar seed="PAN" size="xs" />
+          <PantryAvatar seed="PAN" size="sm" />
+          <PantryAvatar seed="PAN" />
+          <PantryAvatar seed="PAN" size="lg" />
+          <PantryAvatar seed="PAN" size="xl" />
+          <span className="mx-1 h-6 w-px bg-border" />
+          <AvatarPickerDemo />
+        </Specimen>
+      </SubSection>
     </div>
   );
+}
+
+function AvatarPickerDemo() {
+  const [avatar, setAvatar] = React.useState<PantryAvatarValue>(() => {
+    const { shape, color, expression } = pickPantryAvatar("PAN");
+    return { shape, color, expression };
+  });
+  return <PantryAvatarPicker value={avatar} onChange={setAvatar} seed="PAN" size="xl" />;
 }
 
 function TabsAndToggles() {

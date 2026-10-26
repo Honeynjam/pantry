@@ -653,3 +653,33 @@
     cursor: text;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * Pantry avatars (PantryAvatar): an occasional blink. Each avatar sets its own
+ * animation-duration/-delay so a list of them never blinks in unison.
+ * ------------------------------------------------------------------------------------------- */
+@layer components {
+  .pantry-avatar-eyes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pantry-avatar-blink 5s var(--ease-in-out) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pantry-avatar-eyes {
+      animation: none;
+    }
+  }
+  .reduce-motion .pantry-avatar-eyes {
+    animation: none;
+  }
+}
+@keyframes pantry-avatar-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.12);
+  }
+}
