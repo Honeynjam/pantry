@@ -94,6 +94,62 @@ export const get = query({
   },
 });
 
+const SEARCH_LIMIT = 20;
+const KEY_PATTERN = /^[A-Z][A-Z0-9]{1,9}-\d+$/;
+
+/** What the palette shows for a match: no description, so results stay small. */
+const searchResult = (issue: Doc<"issues">) => ({
+  _id: issue._id,
+  key: issue.key,
+  title: issue.title,
+  projectId: issue.projectId,
+  statusId: issue.statusId,
+  priority: issue.priority,
+  assigneeId: issue.assigneeId,
+});
+
+/**
+ * Up to 20 issues for the command palette: an exact key match first (`PAN-42`, any case), then a
+ * bare number as a key in every project (`42` → PAN-42, WEB-42), then title matches from the
+ * `search_title` index (relevance order; the last word matches as a prefix while you type).
+ */
+export const search = query({
+  args: { text: v.string(), projectId: v.optional(v.id("projects")) },
+  handler: async (ctx, { text, projectId }) => {
+    const me = await requireMember(ctx);
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+    const found = new Map<string, Doc<"issues">>();
+    const byKey = async (key: string) => {
+      const issue = await ctx.db
+        .query("issues")
+        .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
+        .first();
+      if (issue && (!projectId || issue.projectId === projectId)) found.set(issue._id, issue);
+    };
+
+    const upper = trimmed.toUpperCase();
+    if (KEY_PATTERN.test(upper)) await byKey(upper);
+    if (/^\d{1,9}$/.test(trimmed)) {
+      const projects = await ctx.db
+        .query("projects")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", me.workspaceId))
+        .collect();
+      for (const project of projects) await byKey(`${project.key}-${Number(trimmed)}`);
+    }
+
+    const matches = await ctx.db
+      .query("issues")
+      .withSearchIndex("search_title", (q) => {
+        const scoped = q.search("title", trimmed).eq("workspaceId", me.workspaceId);
+        return projectId ? scoped.eq("projectId", projectId) : scoped;
+      })
+      .take(SEARCH_LIMIT);
+    for (const issue of matches) if (!found.has(issue._id)) found.set(issue._id, issue);
+    return [...found.values()].slice(0, SEARCH_LIMIT).map(searchResult);
+  },
+});
+
 export const create = mutation({
   args: {
     projectId: v.id("projects"),

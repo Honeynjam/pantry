@@ -4,7 +4,9 @@ import type { Doc } from "@pantry/backend/dataModel";
 import { useSidebar } from "@pantry/ui/components/sidebar";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { NewProjectDialog } from "../components/new-project-dialog";
 import { NewIssueDialog, type NewIssueDefaults } from "../issues/new-issue-dialog";
+import { CommandPalette } from "../palette/command-palette";
 import { routes, useNavigation } from "../navigation";
 import { useShortcut, useShortcutListener } from "../use-shortcuts";
 import type { WorkspaceData } from "./app-shell";
@@ -20,6 +22,7 @@ export type AppCommands = {
   openPalette: () => void;
   openHelp: () => void;
   newIssue: (request?: NewIssueRequest) => void;
+  newProject: () => void;
   toggleSidebar: () => void;
 };
 
@@ -35,21 +38,14 @@ export function useAppCommands(): AppCommands {
  * The shell's keyboard layer: binds the shortcut registry to the window, owns the dialogs any
  * screen can open (palette, `?` help, new issue) and handles the global shortcuts.
  */
-export function AppCommandsProvider({
-  data,
-  palette,
-  children,
-}: {
-  data: WorkspaceData;
-  palette: (props: { open: boolean; onOpenChange: (open: boolean) => void }) => ReactNode;
-  children: ReactNode;
-}) {
+export function AppCommandsProvider({ data, children }: { data: WorkspaceData; children: ReactNode }) {
   useShortcutListener();
   const { pathname, navigate } = useNavigation();
   const { toggleSidebar } = useSidebar();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [creating, setCreating] = useState<NewIssueRequest | null>(null);
+  const [creatingProject, setCreatingProject] = useState(false);
 
   const keyOnScreen = projectKeyFromPath(pathname);
   useEffect(() => rememberProject(keyOnScreen), [keyOnScreen]);
@@ -90,6 +86,7 @@ export function AppCommandsProvider({
       openPalette: () => setPaletteOpen(true),
       openHelp: () => setHelpOpen(true),
       newIssue,
+      newProject: () => setCreatingProject(true),
       toggleSidebar,
     }),
     [data, currentProject, newIssue, toggleSidebar],
@@ -99,7 +96,8 @@ export function AppCommandsProvider({
   return (
     <AppCommandsContext value={value}>
       {children}
-      {palette({ open: paletteOpen, onOpenChange: setPaletteOpen })}
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <NewProjectDialog open={creatingProject} onOpenChange={setCreatingProject} />
       <ShortcutHelp open={helpOpen} onOpenChange={setHelpOpen} />
       {project && (
         <NewIssueDialog

@@ -44,6 +44,7 @@ import { useAppCommands } from "../shell/app-commands";
 import { AppShell, type WorkspaceData } from "../shell/app-shell";
 import { lastListLocation } from "../shell/locations";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
+import { usePaletteActions } from "../palette/palette-actions";
 import { projectColor } from "../shell/project-color";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
@@ -123,6 +124,39 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
     }
     newSubIssue();
   });
+  usePaletteActions(() => [
+    ...(canHaveSubIssues
+      ? [
+          {
+            id: "issue:new-sub-issue",
+            label: "New sub-issue",
+            group: "Actions" as const,
+            description: issue.key,
+            icon: <PlusIcon />,
+            shortcut: "newSubIssue" as const,
+            run: newSubIssue,
+          },
+        ]
+      : []),
+    {
+      id: "issue:copy-key",
+      label: "Copy issue key",
+      group: "Actions",
+      description: issue.key,
+      icon: <CopyIcon />,
+      run: () => void copyText(issue.key, issue.key),
+    },
+    {
+      id: "issue:copy-link",
+      label: "Copy issue link",
+      group: "Actions",
+      description: issue.key,
+      keywords: ["url", "share"],
+      icon: <LinkIcon />,
+      run: () => void copyText(`${window.location.origin}${routes.issue(issue.key)}`, "link"),
+    },
+  ]);
+
   // Back to the list or board it was opened from (filters included), else the project's list.
   useShortcut("escape", "issue", () => navigate(lastListLocation() ?? routes.project(issue.key.split("-")[0]!)));
 
@@ -496,15 +530,21 @@ function ParentPicker({
   );
 }
 
+async function copyText(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`Copied ${what}`);
+  } catch {
+    toast.error("Couldn't copy: the browser blocked the clipboard.");
+  }
+}
+
 function IssueMenu({ issue, subIssueCount }: { issue: Doc<"issues">; subIssueCount: number }) {
   const remove = useMutation(api.issues.remove);
   const { navigate } = useNavigation();
   const [deleting, setDeleting] = useState(false);
   const projectKey = issue.key.split("-")[0]!;
-  const copy = async (text: string, what: string) => {
-    await navigator.clipboard.writeText(text);
-    toast(`Copied ${what}`);
-  };
+  const copy = copyText;
   return (
     <>
       <DropdownMenu>

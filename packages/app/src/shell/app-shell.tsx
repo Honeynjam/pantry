@@ -28,7 +28,6 @@ import { HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { routes, useNavigation } from "../navigation";
-import { NewProjectDialog } from "../components/new-project-dialog";
 import { LoadingScreen } from "../screens/loading";
 import { AppCommandsProvider, useAppCommands } from "./app-commands";
 import { projectColor } from "./project-color";
@@ -86,8 +85,7 @@ function NavItem({
 
 function AppSidebar({ data }: { data: WorkspaceData }) {
   const { pathname } = useNavigation();
-  const { openPalette } = useAppCommands();
-  const [creating, setCreating] = useState(false);
+  const { openPalette, newProject } = useAppCommands();
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -125,7 +123,7 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupAction title="New project" aria-label="New project" onClick={() => setCreating(true)}>
+          <SidebarGroupAction title="New project" aria-label="New project" onClick={newProject}>
             <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
@@ -159,7 +157,6 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <NewProjectDialog open={creating} onOpenChange={setCreating} />
     </Sidebar>
   );
 }
@@ -187,7 +184,7 @@ export function AppShell({
         }
       }}
     >
-      <AppCommandsProvider data={data} palette={() => null}>
+      <AppCommandsProvider data={data}>
         <AppSidebar data={data} />
         <SidebarInset className="min-w-0">
           <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">

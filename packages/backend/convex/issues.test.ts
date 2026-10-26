@@ -382,6 +382,32 @@ describe("issues.listByProject / listMine / get / remove", () => {
     expect(left.activity).toEqual([other.issueId]);
   });
 
+  it("searches titles, with an exact key match first", async () => {
+    const { as, create, projectId } = await setUp();
+    await create("Fix login redirect");
+    await create("Login page copy");
+    await create("Unrelated");
+    for (let i = 4; i <= 11; i++) await create(`Filler ${i}`);
+    const twelve = await create("Mentions login too");
+
+    const byTitle = (await as.query(api.issues.search, { text: "login" })).map((issue) => issue.title).sort();
+    expect(byTitle).toEqual(["Fix login redirect", "Login page copy", "Mentions login too"]);
+
+    // An exact key comes first, even when its title doesn't match the text.
+    const byKey = await as.query(api.issues.search, { text: "pan-3" });
+    expect(byKey[0]).toMatchObject({ key: "PAN-3", title: "Unrelated" });
+    expect(byKey[0]).not.toHaveProperty("description");
+
+    // A bare number is a key in every project.
+    const byNumber = await as.query(api.issues.search, { text: "12" });
+    expect(byNumber[0]?.key).toBe(twelve.key);
+
+    expect(await as.query(api.issues.search, { text: "   " })).toEqual([]);
+    expect(await as.query(api.issues.search, { text: "PAN-99" })).toEqual([]);
+    const scoped = await as.query(api.issues.search, { text: "login", projectId });
+    expect(scoped).toHaveLength(3);
+  });
+
   it("keeps every function inside the caller's workspace", async () => {
     const { t, create } = await setUp();
     const { issueId } = await create("Private");
@@ -395,6 +421,8 @@ describe("issues.listByProject / listMine / get / remove", () => {
     await expect(them.mutation(api.issues.remove, { issueId })).rejects.toThrow(/not found/);
     await expect(them.mutation(api.comments.add, { issueId, body: "hi" })).rejects.toThrow(/not found/);
     expect(await them.query(api.issues.get, { key: "PAN-1" })).toBeNull();
+    expect(await them.query(api.issues.search, { text: "PAN-1" })).toEqual([]);
+    expect(await them.query(api.issues.search, { text: "Private" })).toEqual([]);
   });
 });
 

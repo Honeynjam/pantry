@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
+import { motion } from "motion/react";
 import { SearchIcon, CheckIcon } from "lucide-react";
 import {
   Dialog,
@@ -11,10 +12,12 @@ import {
   DialogTitle,
 } from "@pantry/ui/components/dialog";
 import { cn } from "@pantry/ui/lib/utils";
+import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 
 /**
- * Command list (cmdk). Restyled here; the palette's own ranking, gliding highlight and spring
- * height arrive with the command palette in M3 (spec §9d).
+ * Command list (cmdk), with Arc's feel (spec §9d): the list frame springs to its height as results
+ * change, and one highlight glides to the active row on the `morph` spring (arrow keys and hover),
+ * snapping instead on long jumps. Ranking is the caller's (`shouldFilter={false}`).
  */
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -28,6 +31,12 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
     />
   );
 }
+
+/** The panel rises in on a spring (CSS `linear()` approximation of `morph`); exits fade fast. */
+const paletteMotion = cn(
+  "duration-(--spring-morph-duration) ease-(--ease-spring-morph)",
+  "data-starting-style:translate-y-3 data-starting-style:scale-[0.97]",
+);
 
 function CommandDialog({
   title = "Command palette",
@@ -50,7 +59,7 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={cn("gap-0 overflow-hidden rounded-xl! p-0 sm:max-w-xl", className)}
+        className={cn("gap-0 overflow-hidden rounded-xl! p-0 sm:max-w-xl", paletteMotion, className)}
         showCloseButton={showCloseButton}
       >
         {children}
@@ -75,12 +84,76 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
   );
 }
 
-function CommandList({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
+/**
+ * The scrolling results frame. Its height follows cmdk's `--cmdk-list-height` on the smooth spring
+ * (instant with reduced motion); the highlight lives inside it.
+ */
+function CommandList({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn("max-h-80 scroll-py-1.5 overflow-x-hidden overflow-y-auto p-1.5 outline-none", className)}
+      className={cn(
+        "h-[calc(var(--cmdk-list-height)+0.75rem)] max-h-80 scroll-py-1.5 overflow-x-hidden overflow-y-auto overscroll-contain p-1.5 outline-none",
+        "transition-[height] duration-(--spring-smooth-duration) ease-(--ease-spring-smooth) motion-reduce:transition-none in-[.reduce-motion]:transition-none",
+        "**:[[cmdk-list-sizer]]:relative",
+        className,
+      )}
       {...props}
+    >
+      <CommandHighlight />
+      {children}
+    </CommandPrimitive.List>
+  );
+}
+
+type HighlightBox = { top: number; height: number; snap: boolean };
+
+/**
+ * One highlight for the whole list: it measures the active row (cmdk marks it `data-selected`) and
+ * glides there; a jump of more than four rows snaps. Reduced motion: it's placed at once.
+ */
+function CommandHighlight() {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const reduce = usePrefersReducedMotion();
+  const [box, setBox] = React.useState<HighlightBox | null>(null);
+
+  React.useLayoutEffect(() => {
+    const sizer = ref.current?.parentElement;
+    if (!sizer) return;
+    let last: number | null = null;
+    const measure = () => {
+      const item = sizer.querySelector<HTMLElement>('[cmdk-item][data-selected="true"]');
+      if (!item) {
+        last = null;
+        setBox(null);
+        return;
+      }
+      const top = item.offsetTop;
+      const height = item.offsetHeight;
+      const snap = last === null || Math.abs(top - last) > height * 4;
+      last = top;
+      setBox((prev) => (prev && prev.top === top && prev.height === height ? prev : { top, height, snap }));
+    };
+    measure();
+    const mutations = new MutationObserver(measure);
+    mutations.observe(sizer, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
+    const resize = new ResizeObserver(measure);
+    resize.observe(sizer);
+    return () => {
+      mutations.disconnect();
+      resize.disconnect();
+    };
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      aria-hidden
+      data-slot="command-highlight"
+      className="pointer-events-none absolute inset-x-0 top-0 rounded-md bg-accent"
+      initial={false}
+      animate={box ? { y: box.top, height: box.height, opacity: 1 } : { opacity: 0 }}
+      transition={reduce || box?.snap ? { duration: 0 } : spring.morph}
     />
   );
 }
@@ -125,7 +198,6 @@ function CommandItem({ className, children, ...props }: React.ComponentProps<typ
       className={cn(
         "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-md px-2 text-sm text-foreground outline-hidden select-none",
         "data-[disabled=true]:pointer-events-none data-[disabled=true]:text-faint-foreground",
-        "data-selected:bg-accent",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground data-selected:[&_svg:not([class*='text-'])]:text-foreground",
         className,
       )}
