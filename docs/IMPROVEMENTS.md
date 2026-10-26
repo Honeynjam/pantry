@@ -218,7 +218,7 @@ building 600 rows of DOM. The bundle work shows on a first visit, which is every
 
 ### Dev loop
 
-`pnpm turbo typecheck lint test --force`: **11.7 s → 5.4 s** wall (17 tasks). Tests: backend 133 → 138, app
+`pnpm turbo typecheck lint test --force`: **11.7 s → 5.4 s** wall (17 tasks). Tests: backend 133 → 136, app
 57 → 64 (new: neighbour placement against the old whole-column rule for every anchor pair, list rows without
 descriptions, the recent-done index path with and without `completedAt`, MCP space + assignee filters,
 `reuseEqual`, description edits only on the issue page's cached copy).
