@@ -12,7 +12,8 @@
     "build": "next build",
     "start": "next start --port 3002",
     "typecheck": "next typegen && tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
