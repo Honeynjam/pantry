@@ -2,7 +2,22 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Don't resolve versions published less than 3 days ago (4320 minutes): most malicious releases are
+# caught and pulled within that window. Matches Renovate's minimumReleaseAge.
+minimumReleaseAge: 4320
+
+# Dependency install scripts are opt-in. Only these run theirs; every other package's are skipped.
+# (pnpm 10 name; pnpm 11 calls this allowBuilds. Vercel installs with pnpm 9/10, see docs/DEPLOY-TEST.md.)
 onlyBuiltDependencies:
+  # postinstall checks the platform binary and fetches it if the optional dependency is missing (Vite, Vitest).
   - esbuild
-  - sharp
+  # postinstall does the same for its native binding (eslint-config-next's import resolver).
   - unrs-resolver
+
+# No overrides. Version pins live in package.json files, which can't hold comments, so their reasons are here:
+# - better-auth ~1.6.33: @convex-dev/better-auth 0.12.x peers on better-auth >=1.6.11 <1.7.0; never 1.7 (renovate.json holds it).
+# - @convex-dev/better-auth 0.12.6 (exact): pre-1.0, so any release can break; bump it on purpose, with better-auth.
+# - next and eslint-config-next 16.4.3 (exact): apps/web and apps/site build on one Next release, and the lint config matches it.
+# - convex-test 0.0.65 (exact): 0.0.x, so any release can change the test harness.
+# - typescript ~6.0.3: TypeScript minors add type errors; take them on purpose.
+# - packageManager pnpm@10.34.9: Vercel picks pnpm 9/10 from lockfile 9.0; pnpm 11+ needs experimental Corepack there.
