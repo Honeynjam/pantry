@@ -1,0 +1,111 @@
+# Publishes a GitHub Release when a version tag (v1.2.3) is pushed to honeynjam/pantry. It checks that the tag
+# matches the version in the repo, runs the same checks as CI, and uses that version's CHANGELOG.md section as the
+# release notes. It never deploys anything: self-hosted copies pick the release up through their Sync upstream
+# workflow, which opens an update PR for the latest release. How to cut one: CONTRIBUTING.md → Releasing.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check version, changelog and CI checks
+    # Expression string comparison ignores case. Copies of Pantry get releases from upstream, not their own tags.
+    if: github.repository == 'honeynjam/pantry'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Uses the version pinned in package.json "packageManager".
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Check the tag matches the version in the repo
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          root="$(node -p 'require("./package.json").version')"
+          server="$(sed -n 's/^export const SERVER_VERSION = "\(.*\)";$/\1/p' packages/backend/convex/lib/version.ts)"
+          if [ "$version" != "$root" ] || [ "$version" != "$server" ]; then
+            echo "::error::Tag $TAG doesn't match package.json ($root) and convex/lib/version.ts ($server). Run pnpm set-version $version, commit, and tag that commit."
+            exit 1
+          fi
+          # Every other manifest (workspace packages, tauri.conf.json, Cargo.toml) must agree too.
+          node scripts/set-version.mjs --check "$version"
+
+      - name: Check the changelog has a dated section for this version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/release-notes.mjs "${TAG#v}" > /dev/null
+
+      - run: pnpm install --frozen-lockfile
+
+      # `pnpm check` is the one command that runs what CI runs. Until the root package.json has it, run CI's steps.
+      - name: Run the CI checks
+        env:
+          TURBO_TELEMETRY_DISABLED: "1"
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          if node -e 'process.exit(require("./package.json").scripts?.check ? 0 : 1)'; then
+            pnpm check
+          else
+            pnpm turbo typecheck lint test
+            pnpm --filter @pantry/web build
+          fi
+          node --test "scripts/*.test.mjs"
+
+  release:
+    name: Create the GitHub Release
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Create the release from the changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::error::A release for $TAG already exists. Delete it first if you mean to recreate it."
+            exit 1
+          fi
+          notes="$RUNNER_TEMP/release-notes.md"
+          node scripts/release-notes.mjs "$version" > "$notes"
+          # A version with a pre-release part (1.0.0-rc.1) is marked as a pre-release, so Sync upstream, which
+          # follows the latest release, skips it.
+          args=(--verify-tag --title "Pantry $version" --notes-file "$notes")
+          if [[ "$version" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$TAG" "${args[@]}"
