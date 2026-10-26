@@ -136,7 +136,8 @@ Then open http://localhost:3000: the setup screen creates your account and works
 ### Checks (what CI runs)
 
 ```bash
-pnpm turbo typecheck lint test
+pnpm check   # format check, typecheck, lint, tests, web build
+pnpm fix     # format and auto-fix lint
 ```
 
 ### Design system review page

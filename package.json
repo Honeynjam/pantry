@@ -10,14 +10,16 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "check": "pnpm check:format && pnpm check:code",
+    "check:code": "turbo run typecheck lint test && pnpm test:scripts && pnpm --filter @pantry/web build",
+    "check:format": "prettier --check .",
+    "fix": "pnpm format && turbo run lint:fix",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "set-version": "node scripts/set-version.mjs",
-    "format": "prettier --write .",
-    "check": "pnpm check:format && turbo run typecheck lint test && pnpm --filter @pantry/web build",
-    "check:format": "prettier --check .",
-    "fix": "pnpm format && turbo run lint:fix"
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "prettier": "^3.9.0",

@@ -59,20 +59,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # `pnpm check` is the one command that runs what CI runs. Until the root package.json has it, run CI's steps.
+      # The same checks CI blocks on (see ci.yml: the format check is a warning there for now).
       - name: Run the CI checks
         env:
           TURBO_TELEMETRY_DISABLED: "1"
           NEXT_TELEMETRY_DISABLED: "1"
-        run: |
-          set -euo pipefail
-          if node -e 'process.exit(require("./package.json").scripts?.check ? 0 : 1)'; then
-            pnpm check
-          else
-            pnpm turbo typecheck lint test
-            pnpm --filter @pantry/web build
-          fi
-          node --test "scripts/*.test.mjs"
+        run: pnpm check:code
 
   release:
     name: Create the GitHub Release

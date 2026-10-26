@@ -41,7 +41,7 @@ Tauri v2 Mac app (apps/desktop, v0.2 / phase 2), one-page landing site (apps/sit
 
 ## Commands
 
-pnpm i · pnpm dev · pnpm turbo typecheck lint test
+pnpm i · pnpm dev · pnpm check (what CI runs) · pnpm fix
 Convex without a login (agent feedback loop): cd packages/backend && CONVEX_AGENT_MODE=anonymous npx convex dev --once
 Versions: never edit them by hand; `pnpm set-version X.Y.Z` updates every file (CONTRIBUTING.md → Releasing).
 
