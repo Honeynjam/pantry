@@ -10,13 +10,26 @@
     "./dataModel": "./convex/_generated/dataModel.d.ts"
   },
   "scripts": {
+    "dev": "CONVEX_AGENT_MODE=${CONVEX_AGENT_MODE-anonymous} convex dev",
     "typecheck": "tsc --noEmit -p convex",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@convex-dev/eslint-plugin": "^5.0.0",
+    "@edge-runtime/vm": "^5.0.0",
     "@pantry/eslint-config": "workspace:*",
     "@pantry/tsconfig": "workspace:*",
+    "@types/node": "^24.19.2",
+    "convex-test": "0.0.65",
     "eslint": "^10.13.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@convex-dev/better-auth": "0.12.6",
+    "better-auth": "~1.6.33",
+    "convex": "^1.48.0"
   }
 }
