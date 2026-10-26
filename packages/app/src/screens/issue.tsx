@@ -95,6 +95,13 @@ function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string 
 function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string }) {
   const result = useQuery(api.issues.get, { key: issueKey });
   const lookups = useLookups(data);
+  const { navigate } = useNavigation();
+  // Registered before the issue loads, so Esc works at once.
+  useShortcutScope("issue");
+  // Back to the list or board it was opened from (filters included), else the project's list.
+  useShortcut("escape", "issue", () =>
+    navigate(lastListLocation() ?? routes.project(issueKey.split("-")[0]?.toUpperCase() ?? "")),
+  );
   if (result === undefined) return null;
   if (result === null) {
     return (
@@ -111,13 +118,11 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
   const { issue, project, parent, subIssues, comments, activity } = result;
   const actions = useIssueActions();
   const commands = useAppCommands();
-  const { navigate } = useNavigation();
   const canHaveSubIssues = issue.parentId === undefined && project?.archivedAt === undefined;
   const newSubIssue = () => {
     if (project && canHaveSubIssues) commands.newIssue({ project, parent: issue });
   };
 
-  useShortcutScope("issue");
   const quickEdit = useIssueQuickEdit(issue, lookups, actions);
   useShortcut("newSubIssue", "issue", () => {
     if (!canHaveSubIssues) {
@@ -159,8 +164,6 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
     },
   ]);
 
-  // Back to the list or board it was opened from (filters included), else the project's list.
-  useShortcut("escape", "issue", () => navigate(lastListLocation() ?? routes.project(issue.key.split("-")[0]!)));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
