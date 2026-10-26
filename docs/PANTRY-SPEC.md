@@ -6,8 +6,8 @@
 A fast, keyboard-first, open-source issue tracker (MIT, non-commercial) for 1–3 person teams working with AI coding agents. First users: Kris and his wife, running their own products, moving off Linear. Agents stay outside the tool: you point one (Cursor, Claude Code, …) at an issue key and it reads and updates the issue through an MCP server.
 
 ## 1b. What makes it different (problems we solve)
-1. **Trackers are built for companies; solo builders and 1–3 person teams pay in complexity.** No teams, triage, analytics, estimates or permissions: just issues, projects, views and speed.
-2. **AI agents work from scattered context.** Each project has a context doc that agents read first, and the MCP server gives any agent the issue, its sub-issues, comments and project context from just an issue key.
+1. **Trackers are built for companies; solo builders and 1–3 person teams pay in complexity.** No teams, triage, analytics, estimates or permissions: just issues, spaces and projects, views and speed.
+2. **AI agents work from scattered context.** Each space has a context doc that agents read first, and the MCP server gives any agent the issue, its sub-issues, comments and space context from just an issue key.
 3. **Agent work is invisible or spread across tools.** Agents comment and move status on the issue through MCP, acting as you and tagged "via MCP", so the tracker stays the source of truth.
 4. **Lock-in and cost.** Free and MIT-licensed; your data lives in your own Vercel and Convex accounts; a one-click deploy of about 5 minutes that fits the free tiers for small teams (Vercel Hobby is non-commercial use only); no hosted plan.
 5. **Web trackers feel slow or heavy.** A polished, keyboard-first Mac app (Tauri, milestone M5 of v0.1) with Convex realtime and optimistic updates, plus the web app.
@@ -24,10 +24,11 @@ A fast, keyboard-first, open-source issue tracker (MIT, non-commercial) for 1–
 
 ## 3. MVP features (v0.1)
 - One workspace per instance with its human members; invite links tied to an email address (you copy and send the link yourself; v0.1 sends no email).
-- Projects, each with a key (e.g. `PAN`) and a **project context doc** (markdown) agents can read over MCP.
+- **Spaces** (Workspace → Space → Project → Issue, decided by Kris 26 Oct 2026): a space is one of your products or one client ("Pantry", "Acme Ltd"), with a key (e.g. `PAN`), the issue counter, a **space context doc** (markdown) agents read over MCP, and the list and board views. Issue keys stay `PAN-42`.
+- **Projects** inside a space: optional workstreams ("LinkedIn", "Marketing", "Launch"): a name, an optional colour, an order and an archive flag. An issue is in at most one project.
 - Issues: title, markdown description, status, priority, assignee, labels, due date, sub-issues (`parentId`, one level).
 - Six default statuses per workspace, one per category: Backlog (backlog), Todo (unstarted), In Progress (started), In Review (review), Done (done), Canceled (canceled). Rename, recolour and reorder only; no adding or deleting in v0.1.
-- List view and board view per project; "My issues"; simple filters (status, assignee, label, priority) kept in URL params and applied client-side, not saved.
+- List view and board view per space, grouped by status or by project; "My issues"; simple filters (status, assignee, label, priority, project) kept in URL params and applied client-side, not saved.
 - Issue detail with comments and an activity log.
 - Command palette + keyboard shortcuts.
 - **Personal API tokens** + a minimal **MCP server** that acts as the token's owner.
@@ -38,7 +39,7 @@ A fast, keyboard-first, open-source issue tracker (MIT, non-commercial) for 1–
 - **Local mode** in the Mac app (§9b): "use it for real before you bother hosting" — single user, no login, then move to the cloud when ready.
 
 ### Later versions (after v0.2)
-- **Workspace modes: Client vs Product** (confirmed by Kris, 26 Oct). *Client mode* is for agency and client work: projects are grouped under clients, and home shows a per-client overview. *Product mode* is for building your own products: home shows products/projects directly. Chosen at sign-up/onboarding ("What are you using this for?") and changeable anytime in Workspace settings. Data model, later and additive: `workspaces.mode` (`client`\|`product`), an optional `clients` table and an optional `clientId` on `projects`. v0.1 builds none of it; the v0.1 schema stays forward-compatible because these are optional fields and a new table (no migration of existing rows).
+- **Workspace modes: Client vs Product** (confirmed by Kris, 26 Oct). *Client mode* is for agency and client work: home shows a per-client overview of the client spaces. *Product mode* is for building your own products: home shows the product spaces directly. Chosen at sign-up/onboarding ("What are you using this for?") and changeable anytime in Workspace settings. Data model: each space already has an optional `kind` (`product`\|`client`, product when missing, set in space settings) since 26 Oct 2026, which replaces the earlier plan of a `clients` table and `projects.clientId`; the modes later add only `workspaces.mode` (`client`\|`product`) and the home views.
 - **Appearance customisation, MonoCode-style** (see §9c): theme presets, accent picker, neutral tint, background image, and translucency in the Mac app.
 
 ### Never (cut from Linear — permanent, not planned)
@@ -59,7 +60,7 @@ A fast, keyboard-first, open-source issue tracker (MIT, non-commercial) for 1–
 - Cycles (optional, off by default when they arrive), roadmaps, milestones.
 - AI helpers (notes → issues, split issue, duplicate detection, "what to do today").
 - Saved/custom views (table and UI arrive together in v0.2).
-- Docs beyond the per-project context doc.
+- Docs beyond the per-space context doc.
 - Multiple workspaces per user UI.
 - Mobile apps, offline mode.
 - Notifications other than macOS notifications from the Mac app (M5): no in-app inbox, email or push in v0.1.
@@ -75,10 +76,10 @@ A fast, keyboard-first, open-source issue tracker (MIT, non-commercial) for 1–
 |---|---|
 | Sign in / accept invite | Better Auth email + password (Q2 ★; GitHub OAuth only if Kris picks Q2 b) |
 | My issues | Open issues assigned to me (unstarted, started, review) |
-| Project list view | Grouped by status; inline edit of status/assignee/priority |
-| Project board | Columns = statuses; drag to move |
+| Space list view | Grouped by status or by project; inline edit of status/assignee/priority/project |
+| Space board | Columns = statuses, optional project swimlanes; drag to move (between lanes changes the project) |
 | Issue detail | Description, sub-issues, comments, activity, properties sidebar |
-| Project settings | Name, key, **context doc** editor |
+| Space settings | Name, key, kind (Product/Client), **context doc** editor, and the space's projects (add, rename, recolour, reorder, archive) |
 | Workspace settings | Members, invites, statuses (rename, recolour, reorder), labels |
 | User settings | Profile, **API tokens** (create, name, revoke, last used) |
 | Command palette | Jump to anything, run any action |
@@ -87,7 +88,7 @@ Shortcuts (v0.1; all remappable later):
 - `Cmd/Ctrl+K` command palette · `C` new issue · `Shift+C` new sub-issue (on an issue) · `/` search/filter
 - `J`/`K` move selection · `Enter` open · `Esc` back/close · `X` select (multi)
 - `S` status · `A` assignee · `I` assign to me · `L` labels · `P` priority · `D` due date
-- `Cmd/Ctrl+Enter` submit comment/issue · `G` then `I` my issues · `G` then `P` project · `G` then `B` board · `?` shortcut help
+- `Cmd/Ctrl+Enter` submit comment/issue · `G` then `I` my issues · `G` then `S` space (list) · `G` then `B` board · `?` shortcut help
 
 ## 5. Convex data model
 Users/sessions/accounts live in the Better Auth Convex component's tables; our tables reference its user id. **Exact schema: §10b** (source of truth; this table is the summary).
@@ -97,18 +98,19 @@ Users/sessions/accounts live in the Better Auth Convex component's tables; our t
 | `workspaces` | name, slug, createdBy (Better Auth user id) | `by_slug` |
 | `members` | workspaceId, userId (Better Auth user id), displayName, avatarUrl?, role: `owner`\|`member` | `by_workspace`, `by_user`, `by_workspace_and_user` |
 | `invites` | workspaceId, email (lower-cased), tokenHash, createdBy (→members), expiresAt, acceptedAt?, revokedAt? | `by_token_hash`, `by_email`, `by_workspace` |
-| `projects` | workspaceId, name, key (`PAN`), nextIssueNumber, archivedAt? | `by_workspace`, `by_workspace_and_key` |
+| `spaces` | workspaceId, name, key (`PAN`), nextIssueNumber, archivedAt?, kind? (`product`\|`client`, product when missing) | `by_workspace`, `by_workspace_and_key` |
+| `projects` | workspaceId, spaceId, name (unique per space, ignoring case), color?, sortOrder, archivedAt? | `by_space`, `by_space_and_name` |
 | `statuses` | workspaceId, name, category (`backlog`\|`unstarted`\|`started`\|`review`\|`done`\|`canceled`), order, color | `by_workspace_and_order` |
 | `labels` | workspaceId, name, color | `by_workspace` |
-| `issues` | workspaceId, projectId, number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_project_and_status`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`; search index `search_title` |
+| `issues` | workspaceId, spaceId, projectId? (→projects, same space), number, key (`PAN-42`), title, description (md), statusId, statusCategory, priority (0–4), assigneeId? (→members), creatorId (→members), labelIds[], parentId? (one level), dueDate? (`YYYY-MM-DD`), sortOrder, completedAt?, updatedAt | `by_space_and_status`, `by_project`, `by_assignee_and_category`, `by_parent`, `by_workspace_and_key`, `by_workspace_and_updated`; search index `search_title` |
 | `comments` | issueId, authorId (→members), body (md), via (`app`\|`mcp`), editedAt? | `by_issue` |
 | `activity` | workspaceId, issueId, actorId? (→members), type, from?, to?, via (`app`\|`mcp`) | `by_issue`, `by_workspace` |
-| `docs` | workspaceId, projectId?, kind (`project_context` in v0.1), title, body (md), updatedBy, updatedAt | `by_project_and_kind` |
+| `docs` | workspaceId, spaceId?, kind (`space_context` in v0.1), title, body (md), updatedBy, updatedAt | `by_space_and_kind` |
 | `apiTokens` | userId, workspaceId, memberId, name, tokenPrefix (shown), tokenHash (SHA-256), lastUsedAt?, revokedAt? | `by_token_hash`, `by_user` |
 
-Notes: created times use Convex's built-in `_creationTime` (no `createdAt` fields). Issue numbers come from `projects.nextIssueNumber` incremented inside the create mutation (Convex mutations are transactional, so no duplicates). MCP actions are attributed to the token owner with `via: "mcp"`, which the UI shows as a small "via MCP" tag. The `views` table (saved views) is added in v0.2 together with its UI.
+Notes: created times use Convex's built-in `_creationTime` (no `createdAt` fields). Issue numbers come from `spaces.nextIssueNumber` incremented inside the create mutation (Convex mutations are transactional, so no duplicates). MCP actions are attributed to the token owner with `via: "mcp"`, which the UI shows as a small "via MCP" tag. The `views` table (saved views) is added in v0.2 together with its UI.
 
-Forward-compatible, not built in v0.1: Client / Product modes later add optional `workspaces.mode`, a `clients` table and optional `projects.clientId` (see Later versions).
+Forward-compatible, not built in v0.1: Client / Product modes later add optional `workspaces.mode` (spaces already carry `kind`; see Later versions).
 
 ## 6. MCP server
 **Where:** `/api/mcp`, a Next.js route handler on Vercel.
@@ -119,14 +121,14 @@ Tools (minimal):
 | Tool | Does |
 |---|---|
 | `get_issue` | One issue by key, incl. sub-issues, comments |
-| `get_project_context` | The project's context doc |
-| `list_issues` | Filters: project, status/category, assignee (`me`), label, priority |
-| `create_issue` | New issue in a project |
+| `get_space_context` | The space's context doc (agents call it first) |
+| `list_issues` | Filters: space, project, status/category, assignee (`me`), label, priority |
+| `create_issue` | New issue in a space, optionally in one of its projects |
 | `create_sub_issue` | New sub-issue under a parent key |
 | `add_comment` | Comment on an issue |
-| `update_issue` | Change status, priority, labels, assignee |
+| `update_issue` | Change status, priority, labels, assignee, project |
 
-Typical use: create a token → add `/api/mcp` with the bearer token to your MCP client → tell the agent "work on PAN-42" → it calls `get_issue` + `get_project_context`, moves the issue through statuses itself with `update_issue` (nothing changes status automatically), posts notes with `add_comment`, adds follow-ups with `create_sub_issue`.
+Typical use: create a token → add `/api/mcp` with the bearer token to your MCP client → tell the agent "work on PAN-42" → it calls `get_issue` + `get_space_context`, moves the issue through statuses itself with `update_issue` (nothing changes status automatically), posts notes with `add_comment`, adds follow-ups with `create_sub_issue`.
 
 **Why Next.js and not Convex HTTP actions:**
 - Vercel's `mcp-handler` v2 mounts in a Next.js route handler, serves the current stateless MCP spec (2026-07-28) and falls back to stateless Streamable HTTP for 2025-era clients; needs Node 20+ (npm README / Vercel changelog).
@@ -253,16 +255,16 @@ Built on shadcn's Command (cmdk inside a Base UI dialog), extended to behave lik
 - **Motion:** the panel rises in on a spring; the results frame springs to the list height as the query filters; one highlight glides to the active row (`morph`) on arrow keys and hover; rows glide on small shifts and snap on long jumps.
 - **Matching:** every query word must match: anywhere in the label, at a word start in the description or keywords, or as letters in order ("shpr" finds Share project). Label prefixes rank first, groups follow their best match, matched letters render in medium weight. This replaces cmdk's default filter (`shouldFilter={false}` + our ranking). Issue results come from debounced `issues.search`, with an exact key match first.
 - **Keyboard and a11y:** first result active as soon as results show; Up/Down, Home/End, Enter; Esc clears the query, then closes; keycap shortcut hints per row from the shortcut registry; a polite live region announces the result count.
-- **Groups:** Issues, Projects, Navigation, Actions.
+- **Groups:** Issues, Spaces (spaces and their projects; a project opens its space filtered to it), Navigation, Actions.
 
 ### Sidebar (keep Arc's feel, built on shadcn Sidebar)
 - shadcn Sidebar as the base, collapsible to an icon rail with tooltips; a Sheet below ~640px.
 - Width springs between full (~272px) and rail (~56px) through one motion value, so lists don't re-render; collapsed state saved per user on the device.
 - `[` folds and unfolds the rail, registered in the shortcut registry (ignored in inputs, menus and dialogs), replacing shadcn's default `Cmd+B`.
-- Contents: workspace name and user menu, search (opens the palette), My issues with a rolling count, the project list with coloured dots and inline "New project", settings. The active-item highlight glides (`morph`). Draggable favourites are not in v0.1.
+- Contents: workspace name and user menu, search (opens the palette), My issues with a rolling count, the spaces with coloured dots and inline "New space", each expanding to its projects (a project opens the space's list or board filtered to it, `?project=<name>`), settings. The active-item highlight glides (`morph`). Draggable favourites are not in v0.1.
 
 ### Markdown editor
-Descriptions, comments and project context docs are stored as markdown, because agents read and write them over MCP, so the editor must round-trip markdown. ★ **Tiptap 3** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/markdown`) behind one `MarkdownEditor` in `packages/ui`, styled to our tokens; the same component renders read-only content.
+Descriptions, comments and space context docs are stored as markdown, because agents read and write them over MCP, so the editor must round-trip markdown. ★ **Tiptap 3** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/markdown`) behind one `MarkdownEditor` in `packages/ui`, styled to our tokens; the same component renders read-only content.
 - Supports headings, bold/italic/strike, inline code and code blocks, links, bullet/ordered lists, blockquotes; markdown shortcuts as you type.
 - Round-trip fixtures (including agent-written markdown) must load and save unchanged when untouched; anything Tiptap can't represent must survive as-is rather than be dropped.
 - Saves on blur and `Cmd/Ctrl+Enter`, never per keystroke: each description save writes an activity row. Comments submit with `Cmd/Ctrl+Enter`; `Esc` leaves the editor.
@@ -317,7 +319,7 @@ Goal: a fresh instance in **about 5 minutes, under 10** including creating Verce
 **What the user still does:** create or sign in to Vercel (with GitHub) and accept the Convex integration. No secrets to type in v0.1: no email provider, no OAuth app (GitHub OAuth would need a GitHub OAuth app's id + secret, only if Kris picks Q2 b).
 
 **First run:**
-1. Open the new `*.vercel.app` URL → a setup screen (only while the instance has no members) → the **first sign-up becomes workspace owner**; default statuses and a sample project are created.
+1. Open the new `*.vercel.app` URL → a setup screen (only while the instance has no members) → the **first sign-up becomes workspace owner**; default statuses and a sample space (`PAN`, no projects) are created.
 2. After that, sign-up is invite-only: Workspace settings → Invite → copy the link and send it to your partner yourself (no email sending in v0.1).
 3. User settings → API token → copy the MCP config snippet (`https://<app>/api/mcp` + bearer token).
 
@@ -399,6 +401,7 @@ const category = v.union(
 );
 // 0 none, 1 urgent, 2 high, 3 medium, 4 low (Linear's order)
 const priority = v.union(v.literal(0), v.literal(1), v.literal(2), v.literal(3), v.literal(4));
+const spaceKind = v.union(v.literal("product"), v.literal("client"));
 
 export default defineSchema({
   workspaces: defineTable({ name: v.string(), slug: v.string(), createdBy: v.string() })
@@ -428,15 +431,29 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_workspace", ["workspaceId"]),
 
-  projects: defineTable({
+  // A product or a client (spec §5): owns the issue key, the counter, the context doc and the views.
+  spaces: defineTable({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     key: v.string(), // ^[A-Z][A-Z0-9]{1,9}$, fixed after creation in v0.1
     nextIssueNumber: v.number(),
     archivedAt: v.optional(v.number()),
+    kind: v.optional(spaceKind), // "product" when missing
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_and_key", ["workspaceId", "key"]),
+
+  // An optional workstream inside a space ("LinkedIn", "Launch"). An issue is in at most one.
+  projects: defineTable({
+    workspaceId: v.id("workspaces"),
+    spaceId: v.id("spaces"),
+    name: v.string(), // unique per space among active projects, ignoring case
+    color: v.optional(v.string()),
+    sortOrder: v.number(),
+    archivedAt: v.optional(v.number()),
+  })
+    .index("by_space", ["spaceId"])
+    .index("by_space_and_name", ["spaceId", "name"]),
 
   statuses: defineTable({
     workspaceId: v.id("workspaces"),
@@ -451,7 +468,8 @@ export default defineSchema({
 
   issues: defineTable({
     workspaceId: v.id("workspaces"),
-    projectId: v.id("projects"),
+    spaceId: v.id("spaces"),
+    projectId: v.optional(v.id("projects")), // must be in the issue's space
     number: v.number(),
     key: v.string(), // "PAN-42"
     title: v.string(),
@@ -468,12 +486,13 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
-    .index("by_project_and_status", ["projectId", "statusId", "sortOrder"])
+    .index("by_space_and_status", ["spaceId", "statusId", "sortOrder"])
+    .index("by_project", ["projectId"])
     .index("by_assignee_and_category", ["assigneeId", "statusCategory"])
     .index("by_parent", ["parentId"])
     .index("by_workspace_and_key", ["workspaceId", "key"])
     .index("by_workspace_and_updated", ["workspaceId", "updatedAt"])
-    .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "projectId"] }),
+    .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "spaceId", "projectId"] }),
 
   comments: defineTable({
     issueId: v.id("issues"),
@@ -491,7 +510,7 @@ export default defineSchema({
       v.literal("created"), v.literal("status_changed"), v.literal("priority_changed"),
       v.literal("assigned"), v.literal("labels_changed"), v.literal("commented"),
       v.literal("title_changed"), v.literal("description_changed"), v.literal("parent_changed"),
-      v.literal("due_date_changed"),
+      v.literal("due_date_changed"), v.literal("project_changed"),
     ),
     from: v.optional(v.string()),
     to: v.optional(v.string()),
@@ -502,13 +521,13 @@ export default defineSchema({
 
   docs: defineTable({
     workspaceId: v.id("workspaces"),
-    projectId: v.optional(v.id("projects")),
-    kind: v.literal("project_context"), // widen to "doc" later
+    spaceId: v.optional(v.id("spaces")),
+    kind: v.literal("space_context"), // widen to "doc" later
     title: v.string(),
     body: v.string(),
     updatedBy: v.id("members"),
     updatedAt: v.number(),
-  }).index("by_project_and_kind", ["projectId", "kind"]),
+  }).index("by_space_and_kind", ["spaceId", "kind"]),
 
   apiTokens: defineTable({
     userId: v.string(),
@@ -532,11 +551,12 @@ export default defineSchema({
 - **One place for the name:** product name, default issue key and token prefix live only in `packages/backend/convex/lib/brand.ts`: `{ name: "Pantry", defaultKey: "PAN", tokenPrefix: "pan_" }`, imported by the app, MCP tool descriptions, `/api/instance` and seed data. Nothing else hard-codes them in code; the README, Deploy button URL and Tauri `productName`/`identifier` are the only hand-edited places, so a later rename stays a one-file change plus those.
 - **Secrets:** API and invite tokens are random 32 bytes, base64url, prefixed with `brand.tokenPrefix` (`pan_`) / `inv_`. Generate them in a Convex action (queries and mutations run deterministically, so randomness belongs in actions), store only the SHA-256 hash via an internal mutation, return the plain token once. Hashing uses `crypto.subtle`, which Convex's default runtime supports.
 - **Writes:** every mutation that changes an issue writes `updatedAt` and one `activity` row; `via` is `"mcp"` when called through `packages/mcp`.
-- **Issue numbers:** read and bump `projects.nextIssueNumber` inside the create mutation.
+- **Issue numbers:** read and bump `spaces.nextIssueNumber` inside the create mutation.
 - **One status-change helper:** `issues.move` and MCP `update_issue { status }` share it: sets `statusId` and `statusCategory`, sets or clears `completedAt`, puts the issue at the top of the new column (unless `beforeId`/`afterId` say otherwise) and writes one `status_changed` row. `issues.update` never changes status.
-- **Sub-issues inherit the parent's project:** `issues.create` with `parentId` takes `projectId` from the parent (reject a different `projectId`), and `create_sub_issue` over MCP goes through the same helper. Test it for both paths (a common bug in other trackers).
+- **Sub-issues inherit the parent's space and project:** `issues.create` with `parentId` takes `spaceId` and `projectId` from the parent (reject a different `spaceId` or `projectId`), and `create_sub_issue` over MCP goes through the same helper. A new parent brings its project along; changing a parent's project moves its sub-issues; a sub-issue can't take a project of its own. Test it for both paths (a common bug in other trackers).
+- **Projects belong to one space:** an issue's `projectId` must be an active project of the issue's space (reject anything else). Archiving a project leaves its issues in the space with no project (each an issue write: `updatedAt` and one `project_changed` row). Project names are unique per space among active projects, ignoring case, because MCP finds them by name.
 - **Sub-issues stay one level, no loops:** one shared helper used by `issues.create`, `issues.update` (setting or changing `parentId`) and MCP `create_sub_issue` rejects a `parentId` that is the issue itself, a parent that already has a parent, or a new parent for an issue that already has sub-issues. Test each case (another common bug).
-- **Agent writes stay in the token owner's workspace:** every MCP function resolves project, issue, status, label and assignee inside `token.workspaceId` only, and returns "not found" (never another workspace's data) otherwise. Add one cross-workspace test per tool, even though v0.1 has one workspace per instance.
+- **Agent writes stay in the token owner's workspace:** every MCP function resolves space, project, issue, status, label and assignee inside `token.workspaceId` only, and returns "not found" (never another workspace's data) otherwise. Add one cross-workspace test per tool, even though v0.1 has one workspace per instance.
 - **Env vars:** declare them in `convex/convex.config.ts` (`defineApp({ env: { … } })`, Convex validates declared vars at deploy time and generates a typed `env` import). Declare `SITE_URL` and `BETTER_AUTH_SECRET` as `v.optional(v.string())` in v0.1, not required: a required var that the deploy key can't set would fail `convex deploy` and the user would never reach the setup screen with its fallback one-liner. `auth.ts` throws a clear "Missing BETTER_AUTH_SECRET, see setup screen" error at runtime instead, and `/api/instance` reports `{ needsSecret: true }` so the setup screen can show the fix.
 
 ### App functions for M2–M3 (`packages/backend/convex/`)
@@ -544,20 +564,21 @@ The UI's whole backend surface; Claude Code builds exactly these (plus `setup.ts
 
 | Function | Kind | Args → returns |
 |---|---|---|
-| `workspace.current` | query | `{}` → workspace, my member row, statuses (by `order`), labels, members, active projects |
-| `projects.create` / `projects.update` / `projects.archive` | mutation | `{ name, key }` / `{ projectId, name }` / `{ projectId }`. Key is unique per workspace and fixed after creation |
+| `workspace.current` | query | `{}` → workspace, my member row, statuses (by `order`), labels, members, active spaces, and their active projects (by `sortOrder`) |
+| `spaces.create` / `spaces.update` / `spaces.archive` | mutation | `{ name, key, kind? }` / `{ spaceId, name?, kind? }` / `{ spaceId }`. Key is unique per workspace and fixed after creation; creates the space's context doc |
+| `projects.create` / `projects.update` / `projects.archive` / `projects.reorder` | mutation | `{ spaceId, name, color? }` / `{ projectId, name?, color?: string \| null }` / `{ projectId }` (its issues keep their space, with no project) / `{ spaceId, projectIds: Id[] }` |
 | `labels.create` / `labels.update` / `labels.remove` | mutation | `{ name, color }` / `{ labelId, name?, color? }` / `{ labelId }` (also pulls it from issues' `labelIds`) |
 | `statuses.update` / `statuses.reorder` | mutation | `{ statusId, name?, color? }` / `{ statusIds: Id[] }`. No create/delete in v0.1: the six defaults cover it |
-| `issues.listByProject` | query | `{ projectId, includeDone?: boolean }` → issues ordered by status then `sortOrder`; done/canceled only from the last 14 days unless `includeDone` |
+| `issues.listBySpace` | query | `{ spaceId, projectId?, includeDone?: boolean }` → issues ordered by status then `sortOrder` (only that project's with `projectId`); done/canceled only from the last 14 days unless `includeDone` |
 | `issues.listMine` | query | `{}` → my issues in categories `unstarted`, `started`, `review` |
-| `issues.get` | query | `{ key }` → issue, sub-issues, comments, last 100 activity rows |
-| `issues.search` | query | `{ text, projectId? }` → up to 20 matches from `search_title`; an exact key match (`PAN-42`) comes first |
-| `issues.create` | mutation | `{ projectId, title, description?, statusId?, priority?, assigneeId?, labelIds?, parentId?, dueDate? }` → `{ issueId, key }` |
-| `issues.update` | mutation | `{ issueId, title?, description?, priority?, assigneeId?: Id \| null, labelIds?, dueDate?: string \| null, parentId?: Id \| null }`; one activity row per changed field; parent changes go through the sub-issue helper; never changes status |
+| `issues.get` | query | `{ key }` → issue, its space and project, sub-issues, comments, last 100 activity rows |
+| `issues.search` | query | `{ text, spaceId?, projectId? }` → up to 20 matches from `search_title`; an exact key match (`PAN-42`) comes first |
+| `issues.create` | mutation | `{ spaceId, projectId?: Id \| null, title, description?, statusId?, priority?, assigneeId?, labelIds?, parentId?, dueDate? }` → `{ issueId, key }` |
+| `issues.update` | mutation | `{ issueId, title?, description?, priority?, assigneeId?: Id \| null, labelIds?, dueDate?: string \| null, parentId?: Id \| null, projectId?: Id \| null }`; one activity row per changed field (`project_changed` for the project); parent and project changes go through the sub-issue helper; never changes status |
 | `issues.move` | mutation | `{ issueId, statusId, beforeId?, afterId? }`: the board/list drag and the status change in one; sets `statusCategory`, sets or clears `completedAt` |
 | `issues.remove` | mutation | `{ issueId }`: hard delete with its comments, activity and sub-issues, after a confirm dialog (no trash in v0.1) |
 | `comments.add` / `comments.edit` / `comments.remove` | mutation | `{ issueId, body }` / `{ commentId, body }` / `{ commentId }`; only the author can edit or remove |
-| `docs.getContext` / `docs.saveContext` | query / mutation | `{ projectId }` / `{ projectId, body }`: one context doc per project, created with the project |
+| `docs.getContext` / `docs.saveContext` | query / mutation | `{ spaceId }` / `{ spaceId, body }`: one context doc per space, created with the space |
 | `invites.create` / `invites.revoke` / `invites.list` | action / mutation / query | owner only. `create` takes `{ email }`, returns the link once (7-day expiry) |
 | `invites.accept` | mutation | `{ token }`, called right after sign-up: checks hash, email and expiry, creates the `members` row |
 | `tokens.create` / `tokens.revoke` / `tokens.list` | action / mutation / query | `{ name }` returns the token once / `{ tokenId }` / mine only, prefix + `lastUsedAt` (M4) |
@@ -569,17 +590,17 @@ MCP tools (below) reuse the same internal helpers through `convex/mcp.ts`, so ap
 ### MCP tools (`packages/mcp`)
 Route: `apps/web/app/api/mcp/route.ts` = `withMcpAuth(createMcpHandler(registerTools), verifyToken, { required: true })`, exported as GET and POST. `verifyToken` hashes the bearer token and calls `mcp.verifyToken`; it returns `AuthInfo` with the member and workspace in `extra`, or `undefined` (→ 401). Tools read it from `ctx.http?.authInfo` and pass the raw token to each Convex function, which re-checks it, because these functions are public. `lastUsedAt` is updated by a separate mutation only when the stored value is over 10 minutes old.
 
-All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$`. Status, label and assignee are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names), so the agent can retry. Tool descriptions tell the agent to call `get_project_context` before starting work.
+All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$`. Spaces are given by key (`PAN`); status, label, assignee and project are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`, and `project` takes `"none"`. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names, or the space's project names), so the agent can retry. Tool descriptions tell the agent to call `get_space_context` first, before starting work. The by-name lookups live in `convex/lib/spaces.ts` (`resolveSpaceByKey`, `resolveProjectByName`).
 
 | Tool | Input | Returns |
 |---|---|---|
 | `get_issue` | `{ key }` | key, title, description, status {name, category}, priority, assignee, labels, parent key, dueDate, sub-issues (key, title, status), last 50 comments (author, body, via, time), url |
-| `get_project_context` | `{ project }` (project key) | project name and key, context doc markdown, updatedAt |
-| `list_issues` | `{ project?, status?, category?, assignee?, label?, priority?, limit? = 50 (max 100) }` | rows of key, title, status, priority, assignee, updatedAt; newest first |
-| `create_issue` | `{ project, title (1–200), description?, status?, priority? = 0, assignee?, labels?: string[], dueDate? }` | key, url. Default status: the first `unstarted` status. Unknown labels are an error; labels are never auto-created |
-| `create_sub_issue` | `{ parent, title, description?, priority?, assignee? }` | key, url. Error if the parent is itself a sub-issue |
+| `get_space_context` | `{ space }` (space key) | space name, key and kind, its projects, context doc markdown, updatedAt |
+| `list_issues` | `{ space? (key), project? (name, case-insensitive, or "none"; needs `space`), status?, category?, assignee?, label?, priority?, limit? = 50 (max 100) }` | rows of key, title, status, priority, assignee, project, updatedAt; newest first |
+| `create_issue` | `{ space (key, required), project? (name), title (1–200), description?, status?, priority? = 0, assignee?, labels?: string[], dueDate? }` | key, url. An unknown project is an error listing the space's project names. Default status: the first `unstarted` status. Unknown labels are an error; labels are never auto-created |
+| `create_sub_issue` | `{ parent, title, description?, priority?, assignee? }` | key, url. Takes the parent's space and project. Error if the parent is itself a sub-issue |
 | `add_comment` | `{ key, body (1–20,000 chars, markdown) }` | comment url |
-| `update_issue` | `{ key, status?, priority?, assignee?, addLabels?, removeLabels? }` (at least one) | the updated issue summary |
+| `update_issue` | `{ key, status?, priority?, assignee?, addLabels?, removeLabels?, project? (name or "none") }` (at least one) | the updated issue summary. A bad project name lists the valid ones for the issue's space |
 
 Client setup verified today: Claude Code takes `claude mcp add --transport http pantry https://<app>/api/mcp --header "Authorization: Bearer <token>"`; Cursor's `mcp.json` takes `"url"` plus `"headers": { "Authorization": "Bearer ${env:PANTRY_TOKEN}" }`. The token screen shows both snippets.
 
@@ -618,7 +639,9 @@ Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
   MCP functions resolve everything inside the token's workspace and return "not found" otherwise.
 - Every issue write updates updatedAt and inserts one activity row (via "app" or "mcp").
 - Status changes (app or MCP) go through the one helper behind issues.move; issues.update never changes status.
-- Sub-issues: one level, no loops, always inherit the parent's project (one shared helper, app and MCP).
+- Model: Workspace → Space → Project → Issue. A space (product or client) owns the issue key, counter, context doc
+  and views; a project is an optional workstream inside one space. An issue's project must be in its space.
+- Sub-issues: one level, no loops, always inherit the parent's space and project (one shared helper, app and MCP).
 - Never store plain tokens; SHA-256 hash only. Generate randomness in actions.
 - Product name, default issue key and token prefix come only from packages/backend/convex/lib/brand.ts
   ({ name: "Pantry", defaultKey: "PAN", tokenPrefix: "pan_" }).
@@ -643,7 +666,7 @@ README updated if setup changed.
 ### First tasks (M1)
 1. **Scaffold:** pnpm workspace (`packageManager` pinned), Turborepo, the folders above, shared tsconfig and ESLint, MIT LICENSE, `CLAUDE.md` at the root, this spec at `docs/PANTRY-SPEC.md`, `.env.example`. Done: `pnpm turbo typecheck` passes on empty packages.
 2. **Backend:** `convex.config.ts` with the Better Auth component and declared env vars, `auth.config.ts`, `auth.ts` (email + password, invite-only hook), `http.ts`, the full schema, `lib/brand.ts`, `requireMember`. Done: `npx convex dev` deploys locally; `convex-test` covers the sign-up guard.
-3. **Bootstrap:** `setup.createWorkspace` (only while there are no members): workspace, owner member, default statuses, sample project and context doc. Done: tests cover first run and a rejected second run.
+3. **Bootstrap:** `setup.createWorkspace` (only while there are no members): workspace, owner member, default statuses, sample space (no projects) and its context doc. Done: tests cover first run and a rejected second run.
 4. **Design system** (§9d): shadcn CLI in `packages/ui` with Base UI (★ `base-mira`, compared against `base-nova`), our tokens (fonts per Q5 ★, type scale, density, 12-step greys, monochrome primary (Q6 c), status/priority colours, radii, motion), the theme provider, the components M1–M2 need restyled to them (button, input, field, dialog, dropdown, popover, tooltip, sidebar, command, badge, avatar, tabs, toast), status/priority glyphs and label chips, and a dev-only `/design` page in `apps/web`. Done: `/design` shows every token and component in light and dark, and Kris approves the look before M2 screens start.
 5. **Web shell:** `ConvexBetterAuthProvider`, sign-in/sign-up pages (shadcn login block, restyled), setup screen, app shell with the sidebar (§9d), empty workspace page, `/api/auth/[...all]`. Done: sign up locally and land in an empty workspace.
 6. **`/api/instance`:** Done: returns the JSON above (`needsSecret` is true only while `BETTER_AUTH_SECRET` is unset).
@@ -659,8 +682,8 @@ README updated if setup changed.
 ### M2 tasks
 1. **Invites:** `invites.create/revoke/list/accept`, invite screen in settings, sign-up page that reads `?invite=`. Done: tests for expired, revoked, wrong-email and reused tokens; your partner joins locally from a link.
 2. **Tauri spike** (throwaway branch is fine): bare `apps/desktop` loading a static build of one `packages/app` screen, Better Auth cross-domain sign-in against the deployed M1 instance. Done: the M2 Tauri criterion, plus a short `docs/spikes/tauri-auth.md` (what worked, trusted origins needed, blockers).
-3. **Workspace data:** `workspace.current`, `projects.*`, `labels.*`, `statuses.*` and their settings screens; `docs.getContext/saveContext` with the context doc in `MarkdownEditor`. Done: tests for key uniqueness, label removal cleaning `labelIds`, status reorder.
-4. **Issues backend:** `issues.create/update/move/remove/get/listByProject/listMine`, activity rows, `sortOrder` rules. Done: tests for numbering under repeated creates, one activity row per changed field, `completedAt` set/cleared by category, column renumbering below the `1e-9` gap, sub-issue depth limit.
+3. **Workspace data:** `workspace.current`, `spaces.*` (then named `projects.*`; renamed 26 Oct 2026), `labels.*`, `statuses.*` and their settings screens; `docs.getContext/saveContext` with the context doc in `MarkdownEditor`. Done: tests for key uniqueness, label removal cleaning `labelIds`, status reorder.
+4. **Issues backend:** `issues.create/update/move/remove/get/listBySpace/listMine` (`listBySpace` was `listByProject`), activity rows, `sortOrder` rules. Done: tests for numbering under repeated creates, one activity row per changed field, `completedAt` set/cleared by category, column renumbering below the `1e-9` gap, sub-issue depth limit.
 5. **List view + issue detail:** grouped list by status, issue page (title, description and comments in `MarkdownEditor`, properties, sub-issues, activity). Done: create/edit/comment flows work in two browsers with live updates; a markdown fixture set round-trips through the editor unchanged.
 6. **Board view:** columns per status with drag to `issues.move` (`@dnd-kit/core` 6.x, card drop on the motion tokens). Done: drag within and across columns persists order after reload and shows live in the second browser.
 7. **`sync-upstream` Action** (§10): manual + weekly workflow that opens a PR from the latest release tag. Done: dry run against a test clone opens the PR; no auto-merge.
@@ -670,12 +693,15 @@ Checked 26 Oct 2026: [tinykeys](https://www.npmjs.com/package/tinykeys) 4.0.1 RE
 1. **Shortcut registry:** one `shortcuts.ts` registry in `packages/app` on tinykeys, with a scope stack (dialog or palette, then issue detail, then list/board) so `Esc`, `J`/`K` and letter keys go to the top scope; the `?` help is generated from the registry. Done: every §4 shortcut fires in the right scope and never while typing; a unit test checks the help lists every registered shortcut.
 2. **Command palette** (§9d): shadcn Command restyled, with our ranking and motion, listing registry actions plus debounced `issues.search` results. Done: typing `PAN-42` or a title word jumps to the issue, and every action listed runs.
 3. **Selection and quick edit:** `J`/`K` selection, `X` multi-select, and `S`/`A`/`I`/`L`/`P`/`D` pickers acting on the selection (one mutation per issue; `S` uses `issues.move`). Done: works in list and board views.
-4. **Optimistic updates:** `withOptimisticUpdate` on `issues.move` (status and drag), `issues.update` (assignee, priority) and `comments.add`, updating the cached `issues.listByProject` and `issues.get` results with new objects. Done: with the network throttled in devtools, changes show at once; a forced server error rolls back with no stuck state.
+4. **Optimistic updates:** `withOptimisticUpdate` on `issues.move` (status and drag), `issues.update` (assignee, priority) and `comments.add`, updating the cached `issues.listBySpace` and `issues.get` results with new objects. Done: with the network throttled in devtools, changes show at once; a forced server error rolls back with no stuck state.
 5. **My issues and filters:** the My issues screen on `issues.listMine`; a filter bar (status, assignee, label, priority) kept in URL params and applied client-side to list and board; `/` to filter the current view by title. Done: the M3 criteria above.
+
+### Model change: Spaces → Projects (26 Oct 2026, after M3)
+Kris added a level: **Workspace → Space → Project → Issue**. Today's "project" (key, counter, context doc, views) became a **space** (a product or a client, `spaces.kind`); a **project** is now an optional workstream inside a space. Built on its own branch after M3: schema, `spaces.*`, `projects.*` (create/update/archive/reorder), `issues.listBySpace`, project fields on issues, sidebar spaces with their projects, a Project filter, Group by project on list and board, project pickers and chips, space settings with a Projects list, `G` then `S`, palette entries. MCP tool names and inputs above already use the new terms (M4 builds them). Done: tests for project-in-wrong-space rejection, sub-issue inheritance of space and project, archive leaving issues unassigned, MCP project lookup by name with the valid-names error, and cross-workspace "not found" for the new fields.
 
 ### M4 tasks
 1. **Tokens:** `tokens.create` (action: random token, hash stored by an internal mutation), `revoke`, `list`, and the User settings screen with the Claude Code and Cursor snippets (§MCP tools). Done: the token is shown once; tests show a revoked token is rejected by `requireToken`.
-2. **`convex/mcp.ts`:** `verifyToken` plus one public function per tool, all calling the same internal helpers as the app with `via: "mcp"`. Done: `convex-test` per tool, including the cross-workspace "not found" test and sub-issue project inheritance.
+2. **`convex/mcp.ts`:** `verifyToken` plus one public function per tool, all calling the same internal helpers as the app with `via: "mcp"`. Done: `convex-test` per tool, including the cross-workspace "not found" test (spaces and projects included), sub-issue space and project inheritance, and project lookup by name with the valid-names error (the resolvers in `convex/lib/spaces.ts` are already tested).
 3. **`packages/mcp` + `/api/mcp`:** zod input schemas, by-name resolution with the valid-values error, and the `withMcpAuth` route. Done: handler tests call each tool with a stub `authInfo`; a request without a token gets 401.
 4. **"via MCP" and `lastUsedAt`:** the tag on comments and activity rows, and the 10-minute `lastUsedAt` throttle. Done: shown in the issue detail; a test covers the throttle.
 5. **Real-client run:** Kris runs the M4 Claude Code script on his instance and adds the server to Cursor too. Done: the M4 criterion, with notes in `docs/spikes/mcp-clients.md`.
@@ -683,7 +709,7 @@ Checked 26 Oct 2026: [tinykeys](https://www.npmjs.com/package/tinykeys) 4.0.1 RE
 ## 11. Roadmap
 **v0.1 — "Leave Linear"** (each milestone shippable):
 1. **M1 Deploy button works:** monorepo skeleton, design system (`/design` approved by Kris), schema, `vercel.json` + `vercel-build.sh` (Convex deploy, auto `BETTER_AUTH_SECRET` and `SITE_URL`), Better Auth email+password, first sign-up = owner, `/api/instance`, setup screen. Ships when a fresh deploy from the button reaches a signed-in empty workspace in under 10 minutes.
-2. **M2 Invite + issues core:** invite links (partner joins), `sync-upstream` Action, Tauri connect + sign-in spike against a deployed instance; then projects, issues, statuses, labels, priority, sub-issues, list + board, issue detail, comments, activity.
+2. **M2 Invite + issues core:** invite links (partner joins), `sync-upstream` Action, Tauri connect + sign-in spike against a deployed instance; then spaces (then called projects), issues, statuses, labels, priority, sub-issues, list + board, issue detail, comments, activity.
 3. **M3 Speed:** command palette, all shortcuts, optimistic updates, search, My issues.
 4. **M4 MCP:** personal API tokens, `/api/mcp` with the seven tools, context doc, "via MCP" labels. → Kris + wife switch over.
 5. **M5 Mac app (Q9 ★):** Tauri build, server URL + sign-in (servers stored as a list + Keychain sessions, §8), quick-add hotkey, menu bar, notifications, signed DMG + updater.

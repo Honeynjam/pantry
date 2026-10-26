@@ -22,10 +22,12 @@ Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
 - All business logic lives in Convex functions. apps/* and packages/mcp are thin adapters.
 - packages/app is client-only: no next/* imports, no server components (it must build statically for Tauri).
 - Every public Convex function calls requireMember(ctx) or requireToken(ctx, token) first.
-  MCP functions resolve everything inside the token's workspace and return "not found" otherwise.
+  MCP functions resolve everything (spaces, projects, issues, …) inside the token's workspace and return "not found" otherwise.
 - Every issue write updates updatedAt and inserts one activity row (via "app" or "mcp").
 - Status changes (app or MCP) go through the one helper behind issues.move; issues.update never changes status.
-- Sub-issues: one level, no loops, always inherit the parent's project (one shared helper, app and MCP).
+- Model: Workspace → Space → Project → Issue. A space (product or client) owns the issue key, counter, context doc
+  and views; a project is an optional workstream inside one space. An issue's project must be in its space.
+- Sub-issues: one level, no loops, always inherit the parent's space and project (one shared helper, app and MCP).
 - Never store plain tokens; SHA-256 hash only. Generate randomness in actions.
 - Product name, default issue key and token prefix come only from packages/backend/convex/lib/brand.ts
   ({ name: "Pantry", defaultKey: "PAN", tokenPrefix: "pan_" }).

@@ -3,7 +3,7 @@
 A fast, keyboard-first, open-source (MIT) issue tracker for 1–3 person teams working with AI coding agents.
 Your agents read and update issues over MCP; your data lives in your own Vercel and Convex accounts.
 
-> Status: early development (milestone M2: invites, projects, issues, list and board). The Deploy button below is
+> Status: early development (milestone M3: shortcuts, command palette, optimistic updates, My issues and filters, on spaces with optional projects). The Deploy button below is
 > being tested on a fresh account.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
