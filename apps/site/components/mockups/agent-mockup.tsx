@@ -26,7 +26,7 @@ const LINES: Line[] = [
   { kind: "prompt", text: `work on ${KEY}` },
   {
     kind: "tool",
-    name: "get_project_context",
+    name: "get_space_context",
     args: `"PAN"`,
     result: "1.4 KB · stack, conventions",
   },
@@ -56,7 +56,7 @@ export function AgentMockup() {
   return (
     <div ref={ref}>
       <Mockup
-        label={`An agent session next to ${KEY}: the agent reads the project context and the issue over MCP, moves it to In Progress, comments, and moves it to In Review.`}
+        label={`An agent session next to ${KEY}: the agent reads the space's context doc and the issue over MCP, moves it to In Progress, comments, and moves it to In Review.`}
       >
         <div className="grid gap-4 lg:grid-cols-[1fr_1.05fr]">
           {/* Terminal */}

@@ -33,7 +33,7 @@ const RESULTS = [
     meta: issueKey(4),
     status: "done",
   },
-  { id: "p", icon: "project", title: "Open project Pantry", meta: "G then P" },
+  { id: "p", icon: "project", title: "Open space Pantry", meta: "Space" },
   { id: "n", icon: "action", title: "New issue in Pantry", meta: "C" },
 ] as const;
 

@@ -84,11 +84,11 @@ export const manifesto =
 export const mcp = {
   id: "agents",
   title: `Tell your agent “work on ${issueKey(42)}”.`,
-  lede: `Every ${name} instance runs its own MCP server. From an issue key, your agent gets the issue, its sub-issues, the comments and the project's context doc. Then it moves the status and writes up what it did, as you.`,
+  lede: `Every ${name} instance runs its own MCP server. From an issue key, your agent gets the issue, its sub-issues, the comments and the space's context doc. Then it moves the status and writes up what it did, as you.`,
   points: [
     {
       title: "A brief agents read first",
-      body: "Each project has a markdown context doc: stack, conventions, what not to touch. Agents load it before they start.",
+      body: "Each space (a product or a client) has a markdown context doc: stack, conventions, what not to touch. Agents load it before they start.",
     },
     {
       title: "Shows as you, tagged “via MCP”",
@@ -103,7 +103,7 @@ export const mcp = {
   toolsBody: "That's the whole API. Small enough that agents use it well.",
   tools: [
     "get_issue",
-    "get_project_context",
+    "get_space_context",
     "list_issues",
     "create_issue",
     "create_sub_issue",

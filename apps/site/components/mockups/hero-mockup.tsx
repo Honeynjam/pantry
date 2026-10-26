@@ -4,6 +4,8 @@ import * as React from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { Bot, Home, Inbox, ListFilter, Plus, Search, Settings } from "lucide-react";
 import { LogoMark } from "@pantry/ui/components/logo-mark";
+import { PantryAvatar } from "@pantry/ui/components/pantry-avatar";
+import { BRAND_AVATAR } from "@/lib/brand-avatar";
 import { spring, tween, useMotionTransition } from "@pantry/ui/lib/motion";
 import type { StatusCategory } from "@pantry/ui/lib/issue-meta";
 import { cn } from "@pantry/ui/lib/utils";
@@ -66,10 +68,23 @@ export function HeroMockup() {
             </div>
             <SidebarItem icon={<Home className="size-4" />} label="Home" />
             <SidebarItem icon={<Inbox className="size-4" />} label="My issues" count={4} />
-            <div className="text-muted-foreground mt-4 mb-1 px-2 text-xs">Projects</div>
-            <SidebarItem dot="var(--label-green)" label={brandName} meta="PAN" active />
-            <SidebarItem dot="var(--label-violet)" label="Website" meta="WEB" />
-            <SidebarItem dot="var(--label-orange)" label="Client: Fern" meta="FRN" />
+            <div className="text-muted-foreground mt-4 mb-1 px-2 text-xs">Spaces</div>
+            <SidebarItem
+              avatar={<PantryAvatar {...BRAND_AVATAR} size="sm" />}
+              label={brandName}
+              meta="PAN"
+              active
+            />
+            <SidebarItem
+              avatar={<PantryAvatar seed="WEB" shape="toast" color="violet" size="sm" />}
+              label="Website"
+              meta="WEB"
+            />
+            <SidebarItem
+              avatar={<PantryAvatar seed="FRN" shape="honey" color="orange" size="sm" />}
+              label="Client: Fern"
+              meta="FRN"
+            />
             <div className="mt-auto">
               <SidebarItem icon={<Settings className="size-4" />} label="Settings" />
             </div>
@@ -78,7 +93,7 @@ export function HeroMockup() {
           {/* Main */}
           <div className="relative flex min-w-0 flex-1 flex-col">
             <div className="border-border flex h-11 shrink-0 items-center gap-3 border-b px-4 text-sm">
-              <span className="size-2 rounded-full bg-[var(--label-green)]" />
+              <PantryAvatar {...BRAND_AVATAR} size="sm" />
               <span className="font-medium">{brandName}</span>
               <span className="text-muted-foreground font-mono text-xs">PAN</span>
               <div className="ml-2 flex items-center gap-1 text-sm">
@@ -156,7 +171,7 @@ function ToastText({ kind }: { kind: (typeof STEPS)[number]["toast"] }) {
     case "read":
       return (
         <p className="text-muted-foreground">
-          {who} read {key} and the project context
+          {who} read {key} and the space&apos;s context doc
         </p>
       );
     case "moved":
@@ -187,14 +202,14 @@ function ToastText({ kind }: { kind: (typeof STEPS)[number]["toast"] }) {
 
 function SidebarItem({
   icon,
-  dot,
+  avatar,
   label,
   meta,
   count,
   active,
 }: {
   icon?: React.ReactNode;
-  dot?: string;
+  avatar?: React.ReactNode;
   label: string;
   meta?: string;
   count?: number;
@@ -208,7 +223,7 @@ function SidebarItem({
       )}
     >
       {icon}
-      {dot && <span className="mx-1 size-2 rounded-full" style={{ backgroundColor: dot }} />}
+      {avatar}
       <span className="truncate">{label}</span>
       {meta && <span className="text-2xs text-muted-foreground ml-auto font-mono">{meta}</span>}
       {count !== undefined && <span className="tabular ml-auto text-xs">{count}</span>}
