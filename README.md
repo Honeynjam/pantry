@@ -166,8 +166,21 @@ it the site uses Vercel's production URL. `apps/site/vercel.json` skips builds w
 | `packages/mcp` | MCP tools (zod inputs, token check, Convex calls) behind `/api/mcp` |
 | `packages/tsconfig`, `packages/eslint-config` | Shared config |
 | `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |
-| `.github/workflows` | CI (typecheck, lint, test) and Sync upstream (update PRs for self-hosted copies) |
+| `.github/workflows` | CI (typecheck, lint, test), Release (GitHub Release from a version tag) and Sync upstream (update PRs for self-hosted copies) |
 | `docs/` | Spec (`PANTRY-SPEC.md`), deploy test checklist, Tauri spike notes; build plans and milestone notes in `docs/internal/` |
+
+## Contributing
+
+Bug reports and small, focused PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first: it covers setup,
+the checks, and [what Pantry won't build](CONTRIBUTING.md#what-we-wont-merge).
+
+## Security
+
+Please report vulnerabilities privately, not in a public issue: see [SECURITY.md](SECURITY.md).
+
+## Changelog
+
+What changed in each release: [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 
