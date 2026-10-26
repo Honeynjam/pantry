@@ -4,7 +4,7 @@ import { NavigationProvider, PantryProviders, type LinkProps, type Navigation } 
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, type ReactNode } from "react";
-import { convexUrl } from "@/lib/convex-env";
+import { getConvexUrl } from "@/lib/convex-env";
 import { MissingConvexUrl } from "./missing-convex-url";
 
 function Link({ href, ...props }: LinkProps) {
@@ -24,6 +24,7 @@ export default function ClientApp({ children }: { children: ReactNode }) {
     [pathname, router],
   );
 
+  const convexUrl = getConvexUrl();
   if (!convexUrl) return <MissingConvexUrl />;
   return (
     <PantryProviders convexUrl={convexUrl}>
