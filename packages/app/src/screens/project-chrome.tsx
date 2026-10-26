@@ -25,8 +25,10 @@ export function ProjectTitle({
   projectKey: string;
   view: ProjectView;
 }) {
-  const { Link } = useNavigation();
+  const { Link, search } = useNavigation();
   const project = data.projects.find((p) => p.key === projectKey);
+  // List and board share the filters, so switching keeps them.
+  const carry = (id: ProjectView) => (id === "settings" ? "" : search);
   return (
     <>
       <span className="size-2 shrink-0 rounded-full" style={{ background: projectColor(projectKey) }} aria-hidden />
@@ -37,7 +39,7 @@ export function ProjectTitle({
           {VIEWS.map((item) => (
             <Link
               key={item.id}
-              href={item.href(projectKey)}
+              href={item.href(projectKey) + carry(item.id)}
               aria-current={item.id === view ? "page" : undefined}
               className={cn(
                 "flex h-6 items-center rounded-sm px-2 text-xs transition-colors duration-(--duration-instant)",

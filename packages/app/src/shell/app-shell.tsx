@@ -24,7 +24,8 @@ import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
-import { HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { RollingNumber } from "@pantry/ui/components/rolling-number";
+import { CircleUserRoundIcon, HouseIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { routes, useNavigation } from "../navigation";
@@ -86,6 +87,7 @@ function NavItem({
 function AppSidebar({ data }: { data: WorkspaceData }) {
   const { pathname } = useNavigation();
   const { openPalette, newProject } = useAppCommands();
+  const mine = useQuery(api.issues.listMine);
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -118,6 +120,15 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
             <NavItem href={routes.home} tooltip="Home" active={pathname === routes.home}>
               <HouseIcon />
               <span>Home</span>
+            </NavItem>
+            <NavItem
+              href={routes.myIssues}
+              tooltip="My issues"
+              active={pathname === routes.myIssues}
+              badge={mine === undefined ? undefined : <RollingNumber value={mine.length} />}
+            >
+              <CircleUserRoundIcon />
+              <span>My issues</span>
             </NavItem>
           </SidebarMenu>
         </SidebarGroup>

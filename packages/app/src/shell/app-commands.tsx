@@ -40,7 +40,7 @@ export function useAppCommands(): AppCommands {
  */
 export function AppCommandsProvider({ data, children }: { data: WorkspaceData; children: ReactNode }) {
   useShortcutListener();
-  const { pathname, navigate } = useNavigation();
+  const { pathname, search, navigate } = useNavigation();
   const { toggleSidebar } = useSidebar();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -67,7 +67,11 @@ export function AppCommandsProvider({ data, children }: { data: WorkspaceData; c
 
   const goToProject = (view: "list" | "board") => {
     if (!currentProject) return false;
-    navigate(view === "list" ? routes.project(currentProject.key) : routes.board(currentProject.key));
+    const list = routes.project(currentProject.key);
+    const board = routes.board(currentProject.key);
+    // Between a project's list and board, the filters come along.
+    const carry = pathname === list || pathname === board ? search : "";
+    navigate((view === "list" ? list : board) + carry);
   };
 
   useShortcut("palette", "global", () => setPaletteOpen(true));

@@ -5,11 +5,13 @@ import type { Doc, Id } from "@pantry/backend/dataModel";
 import { Button } from "@pantry/ui/components/button";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { useQuery } from "convex/react";
-import { InboxIcon, PlusIcon } from "lucide-react";
+import { InboxIcon, PlusIcon, SearchXIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
+import { FilterBar, useIssueFilters } from "../issues/filter-bar";
+import { applyFilters, EMPTY_FILTERS, hasFilters } from "../issues/filters";
 import { IssueRow } from "../issues/issue-row";
 import { SelectionProvider, useIssueSelection } from "../issues/selection";
 import { statusColor, useLookups, type Lookups } from "../issues/lookups";
@@ -59,12 +61,22 @@ export function ProjectIssues({
   const lookups = useLookups(data);
   const commands = useAppCommands();
   const newIssue = (defaults: NewIssueDefaults = {}) => commands.newIssue({ ...defaults, project });
+  const { filters, setFilters, setTitle } = useIssueFilters();
+  const filtering = hasFilters(filters);
+  const visible = useMemo(
+    () =>
+      issues === undefined
+        ? undefined
+        : applyFilters(issues, filters, { me: data.me._id, statuses: data.statuses, labels: data.labels }),
+    [issues, filters, data.me._id, data.statuses, data.labels],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-3">
-        <span className="text-xs text-muted-foreground">
-          {issues === undefined ? "Loading…" : `${issues.length} ${issues.length === 1 ? "issue" : "issues"}`}
+      <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-1.5">
+        <FilterBar filters={filters} setFilters={setFilters} setTitle={setTitle} lookups={lookups} />
+        <span className="ml-auto text-xs text-muted-foreground tabular" aria-live="polite">
+          {issueCount(issues, visible)}
         </span>
         <Button
           size="sm"
@@ -76,18 +88,39 @@ export function ProjectIssues({
         >
           {includeDone ? "Hide older done" : "Show older done"}
         </Button>
-        <Button size="sm" className="ml-auto" onClick={() => newIssue()} data-icon="inline-start">
+        <Button size="sm" onClick={() => newIssue()} data-icon="inline-start">
           <PlusIcon />
           New issue
         </Button>
       </div>
-      {issues === undefined ? null : issues.length === 0 && !includeDone ? (
+      {issues === undefined || visible === undefined ? null : issues.length === 0 && !includeDone ? (
         <EmptyProject project={project} onCreate={() => newIssue()} />
+      ) : visible.length === 0 && filtering ? (
+        <NoMatches onClear={() => setFilters(EMPTY_FILTERS)} />
       ) : view === "board" && renderBoard ? (
-        renderBoard({ issues, lookups, project, newIssue })
+        renderBoard({ issues: visible, lookups, project, newIssue })
       ) : (
-        <IssueList issues={issues} lookups={lookups} newIssue={newIssue} />
+        <IssueList issues={visible} lookups={lookups} newIssue={newIssue} />
       )}
+    </div>
+  );
+}
+
+/** "12 issues", or "3 of 12 issues" while filtering. */
+export function issueCount(all: ReadonlyArray<unknown> | undefined, shown: ReadonlyArray<unknown> | undefined): string {
+  if (all === undefined || shown === undefined) return "Loading…";
+  const noun = all.length === 1 ? "issue" : "issues";
+  return shown.length === all.length ? `${all.length} ${noun}` : `${shown.length} of ${all.length} ${noun}`;
+}
+
+export function NoMatches({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+      <SearchXIcon className="size-5 text-muted-foreground" aria-hidden />
+      <p className="text-sm font-medium text-foreground">No issues match these filters</p>
+      <Button className="mt-1" variant="secondary" onClick={onClear}>
+        Clear filters
+      </Button>
     </div>
   );
 }
@@ -112,7 +145,7 @@ export function useIssueFamily(issues: Doc<"issues">[]) {
   }, [issues]);
 }
 
-function IssueList({
+export function IssueList({
   issues,
   lookups,
   newIssue,

@@ -15,7 +15,8 @@ function Link({ href, ...props }: LinkProps) {
 export default function ClientApp({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useSearchParams().toString();
+  // Filters are comma lists; keep them readable in links built from this.
+  const params = useSearchParams().toString().replace(/%2C/gi, ",");
   const navigation = useMemo<Navigation>(
     () => ({
       pathname,
