@@ -640,7 +640,7 @@ function SidebarDemo() {
                     </span>
                     <span className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-medium text-foreground">Home</span>
-                      <span className="truncate text-2xs text-faint-foreground">2 members</span>
+                      <span className="truncate text-2xs text-muted-foreground">2 members</span>
                     </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -718,7 +718,7 @@ function SidebarDemo() {
             </header>
             <div className="flex flex-1 flex-col gap-2 p-4 text-sm text-muted-foreground">
               <p>Click the panel icon to fold the sidebar to its rail; hover a rail icon for its tooltip.</p>
-              <p className="text-xs text-faint-foreground">
+              <p className="text-xs text-muted-foreground">
                 In the app, <Keycap keys="[" /> folds it through the shortcut registry (M3).
               </p>
             </div>

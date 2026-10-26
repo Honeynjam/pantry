@@ -83,7 +83,7 @@ function Keycap({
     <span data-slot="keycap" className={cn("inline-flex items-center gap-1", className)} {...props}>
       {steps.map((step, index) => (
         <React.Fragment key={index}>
-          {index > 0 && <span className="text-2xs text-faint-foreground">then</span>}
+          {index > 0 && <span className="text-2xs text-muted-foreground">then</span>}
           <KbdGroup>
             {formatChord(step, isMac).map((key, keyIndex) => (
               <Kbd key={keyIndex}>{key}</Kbd>

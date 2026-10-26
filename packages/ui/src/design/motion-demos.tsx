@@ -87,7 +87,7 @@ export function MotionSection() {
             <div key={item.name} className="flex items-center gap-4">
               <div className="flex w-44 shrink-0 flex-col">
                 <TokenName className="text-xs text-foreground">spring.{item.name}</TokenName>
-                <span className="text-2xs text-faint-foreground">{item.spec}</span>
+                <span className="text-2xs text-muted-foreground">{item.spec}</span>
               </div>
               <Track
                 on={springsOn}
@@ -103,7 +103,7 @@ export function MotionSection() {
               <PlayIcon />
               Play springs
             </Button>
-            <span className="text-xs text-faint-foreground">
+            <span className="text-xs text-muted-foreground">
               Filled dot: motion spring. Ring: its CSS <code className="font-mono">linear()</code> mirror. They land together.
             </span>
           </div>
@@ -116,7 +116,7 @@ export function MotionSection() {
             <div key={item.name} className="flex items-center gap-4">
               <div className="flex w-44 shrink-0 flex-col">
                 <TokenName className="text-xs text-foreground">duration.{item.name}</TokenName>
-                <span className="font-mono text-2xs text-faint-foreground tabular">{item.value * 1000}ms</span>
+                <span className="font-mono text-2xs text-muted-foreground tabular">{item.value * 1000}ms</span>
               </div>
               <Track on={tweensOn} cssDuration={`var(--duration-${item.name})`} cssEase="var(--ease-out)" />
               <span className="hidden w-52 shrink-0 text-xs text-muted-foreground lg:block">{item.use}</span>
@@ -127,7 +127,7 @@ export function MotionSection() {
               <PlayIcon />
               Play tweens
             </Button>
-            <span className="text-xs text-faint-foreground">
+            <span className="text-xs text-muted-foreground">
               Eases: <code className="font-mono">--ease-out</code> enter, <code className="font-mono">--ease-in</code> exit,{" "}
               <code className="font-mono">--ease-in-out</code> on-screen moves.
             </span>

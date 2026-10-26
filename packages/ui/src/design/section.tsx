@@ -47,7 +47,7 @@ export function SubSection({
     <div className={cn("flex flex-col gap-3", className)}>
       <div className="flex items-baseline justify-between gap-4">
         <h3 className="font-sans text-sm font-medium tracking-normal text-foreground">{title}</h3>
-        {hint && <span className="font-mono text-2xs text-faint-foreground">{hint}</span>}
+        {hint && <span className="font-mono text-2xs text-muted-foreground">{hint}</span>}
       </div>
       {children}
     </div>
@@ -69,11 +69,11 @@ export function Specimen({
       <div className={cn("flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background p-4", className)}>
         {children}
       </div>
-      {label && <span className="font-mono text-2xs text-faint-foreground">{label}</span>}
+      {label && <span className="font-mono text-2xs text-muted-foreground">{label}</span>}
     </div>
   );
 }
 
 export function TokenName({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <code className={cn("font-mono text-2xs text-faint-foreground", className)}>{children}</code>;
+  return <code className={cn("font-mono text-2xs text-muted-foreground", className)}>{children}</code>;
 }

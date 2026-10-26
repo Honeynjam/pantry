@@ -66,7 +66,7 @@ function DropdownMenuLabel({
     <MenuPrimitive.GroupLabel
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn("px-2 pt-1.5 pb-1 text-xs font-medium text-faint-foreground data-inset:pl-7.5", className)}
+      className={cn("px-2 pt-1.5 pb-1 text-xs font-medium text-muted-foreground data-inset:pl-7.5", className)}
       {...props}
     />
   );
@@ -212,7 +212,7 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<"spa
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={cn("ml-auto flex items-center gap-0.5 pl-4 font-mono text-2xs text-faint-foreground", className)}
+      className={cn("ml-auto flex items-center gap-0.5 pl-4 font-mono text-2xs text-muted-foreground", className)}
       {...props}
     />
   );

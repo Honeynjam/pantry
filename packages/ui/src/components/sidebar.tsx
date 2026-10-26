@@ -388,7 +388,7 @@ function SidebarGroupLabel({
     props: mergeProps<"div">(
       {
         className: cn(
-          "flex h-7 shrink-0 items-center rounded-md px-2 text-xs font-medium text-faint-foreground transition-[margin,opacity] duration-(--duration-standard) ease-(--ease-out) group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-7 group-data-[collapsible=icon]:opacity-0 [&>svg]:size-3.5 [&>svg]:shrink-0",
+          "flex h-7 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-foreground transition-[margin,opacity] duration-(--duration-standard) ease-(--ease-out) group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-7 group-data-[collapsible=icon]:opacity-0 [&>svg]:size-3.5 [&>svg]:shrink-0",
           className
         ),
       },
@@ -585,7 +585,7 @@ function SidebarMenuBadge({
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
       className={cn(
-        "pointer-events-none absolute right-1.5 flex h-5 min-w-5 items-center justify-center rounded-sm px-1 font-mono text-2xs text-faint-foreground tabular-nums select-none group-data-[collapsible=icon]:hidden peer-data-[size=default]/menu-button:top-1 peer-data-[size=lg]/menu-button:top-3 peer-data-[size=sm]/menu-button:top-0.5 peer-data-active/menu-button:text-muted-foreground",
+        "pointer-events-none absolute right-1.5 flex h-5 min-w-5 items-center justify-center rounded-sm px-1 font-mono text-2xs text-muted-foreground tabular-nums select-none group-data-[collapsible=icon]:hidden peer-data-[size=default]/menu-button:top-1 peer-data-[size=lg]/menu-button:top-3 peer-data-[size=sm]/menu-button:top-0.5 peer-data-active/menu-button:text-muted-foreground",
         className
       )}
       {...props}

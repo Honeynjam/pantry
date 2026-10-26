@@ -41,7 +41,7 @@ const SEMANTIC_TOKENS: ReadonlyArray<{ name: string; note: string; text?: boolea
   { name: "selected", note: "active row / nav" },
   { name: "foreground", note: "text", text: true },
   { name: "muted-foreground", note: "secondary text", text: true },
-  { name: "faint-foreground", note: "placeholder, hints", text: true },
+  { name: "faint-foreground", note: "placeholders, disabled, decorative only", text: true },
   { name: "border", note: "hairlines" },
   { name: "border-strong", note: "hover borders" },
   { name: "input", note: "field borders" },
@@ -72,7 +72,7 @@ export function ColorSection() {
               <Swatch color={`var(--gray-${index + 1})`} className="h-12" />
               <div className="flex flex-col">
                 <span className="font-mono text-2xs text-foreground tabular">{index + 1}</span>
-                <span className="truncate text-2xs text-faint-foreground" title={role}>
+                <span className="truncate text-2xs text-muted-foreground" title={role}>
                   {role}
                 </span>
               </div>
@@ -97,7 +97,7 @@ export function ColorSection() {
               )}
               <div className="flex min-w-0 flex-col">
                 <TokenName className="text-xs text-foreground">--{token.name}</TokenName>
-                <span className="text-2xs text-faint-foreground">{token.note}</span>
+                <span className="text-2xs text-muted-foreground">{token.note}</span>
               </div>
             </div>
           ))}
@@ -114,7 +114,7 @@ export function ColorSection() {
             <div key={token.name} className="flex flex-col gap-1.5">
               <Swatch color={`var(${token.name})`} className="h-10" />
               <TokenName className="text-foreground">{token.name}</TokenName>
-              <span className="text-2xs text-faint-foreground">{token.note}</span>
+              <span className="text-2xs text-muted-foreground">{token.note}</span>
             </div>
           ))}
         </div>
@@ -144,7 +144,7 @@ export function ColorSection() {
                 </div>
               );
             })}
-            <div className="flex h-8 items-center px-2 text-xs text-faint-foreground">
+            <div className="flex h-8 items-center px-2 text-xs text-muted-foreground">
               Shapes carry the meaning; only urgent is coloured.
             </div>
           </Specimen>
@@ -215,8 +215,8 @@ export function TypeSection() {
           {TYPE_SCALE.map((row) => (
             <div key={row.token} className="grid grid-cols-[6.5rem_4rem_1fr] items-center gap-3 px-3 py-2.5 sm:grid-cols-[6.5rem_4rem_8rem_1fr]">
               <TokenName className="text-xs text-foreground">{row.token}</TokenName>
-              <span className="font-mono text-2xs text-faint-foreground tabular">{row.px}</span>
-              <span className="hidden text-xs text-faint-foreground sm:block">{row.use}</span>
+              <span className="font-mono text-2xs text-muted-foreground tabular">{row.px}</span>
+              <span className="hidden text-xs text-muted-foreground sm:block">{row.use}</span>
               <span className={cn("min-w-0 truncate text-foreground", row.className)}>{row.sample}</span>
             </div>
           ))}
@@ -261,7 +261,7 @@ export function LayoutSection() {
                   className="size-10 border border-border-strong bg-muted"
                   style={{ borderRadius: `var(--radius-${name})` }}
                 />
-                <span className="font-mono text-2xs text-faint-foreground">
+                <span className="font-mono text-2xs text-muted-foreground">
                   {name} · {px}
                 </span>
               </div>
@@ -297,7 +297,7 @@ export function LayoutSection() {
                 aria-hidden
               />
               <TokenName className="w-40 text-xs text-foreground">{row.token}</TokenName>
-              <span className="font-mono text-2xs text-faint-foreground tabular">{row.px}px</span>
+              <span className="font-mono text-2xs text-muted-foreground tabular">{row.px}px</span>
               <span className="hidden text-xs text-muted-foreground sm:block">{row.use}</span>
             </div>
           ))}

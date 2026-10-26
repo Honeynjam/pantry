@@ -131,7 +131,7 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
                   {item.label}
                 </a>
               ))}
-              <p className="mt-auto px-2 text-2xs leading-4 text-faint-foreground">
+              <p className="mt-auto px-2 text-2xs leading-4 text-muted-foreground">
                 Tokens: packages/ui/src/styles/globals.css. Motion: packages/ui/src/lib/motion.ts.
               </p>
             </nav>

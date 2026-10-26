@@ -119,7 +119,7 @@
   --secondary-foreground: var(--gray-12);
   --muted: var(--gray-3);
   --muted-foreground: var(--gray-11);
-  --faint-foreground: var(--gray-9);
+  --faint-foreground: var(--gray-9); /* placeholders, decorative hints and disabled text only */
   --accent: var(--gray-4); /* hover fill */
   --accent-foreground: var(--gray-12);
   --selected: var(--gray-5);
@@ -216,7 +216,7 @@
   --secondary-foreground: var(--gray-12);
   --muted: var(--gray-3);
   --muted-foreground: var(--gray-11);
-  --faint-foreground: var(--gray-9);
+  --faint-foreground: var(--gray-9); /* placeholders, decorative hints and disabled text only */
   --accent: var(--gray-4);
   --accent-foreground: var(--gray-12);
   --selected: var(--gray-5);

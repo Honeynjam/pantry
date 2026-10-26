@@ -79,7 +79,7 @@ function IssueList() {
             <div className="flex h-8 items-center gap-2 border-b border-border bg-gray-2 px-3 first:border-t-0">
               <StatusGlyph category={group} />
               <span className="text-sm font-medium text-foreground">{STATUS_CATEGORY_LABEL[group]}</span>
-              <span className="font-mono text-xs text-faint-foreground tabular">{issues.length}</span>
+              <span className="font-mono text-xs text-muted-foreground tabular">{issues.length}</span>
               <Button variant="ghost" size="icon-xs" className="ml-auto" aria-label={`New issue in ${STATUS_CATEGORY_LABEL[group]}`}>
                 <PlusIcon />
               </Button>
@@ -148,7 +148,7 @@ function BoardColumn({ category }: { category: StatusCategory }) {
       <div className="flex h-6 items-center gap-2 px-1">
         <StatusGlyph category={category} />
         <span className="text-sm font-medium text-foreground">{STATUS_CATEGORY_LABEL[category]}</span>
-        <span className="font-mono text-xs text-faint-foreground tabular">{issues.length}</span>
+        <span className="font-mono text-xs text-muted-foreground tabular">{issues.length}</span>
       </div>
       {issues.map((issue) => (
         <div
@@ -243,14 +243,14 @@ export function PartsSection() {
                 {STATUS_CATEGORIES.map((category) => (
                   <StatusGlyph key={category} category={category} size={size} />
                 ))}
-                <span className="font-mono text-2xs text-faint-foreground">{size}px</span>
+                <span className="font-mono text-2xs text-muted-foreground">{size}px</span>
               </div>
             ))}
             <div className="flex items-center gap-3">
               {["#e5484d", "#3e63dd", "#30a46c"].map((color) => (
                 <StatusGlyph key={color} category="started" color={color} />
               ))}
-              <span className="text-2xs text-faint-foreground">user colours</span>
+              <span className="text-2xs text-muted-foreground">user colours</span>
             </div>
           </Specimen>
         </SubSection>
@@ -261,7 +261,7 @@ export function PartsSection() {
                 {PRIORITIES.map((priority) => (
                   <PriorityGlyph key={priority} priority={priority} size={size} title={PRIORITY_LABEL[priority]} />
                 ))}
-                <span className="font-mono text-2xs text-faint-foreground">{size}px</span>
+                <span className="font-mono text-2xs text-muted-foreground">{size}px</span>
               </div>
             ))}
           </Specimen>

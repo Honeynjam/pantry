@@ -128,3 +128,8 @@ Primary, body and muted text pass WCAG AA (4.5:1) in both themes. Faint text (`-
 3.30:1 light / 4.38:1 dark: fine for placeholders and decorative hints, but it is also used for a few small labels
 (menu group labels, sidebar group labels, the "then" between keycaps), where strict WCAG AA would want 4.5:1.
 Raising light gray-9 to ~L 0.555 would get there but nearly merges faint and muted text; left for Kris to decide.
+
+**Resolved (Kris, 26 Oct):** `--faint-foreground` is now for placeholders, disabled text and decorative icons only.
+Informative small labels (menu, command and sidebar group headings, sidebar counts, shortcut hints, the "then"
+between keycaps, input-group addon text, every note on `/design`) use `--muted-foreground`, which passes AA in both
+themes (5.30–6.26:1 light, 8.19–9.43:1 dark).
