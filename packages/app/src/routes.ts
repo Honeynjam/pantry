@@ -1,7 +1,7 @@
 // Plain module (no "use client"): server components import it through `@pantry/app/routes`.
 // Values imported from the package root are client references on the server and can't be called.
 
-export const SETTINGS_SECTIONS = ["members", "spaces", "labels", "statuses"] as const;
+export const SETTINGS_SECTIONS = ["members", "spaces", "labels", "statuses", "tokens"] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 export const routes = {

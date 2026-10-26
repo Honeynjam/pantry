@@ -3,7 +3,7 @@
 import { cn } from "@pantry/ui/lib/utils";
 import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import { motion } from "motion/react";
-import { CircleDashedIcon, FolderIcon, TagIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import { CircleDashedIcon, FolderIcon, KeyRoundIcon, TagIcon, UsersIcon, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { EntryGate } from "../../entry";
 import { routes, useNavigation, type SettingsSection } from "../../navigation";
@@ -13,17 +13,27 @@ import { LabelsSettings } from "./labels";
 import { MembersSettings } from "./members";
 import { SpacesSettings } from "./spaces";
 import { StatusesSettings } from "./statuses";
+import { TokensSettings } from "./tokens";
 
-type SectionDef = { id: SettingsSection; label: string; icon: LucideIcon; render: (data: WorkspaceData) => ReactNode };
+type SectionDef = {
+  id: SettingsSection;
+  label: string;
+  icon: LucideIcon;
+  group: "Workspace" | "Account";
+  render: (data: WorkspaceData) => ReactNode;
+};
 
 const SECTIONS: SectionDef[] = [
-  { id: "members", label: "Members", icon: UsersIcon, render: (data) => <MembersSettings data={data} /> },
-  { id: "spaces", label: "Spaces", icon: FolderIcon, render: (data) => <SpacesSettings data={data} /> },
-  { id: "labels", label: "Labels", icon: TagIcon, render: (data) => <LabelsSettings data={data} /> },
-  { id: "statuses", label: "Statuses", icon: CircleDashedIcon, render: (data) => <StatusesSettings data={data} /> },
+  { id: "members", label: "Members", icon: UsersIcon, group: "Workspace", render: (data) => <MembersSettings data={data} /> },
+  { id: "spaces", label: "Spaces", icon: FolderIcon, group: "Workspace", render: (data) => <SpacesSettings data={data} /> },
+  { id: "labels", label: "Labels", icon: TagIcon, group: "Workspace", render: (data) => <LabelsSettings data={data} /> },
+  { id: "statuses", label: "Statuses", icon: CircleDashedIcon, group: "Workspace", render: (data) => <StatusesSettings data={data} /> },
+  { id: "tokens", label: "API tokens", icon: KeyRoundIcon, group: "Account", render: () => <TokensSettings /> },
 ];
 
-/** Workspace settings: members and invites, spaces, labels, statuses (spec §4). */
+const GROUPS = ["Workspace", "Account"] as const;
+
+/** Workspace settings (members and invites, spaces, labels, statuses) and my API tokens (spec §4, §6). */
 export function SettingsPage({ section }: { section: string }) {
   const current = SECTIONS.find((item) => item.id === section);
   return (
@@ -63,12 +73,40 @@ export function SettingsPage({ section }: { section: string }) {
 }
 
 function SettingsNav({ active }: { active: SettingsSection | undefined }) {
+  return (
+    <nav aria-label="Settings" className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-border p-2 md:w-48 md:flex-col md:border-r md:border-b-0">
+      {GROUPS.map((group, index) => (
+        <SettingsNavGroup
+          key={group}
+          title={group}
+          first={index === 0}
+          items={SECTIONS.filter((item) => item.group === group)}
+          active={active}
+        />
+      ))}
+    </nav>
+  );
+}
+
+function SettingsNavGroup({
+  title,
+  first,
+  items,
+  active,
+}: {
+  title: string;
+  first: boolean;
+  items: SectionDef[];
+  active: SettingsSection | undefined;
+}) {
   const { Link } = useNavigation();
   const transition = useMotionTransition(spring.morph);
   return (
-    <nav aria-label="Settings" className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-border p-2 md:w-48 md:flex-col md:border-r md:border-b-0">
-      <span className="hidden px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground md:block">Workspace</span>
-      {SECTIONS.map((item) => {
+    <>
+      <span className={cn("hidden px-2 pb-1.5 text-xs font-medium text-muted-foreground md:block", first ? "pt-1" : "pt-4")}>
+        {title}
+      </span>
+      {items.map((item) => {
         const isActive = item.id === active;
         const Icon = item.icon;
         return (
@@ -94,6 +132,6 @@ function SettingsNav({ active }: { active: SettingsSection | undefined }) {
           </Link>
         );
       })}
-    </nav>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 import { ConvexError } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+import { brand } from "./brand";
+import { MAX_TOKEN_LENGTH, sha256Hex } from "./tokens";
 
 type AnyCtx = QueryCtx | MutationCtx | ActionCtx;
 
@@ -52,4 +54,35 @@ export async function requireOwner(ctx: QueryCtx | MutationCtx): Promise<Doc<"me
     throw new ConvexError({ code: "OWNER_ONLY", message: "Only the workspace owner can do that." });
   }
   return me;
+}
+
+export type TokenOwner = { apiToken: Doc<"apiTokens">; member: Doc<"members"> };
+
+/**
+ * The API token behind an MCP call and the member it acts as. Every public MCP function calls this
+ * first (spec §10b): the plain token is hashed and looked up; a revoked or unknown token, or one
+ * whose member is gone, is rejected. Everything the caller touches is then resolved inside
+ * `member.workspaceId`.
+ */
+export async function requireToken(ctx: QueryCtx | MutationCtx, token: string): Promise<TokenOwner> {
+  const owner = await findToken(ctx, token);
+  if (!owner) {
+    throw new ConvexError({ code: "INVALID_TOKEN", message: "This API token isn't valid or was revoked." });
+  }
+  return owner;
+}
+
+/** `requireToken` without the throw: null for anything that isn't a live token. */
+export async function findToken(ctx: QueryCtx | MutationCtx, token: string): Promise<TokenOwner | null> {
+  const trimmed = token.trim();
+  if (!trimmed.startsWith(brand.tokenPrefix) || trimmed.length > MAX_TOKEN_LENGTH) return null;
+  const tokenHash = await sha256Hex(trimmed);
+  const apiToken = await ctx.db
+    .query("apiTokens")
+    .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+    .first();
+  if (!apiToken || apiToken.revokedAt !== undefined) return null;
+  const member = await ctx.db.get("members", apiToken.memberId);
+  if (!member || member.workspaceId !== apiToken.workspaceId || member.userId !== apiToken.userId) return null;
+  return { apiToken, member };
 }

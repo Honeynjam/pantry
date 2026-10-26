@@ -32,6 +32,7 @@ import type * as projects from "../projects.js";
 import type * as setup from "../setup.js";
 import type * as spaces from "../spaces.js";
 import type * as statuses from "../statuses.js";
+import type * as tokens from "../tokens.js";
 import type * as workspace from "../workspace.js";
 
 import type {
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   setup: typeof setup;
   spaces: typeof spaces;
   statuses: typeof statuses;
+  tokens: typeof tokens;
   workspace: typeof workspace;
 }>;
 

@@ -24,6 +24,7 @@ import {
   FolderIcon,
   HouseIcon,
   KanbanIcon,
+  KeyRoundIcon,
   KeyboardIcon,
   LayersIcon,
   ListIcon,
@@ -208,6 +209,7 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
       settings("spaces", "Spaces", <FolderIcon />, ["archive", "products", "clients"]),
       settings("labels", "Labels", <TagIcon />, ["tags", "colours", "colors"]),
       settings("statuses", "Statuses", <CogIcon />, ["workflow", "columns"]),
+      settings("tokens", "API tokens", <KeyRoundIcon />, ["mcp", "agents", "claude", "cursor", "token"]),
       {
         id: "action:new-issue",
         label: "New issue",

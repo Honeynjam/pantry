@@ -14,7 +14,8 @@ import {
 } from "@pantry/ui/components/dropdown-menu";
 import { SidebarMenuButton } from "@pantry/ui/components/sidebar";
 import { useTheme, type Theme } from "@pantry/ui/lib/theme";
-import { ChevronsUpDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { ChevronsUpDownIcon, KeyRoundIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 
 /** Footer button: who's signed in, theme choice and sign out. */
@@ -22,6 +23,7 @@ export function UserMenu({ displayName }: { displayName: string }) {
   const authClient = useAuthClient();
   const session = authClient.useSession();
   const { theme, setTheme } = useTheme();
+  const { navigate } = useNavigation();
   const email = session.data?.user.email;
 
   return (
@@ -55,6 +57,10 @@ export function UserMenu({ displayName }: { displayName: string }) {
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate(routes.settings("tokens"))}>
+          <KeyRoundIcon />
+          API tokens
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void authClient.signOut()}>
           <LogOutIcon />
           Sign out
