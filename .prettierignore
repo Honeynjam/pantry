@@ -1,3 +1,6 @@
 pnpm-lock.yaml
 **/_generated/**
 docs/
+
+# Markdown round-trip fixtures: their exact bytes (missing trailing newline, odd whitespace) are the test input.
+packages/ui/test/fixtures/
