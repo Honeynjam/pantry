@@ -119,7 +119,7 @@ function CreateToken({ created, onCreated }: { created: CreatedToken | null; onC
 function Snippet({ text, label }: { text: string; label: string }) {
   return (
     <div className="flex items-start gap-1 rounded-md border border-border bg-gray-2 p-1 pl-2.5">
-      <pre className="min-w-0 flex-1 overflow-x-auto py-1 font-mono text-xs leading-5 text-foreground">
+      <pre className="min-w-0 flex-1 py-1 font-mono text-xs leading-5 break-all whitespace-pre-wrap text-foreground">
         <code>{text}</code>
       </pre>
       <CopyButton text={text} label={label} />
