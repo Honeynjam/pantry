@@ -1,5 +1,6 @@
 {
   "name": "pantry",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@10.34.9",
@@ -12,6 +13,7 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "set-version": "node scripts/set-version.mjs",
     "format": "prettier --write ."
   },
   "devDependencies": {
