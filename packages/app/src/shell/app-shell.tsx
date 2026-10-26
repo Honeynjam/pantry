@@ -22,7 +22,7 @@ import {
 import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
-import { HouseIcon } from "lucide-react";
+import { HouseIcon, SettingsIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { routes, useNavigation } from "../navigation";
@@ -132,6 +132,10 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <NavItem href={routes.settings()} tooltip="Settings" active={pathname.startsWith("/settings")}>
+            <SettingsIcon />
+            <span>Settings</span>
+          </NavItem>
           <SidebarMenuItem>
             <UserMenu displayName={data.me.displayName} />
           </SidebarMenuItem>

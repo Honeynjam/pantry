@@ -10,10 +10,12 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as invites from "../invites.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_brand from "../lib/brand.js";
 import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_signup from "../lib/signup.js";
+import type * as lib_tokens from "../lib/tokens.js";
 import type * as lib_version from "../lib/version.js";
 import type * as setup from "../setup.js";
 import type * as workspace from "../workspace.js";
@@ -27,10 +29,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  invites: typeof invites;
   "lib/auth": typeof lib_auth;
   "lib/brand": typeof lib_brand;
   "lib/defaults": typeof lib_defaults;
   "lib/signup": typeof lib_signup;
+  "lib/tokens": typeof lib_tokens;
   "lib/version": typeof lib_version;
   setup: typeof setup;
   workspace: typeof workspace;

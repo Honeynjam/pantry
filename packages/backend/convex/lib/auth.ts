@@ -23,6 +23,12 @@ export async function requireAuthUserId(ctx: AnyCtx): Promise<string> {
   return userId;
 }
 
+/** The signed-in user's email (a claim in the Better Auth JWT), lower-cased; null when absent. */
+export async function getAuthEmail(ctx: AnyCtx): Promise<string | null> {
+  const identity = await ctx.auth.getUserIdentity();
+  return identity?.email ? identity.email.trim().toLowerCase() : null;
+}
+
 /**
  * The caller's `members` row. Every public app function calls this first.
  * Throws when signed out or when the user isn't a member of this instance's workspace.
@@ -37,4 +43,13 @@ export async function requireMember(ctx: QueryCtx | MutationCtx): Promise<Doc<"m
     throw new ConvexError({ code: "NOT_A_MEMBER", message: "You're not a member of this workspace." });
   }
   return member;
+}
+
+/** The caller's `members` row, only if they own the workspace (invites are owner-only). */
+export async function requireOwner(ctx: QueryCtx | MutationCtx): Promise<Doc<"members">> {
+  const me = await requireMember(ctx);
+  if (me.role !== "owner") {
+    throw new ConvexError({ code: "OWNER_ONLY", message: "Only the workspace owner can do that." });
+  }
+  return me;
 }

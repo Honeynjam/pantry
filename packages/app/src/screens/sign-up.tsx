@@ -8,14 +8,28 @@ import { EntryGate } from "../entry";
 import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 import { AuthLayout } from "./auth-layout";
+import { AcceptInvite, withInvite } from "./accept-invite";
 import { describeError, FormError } from "./form-error";
 
-/** Invite-only sign-up. The server rejects emails without a pending invite (accepting invites: M2). */
-export function SignUpPage() {
-  return <EntryGate allow={["signed-out"]}>{() => <SignUpForm />}</EntryGate>;
+const SIGNED_OUT = ["signed-out"] as const;
+const SIGNED_OUT_OR_JOINING = ["signed-out", "not-member"] as const;
+
+/**
+ * Invite-only sign-up. The server rejects emails without a pending invite. With `?invite=`, the
+ * invite is accepted right after the account exists.
+ */
+export function SignUpPage({ inviteToken }: { inviteToken?: string }) {
+  if (!inviteToken) return <EntryGate allow={SIGNED_OUT}>{() => <SignUpForm />}</EntryGate>;
+  return (
+    <EntryGate allow={SIGNED_OUT_OR_JOINING}>
+      {(state) =>
+        state.kind === "not-member" ? <AcceptInvite token={inviteToken} /> : <SignUpForm inviteToken={inviteToken} />
+      }
+    </EntryGate>
+  );
 }
 
-function SignUpForm() {
+function SignUpForm({ inviteToken }: { inviteToken?: string }) {
   const authClient = useAuthClient();
   const { Link } = useNavigation();
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +52,16 @@ function SignUpForm() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      description="Sign-up is invite-only: use the email address your invite was sent to."
+      title={inviteToken ? "Join the workspace" : "Create your account"}
+      description={
+        inviteToken
+          ? "You've been invited. Create your account with the email address the invite was sent to."
+          : "Sign-up is invite-only: open the invite link you were sent, or use the email address it was sent to."
+      }
       footer={
         <>
           Already have an account?{" "}
-          <Link href={routes.signIn} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
+          <Link href={withInvite(routes.signIn, inviteToken)} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
             Sign in
           </Link>
         </>
@@ -66,7 +84,7 @@ function SignUpForm() {
           </Field>
           <FormError message={error} />
           <Button type="submit" size="lg" disabled={pending} className="w-full">
-            {pending ? "Creating account…" : "Create account"}
+            {pending ? "Creating account…" : inviteToken ? "Create account and join" : "Create account"}
           </Button>
         </FieldGroup>
       </form>
