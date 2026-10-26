@@ -133,3 +133,41 @@ Raising light gray-9 to ~L 0.555 would get there but nearly merges faint and mut
 Informative small labels (menu, command and sidebar group headings, sidebar counts, shortcut hints, the "then"
 between keycaps, input-group addon text, every note on `/design`) use `--muted-foreground`, which passes AA in both
 themes (5.30–6.26:1 light, 8.19–9.43:1 dark).
+
+## Tasks 5–8 (26 Oct 2026)
+
+### Decisions and gaps found while building
+- **`workspace.current` built in M1.** It's listed for M2 in §10b, but the app shell needs the workspace, me and
+  projects, so the read-only query was built now, exactly as specified (with tests). No other M2 functions.
+- **`setup.status` grew** to `{ needsSetup, needsSecret, signedIn, isMember }`. It stays public and
+  unauthenticated (documented exception): the setup screen and `/api/instance` need `needsSecret` before anyone
+  can sign in, and the entry gate needs to tell signed-in non-members apart. It returns booleans only.
+- **Projects have no colour field** (schema §10b), but §9d wants coloured project dots. The dot is derived from
+  the project key (stable, from the label palette). Add an optional `projects.color` later if Kris wants to pick.
+- **Sidebar per §9d, minus three things that belong to later tasks:** `[` to fold (needs the M3 shortcut
+  registry), search (opens the M3 palette) and "New project" (M2 `projects.create`). "My issues" is M3; for now the
+  nav has Home + projects. The width animates with a CSS transition on the `smooth` spring curve rather than a
+  motion value; it doesn't re-render the lists either way.
+- **Routing:** `packages/app` stays framework-free; `apps/web` passes Next's router and Link through
+  `NavigationProvider`. App routes render client-only (`next/dynamic` with `ssr: false`), like the Tauri build.
+- **Local dev:** the web app reads the Convex URLs from `packages/backend/.env.local`, so `pnpm dev` needs no
+  copying. `NEXT_DIST_DIR` lets a second dev server run from the same folder (Next 16 allows one per build dir).
+- **Production-only builds** (Q4 ★) via `ignoreCommand` in `apps/web/vercel.json`.
+- **pnpm:** stays on 10 (see `docs/DEPLOY-TEST.md`): Vercel picks pnpm 9/10 from lockfile 9.0; pnpm 11+ needs
+  experimental Corepack.
+- **Convex `env get` exits 0 for missing variables**, so the build script reads `env list --names-only` and never
+  overwrites an existing secret when it can't read the list.
+- **better-auth types:** `ConvexBetterAuthProvider`'s `AuthClient` union rejects a concretely typed client under
+  TypeScript 6; cast at that one boundary (runtime shape is exactly what it expects).
+
+### M1 acceptance criteria (status at the end of this run)
+| Criterion | Status |
+|---|---|
+| `pnpm i && pnpm dev` runs Convex dev (local anonymous, no login) + web | ✔ backend half run here; the web half was run on another port because 3000 is taken on this machine by another app. First run also needs the two `convex env set` lines in the README (local deployment). |
+| `pnpm turbo typecheck lint test` passes; a GitHub Actions workflow runs it on push | ✔ locally and in a fresh clone with CI's exact steps; workflow committed, green-on-GitHub not yet seen (not pushed). |
+| Deploy Button on a fresh Vercel account reaches the setup screen | ⧗ prepared, not run (needs Kris's accounts) — `docs/DEPLOY-TEST.md`. |
+| First sign-up becomes owner, with the six default statuses and a sample `PAN` project | ✔ locally in a real browser (and in tests). |
+| A second sign-up without an invite is rejected by the server | ✔ locally in a real browser (403, no user row created) and in tests. |
+| `GET /api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion, needsSecret }` | ✔ tests + live; `needsSecret` flips with the env var. |
+| A redeploy keeps `BETTER_AUTH_SECRET` (you stay signed in) | ⧗ the script never overwrites an existing secret (dry-run checked); real redeploy not run. |
+| Button click to signed-in workspace under 10 minutes | ⧗ needs Kris's fresh-account run. |
