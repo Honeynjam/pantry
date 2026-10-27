@@ -14,8 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   statuses, labels and people in one call; `search_issues`; `create_space` and `update_space`;
   `update_space_context` to rewrite a space's context doc; `create_project`, `update_project` and
   `archive_project`; `create_label`. `update_issue` can now also change the title, description and due date.
-  Everything shows under your name, tagged "via MCP". Deleting things, archiving spaces, statuses, invites,
-  members and tokens stay app-only.
+  Everything shows under your name, tagged "via MCP". Deleting spaces, comments or labels, archiving spaces,
+  adding or removing statuses, invites, members and tokens stay app-only.
+- **Restore archived projects.** Space settings → Projects has an Archived list with Restore, and agents can use
+  `unarchive_project`. A restored project goes to the end of the list; issues that were in it when it was
+  archived stay without a project. If an active project has the same name, rename one of them first.
+- **Agents can delete issues and edit statuses over MCP:** `delete_issue` (only when `confirm` repeats the
+  issue's key; sub-issues and comments go too), `update_status` (rename or recolour) and `reorder_statuses`.
 
 ### Fixed
 

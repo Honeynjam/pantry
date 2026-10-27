@@ -118,9 +118,12 @@ Everything a member can do in the app, as you and tagged "via MCP", except the t
 - **Work an issue:** `get_issue`, `update_issue` (status, title, description, priority, assignee, labels,
   project, due date), `add_comment`, `create_sub_issue`, `create_issue`.
 - **Organise:** `create_space` and `update_space` (name, kind; the key is fixed), `update_space_context`,
-  `create_project`, `update_project` (rename, recolour), `archive_project` (its issues stay in the space),
-  `create_label`.
-- **Not over MCP:** deleting issues, spaces, comments or labels; archiving spaces; editing statuses; invites,
+  `create_project`, `update_project` (rename, recolour), `archive_project` (its issues stay in the space) and
+  `unarchive_project` (the project comes back; its old issues don't), `create_label`, `update_status` (rename or
+  recolour a status for everyone) and `reorder_statuses`.
+- **Delete an issue:** `delete_issue { key, confirm }` deletes it with its sub-issues and comments, only when
+  `confirm` repeats the key. Agents are told to ask you first unless you asked for the delete.
+- **Not over MCP:** deleting spaces, comments or labels; archiving spaces; adding or removing statuses; invites,
   members and API tokens. Agents are told to ask you.
 
 Optional extra check for the organising tools (any client): "Set up a space ACME for client work with projects

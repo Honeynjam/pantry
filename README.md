@@ -51,14 +51,18 @@ never touch your Convex data. Every push to your repo's production branch redepl
    issues" works too. They call `get_workspace` first to see what exists.
 
 The agent acts as you, inside your workspace only, and can do what a member can in the app, except deleting
-anything, archiving spaces, editing statuses, and invites, members or tokens. Revoking a token on the same screen
-stops it at once (the next call gets a 401). Tools (spec §10b):
+spaces, comments or labels, archiving spaces, adding or removing statuses, and invites, members or tokens. It can
+delete an issue only by repeating its key (`delete_issue { key, confirm }`), and is told to ask you first.
+Revoking a token on the same screen stops it at once (the next call gets a 401). Tools (spec §10b):
 
 - Issues: `get_issue`, `list_issues`, `search_issues`, `create_issue`, `create_sub_issue`, `add_comment`,
-  `update_issue`
+  `update_issue`, `delete_issue`
 - Orientation and context: `get_workspace`, `get_space_context`, `update_space_context`
 - Organising: `create_space`, `update_space`, `create_project`, `update_project`, `archive_project`,
-  `create_label`
+  `unarchive_project`, `create_label`, `update_status`, `reorder_statuses`
+
+Archived projects can be restored in Space settings → Projects → Archived (or with `unarchive_project`). Issues
+that were in a project when it was archived stay without one.
 
 ### Troubleshooting
 

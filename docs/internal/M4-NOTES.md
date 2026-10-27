@@ -140,16 +140,17 @@ what a member does in the app's settings screens, through the same helpers and p
 
 ### Decisions for Kris
 
-1. **Not exposed over MCP, on purpose:** deleting issues, spaces, comments or labels; editing statuses; invites,
-   members and API tokens. They're destructive or account-level, and a leaked token shouldn't be able to do them.
-   The server instructions and `update_space`'s description tell agents to ask a person. Easy to revisit tool by
-   tool.
+1. **Not exposed over MCP, on purpose:** deleting spaces, comments or labels; adding or removing statuses;
+   invites, members and API tokens. They're destructive or account-level, and a leaked token shouldn't be able to
+   do them. The server instructions and `update_space`'s description tell agents to ask a person. Easy to revisit
+   tool by tool. **Reversed by Kris on 27 Oct 2026:** deleting issues (`delete_issue`) and editing the status
+   definitions (`update_status`, `reorder_statuses`) are now exposed; see "Delete issues, edit statuses,
+   un-archive projects" below.
 2. **No `archive_space`.** The app has `spaces.archive` but no un-archive, and an archived space's key stays
    taken, so it isn't reversible. Skipped until the app can restore a space.
-3. **`archive_project` is exposed even though the app has no un-archive either**, because you asked for it. Its
-   issues stay in the space (the project is just cleared, each change logged "via MCP"), and the tool carries
-   `destructiveHint: true` and says "only when the workstream is really over". Say if you'd rather drop it until
-   there's an un-archive.
+3. **`archive_project`** clears the project from its issues (each change logged "via MCP"). Since 27 Oct 2026 it's
+   reversible (`unarchive_project`, and Restore in Space settings), so it's no longer marked destructive; the
+   issues still don't move back.
 4. **Permissions match the app: any member's token** can create spaces, projects and labels and rewrite context
    docs (none of these is owner-only in the app; invites are, and stay off MCP). Tested with the partner's token.
 5. **`get_workspace` replaces `list_spaces` / `list_projects`.** The tables are small (it reads spaces, projects,
@@ -184,3 +185,63 @@ what a member does in the app's settings screens, through the same helpers and p
   `docs/screenshots/mcp-more-{space,issue,space-settings}-{light,dark}.png`.
 - Not verified: a real Claude Code or Cursor session using the new tools (only the SDK client this time), and
   anything on a deployed instance.
+
+## Delete issues, edit statuses, un-archive projects (27 Oct 2026, branch `feat/delete-statuses-unarchive`)
+
+Kris reversed two "not exposed" decisions (deleting issues, editing statuses) and asked for un-archiving projects
+in the app and over MCP. 20 tools now.
+
+| Commit | What |
+|---|---|
+| `77ce5a4` | Backend: `mcp.deleteIssue`, `mcp.updateStatus`, `mcp.reorderStatuses`, `mcp.unarchiveProject`; `lib/organise.ts` gains `restoreProject`, `archivedProjects`, `updateStatus`, `reorderStatuses` (the app's `statuses.update/reorder` now call them); `projects.restore` and `projects.listArchived`; `deleteIssue` reports what it removed |
+| `f133cd3` | `packages/mcp`: the four tools; `archive_project` no longer `destructiveHint` |
+| `19eb5cf` | Space settings → Projects → Archived (collapsed, count) with Restore; screenshots `unarchive-*` |
+
+**New tools**
+- `delete_issue { key, confirm }`: the app's hard delete (sub-issues, comments and activity go too), through the
+  same helper. `confirm` must repeat the key, else "Nothing deleted…". Returns `{ deleted, title, subIssues,
+  comments }`. `destructiveHint: true`; the description says it can't be undone and to ask first unless the
+  person asked for this delete, and suggests a done/canceled status instead.
+- `update_status { status, name?, color? }`: rename or recolour a status definition. Colours: palette names or
+  `"default"` (the category's own colour, the app picker's "Default" swatch).
+- `reorder_statuses { statuses }`: every status name once, in the new order.
+- `unarchive_project { space, project, name? }`: restore; `name` restores under a new name.
+- Descriptions of `update_issue`, `update_status` and `reorder_statuses` point at each other: moving one issue vs
+  changing the definitions.
+
+**Un-archive behaviour.** A restored project goes to the end of the space's project list and shows in the sidebar
+and pickers again (live). Issues that lost it when it was archived stay without a project: archiving cleared
+them and nothing records which they were, so nothing is reconstructed; the UI and tool descriptions say so.
+Refused in an archived space.
+
+**Name clash (decision for Kris).** Names are unique among a space's active projects, so restoring "Website" while
+an active "Website" exists is refused: "There's already an active project called Website in Pantry. Rename one of
+them first, then restore." I picked refuse-and-rename over a "restore as…" dialog because Space settings already
+renames projects inline: archived rows keep an editable name, so the fix is rename, then Restore, with no new
+dialog. `projects.restore` and `unarchive_project` also take an optional `name` to restore under a new name in
+one step. With two archived projects of the same name, MCP restores the most recently archived one.
+
+**Permissions.** As in the app, any member (not owner-only): tested with the partner's token / identity.
+
+### How it was verified
+
+- `pnpm check` passes. Backend 174 tests (17 new: `projects-restore.test.ts` for order, issues staying
+  project-less, the clash and rename paths, archived space, member parity, cross-workspace; and
+  `mcp-delete-statuses.test.ts` for revoked tokens, the confirm guard, sub-issues/comments/activity removed,
+  cross-workspace, status rename/recolour/"default"/clash/palette errors, reorder validation, unarchive with and
+  without a clash). `packages/mcp` 31 handler tests (20 tools listed, pass-through and zod refusals for the four).
+- End to end (production build :3300, fresh anonymous backend :3330/:3331, token from the UI, MCP client SDK):
+  - Status definitions: with the list, board and Settings → Statuses open in a browser, `update_status` In Review
+    → "Needs review" (pink) and Todo → "Up next" (blue), a bad name and an incomplete reorder refused with the
+    valid names, then `reorder_statuses` [Up next, In Progress, Needs review, Backlog, Done, Canceled]. Without a
+    reload, list groups, board columns and the settings rows all showed the new names and order.
+  - `delete_issue` PAN-3 (two sub-issues, two comments): `confirm: "yes"` and `confirm: "PAN-4"` refused, nothing
+    deleted; `confirm: "PAN-3"` → `{ subIssues: [PAN-4, PAN-5], comments: 2 }`; `get_issue PAN-4` → not found.
+  - `archive_project` Launch → PAN-2 lost its project → `unarchive_project` → project back, PAN-2 still without
+    one (as designed) → a second unarchive says "Launch isn't archived".
+  - Browser: archived Website and Launch from Space settings, opened Archived (Enter on the toggle), restored
+    Launch (sidebar updated live); added an active "Website", Restore on the archived one showed the clash
+    message and left it archived; renamed it inline to "Website (2025)", Restore worked; sidebar and the list's
+    Project filter showed Launch, Website and Website (2025).
+- Not verified: Safari/Firefox, a real Claude Code or Cursor session with these tools, anything on a deployed
+  instance.

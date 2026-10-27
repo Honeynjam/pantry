@@ -131,10 +131,12 @@ Tools: issue work plus organising (added 27 Oct 2026 at Kris's request: "so it c
 | `search_issues` | Find issues by key or title words (exact key first), optionally in a space / project |
 | `create_space` / `update_space` | New space (key rules as in the app, starter context doc) / rename or change kind (key fixed) |
 | `update_space_context` | Replace a space's context doc (markdown) |
-| `create_project` / `update_project` / `archive_project` | Workstreams in a space: create, rename/recolour, archive (its issues stay in the space with no project) |
+| `create_project` / `update_project` / `archive_project` / `unarchive_project` | Workstreams in a space: create, rename/recolour, archive (its issues stay in the space with no project), restore (to the end of the list; its old issues stay project-less) |
 | `create_label` | New workspace label (other tools never create labels) |
+| `delete_issue` | Hard delete with sub-issues, comments and activity, as the app does; `confirm` must repeat the key (added 27 Oct 2026 at Kris's request) |
+| `update_status` / `reorder_statuses` | Rename/recolour the six status definitions, or put them in a new order, as Settings → Statuses does (not one issue's status: that's `update_issue`) |
 
-Not over MCP, on purpose: deleting issues, spaces, comments or labels; archiving spaces (no un-archive in the app); editing statuses; invites, members and API tokens. These are destructive or account-level, and a leaked token shouldn't be able to do them; agents are told to ask a person.
+Not over MCP, on purpose: deleting spaces, comments or labels; archiving spaces (no un-archive in the app); adding or removing statuses; invites, members and API tokens. These are destructive or account-level, and a leaked token shouldn't be able to do them; agents are told to ask a person. (Deleting issues and editing status definitions were on this list until Kris asked for them, 27 Oct 2026.)
 
 Typical use: create a token → add `/api/mcp` with the bearer token to your MCP client → tell the agent "work on PAN-42" → it calls `get_issue` + `get_space_context`, moves the issue through statuses itself with `update_issue` (nothing changes status automatically), posts notes with `add_comment`, adds follow-ups with `create_sub_issue`.
 
@@ -619,8 +621,12 @@ All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$` (lower ca
 | `update_space_context` | `{ space, body (markdown, ≤ 100,000) }` | space, updatedAt, updatedBy. Replaces the whole doc |
 | `create_project` | `{ space, name (≤ 60, unique in the space), color? }` | space, name, color. Without a colour: the app's rotation (palette minus gray) |
 | `update_project` | `{ space, project (name), name?, color? (or null) }` (at least one) | space, name, color |
-| `archive_project` | `{ space, project }` | space, project, archived, issuesMoved. Its issues (sub-issues too) stay in the space with no project, one `project_changed` row each via MCP. No un-archive yet; `destructiveHint: true` |
+| `archive_project` | `{ space, project }` | space, project, archived, issuesMoved. Its issues (sub-issues too) stay in the space with no project, one `project_changed` row each via MCP. Reversible with `unarchive_project` (the issues don't move back) |
+| `unarchive_project` | `{ space, project (an archived project's name), name? }` | space, project, color, archived: false. Goes to the end of the order; refused when an active project in the space has the name (give `name` to restore under a new one) or the space is archived. With two archived namesakes, the most recently archived |
 | `create_label` | `{ name (≤ 40, unique in the workspace), color? = gray }` | name, color |
+| `delete_issue` | `{ key, confirm (must equal the key) }` | deleted (key), title, subIssues (keys), comments (count, sub-issues' included). A wrong confirm deletes nothing. `destructiveHint: true`; the description says ask first |
+| `update_status` | `{ status (name), name? (≤ 40, unique), color? (palette name or "default") }` (at least one) | name, category, color. The category is fixed |
+| `reorder_statuses` | `{ statuses: string[] }` (every status name exactly once) | all statuses (name, category, color) in the new order |
 
 Client setup verified today: Claude Code takes `claude mcp add --transport http pantry https://<app>/api/mcp --header "Authorization: Bearer <token>"`; Cursor's `mcp.json` takes `"url"` plus `"headers": { "Authorization": "Bearer ${env:PANTRY_TOKEN}" }`. The token screen shows both snippets.
 
