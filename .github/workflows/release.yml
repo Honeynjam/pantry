@@ -59,12 +59,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The same checks CI blocks on (see ci.yml: the format check is a warning there for now).
+      # The same command CI runs.
       - name: Run the CI checks
         env:
           TURBO_TELEMETRY_DISABLED: "1"
           NEXT_TELEMETRY_DISABLED: "1"
-        run: pnpm check:code
+        run: pnpm check
 
   release:
     name: Create the GitHub Release

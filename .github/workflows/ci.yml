@@ -33,21 +33,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Formatting is a warning, not a failure, until m3/speed, m4/mcp and spaces/model have merged: their files
-      # are left unformatted on main so those branches merge cleanly. After each merge, run `pnpm format` in a
-      # formatting-only commit; once all three are in, delete continue-on-error so CI runs `pnpm check` in full.
-      - name: Format check (prettier)
-        id: format
-        continue-on-error: true
-        run: pnpm check:format
-      - name: Warn about unformatted files
-        if: steps.format.outcome == 'failure'
-        run: echo "::warning::Some files aren't formatted. Run pnpm fix (see the format step above)."
-
-      # The rest of `pnpm check`: turbo typecheck lint test, the scripts/ tests, then a production build of the
-      # web app (no Convex env needed). The build catches server/client boundary mistakes that dev mode and
-      # typecheck miss, before they break a Vercel deploy.
-      - run: pnpm check:code
+      # The same command you run locally: prettier --check, turbo typecheck lint test, the scripts/ tests, then a
+      # production build of the web app (no Convex env needed). The build catches server/client boundary mistakes
+      # that dev mode and typecheck miss, before they break a Vercel deploy.
+      - run: pnpm check
         env:
           TURBO_TELEMETRY_DISABLED: "1"
           NEXT_TELEMETRY_DISABLED: "1"
