@@ -67,30 +67,181 @@ const editable = ["list", "issue"] as const;
  * before the single keys they share a letter with (`i`).
  */
 export const SHORTCUTS: ReadonlyArray<ShortcutDef> = [
-  { id: "goMyIssues", binding: "g i", display: "g i", label: "Go to My issues", group: "Navigation", where: everywhere },
-  { id: "goSpace", binding: "g s", display: "g s", label: "Go to the space's list", group: "Navigation", where: everywhere },
-  { id: "goBoard", binding: "g b", display: "g b", label: "Go to the space's board", group: "Navigation", where: everywhere },
+  {
+    id: "goMyIssues",
+    binding: "g i",
+    display: "g i",
+    label: "Go to My issues",
+    group: "Navigation",
+    where: everywhere,
+  },
+  {
+    id: "goSpace",
+    binding: "g s",
+    display: "g s",
+    label: "Go to the space's list",
+    group: "Navigation",
+    where: everywhere,
+  },
+  {
+    id: "goBoard",
+    binding: "g b",
+    display: "g b",
+    label: "Go to the space's board",
+    group: "Navigation",
+    where: everywhere,
+  },
 
-  { id: "palette", binding: "$mod+k", display: "mod+k", label: "Open the command palette", group: "General", where: everywhere, allowInInputs: true },
-  { id: "newIssue", binding: "c", display: "c", label: "New issue", group: "General", where: everywhere },
-  { id: "newSubIssue", binding: "Shift+c", display: "shift+c", label: "New sub-issue", group: "General", where: ["issue"] },
-  { id: "search", binding: "/", display: "/", label: "Filter the view by title, or search", group: "General", where: everywhere },
-  { id: "escape", binding: "Escape", display: "esc", label: "Back, close, or clear the selection", group: "General", where: everywhere },
-  { id: "submit", binding: "$mod+Enter", display: "mod+enter", label: "Submit a comment or issue", group: "General", where: everywhere, unbound: true },
-  { id: "sidebar", binding: "[", display: "[", label: "Fold or unfold the sidebar", group: "General", where: everywhere },
-  { id: "help", binding: "[Shift]+?", display: "?", label: "Show keyboard shortcuts", group: "General", where: everywhere },
+  {
+    id: "palette",
+    binding: "$mod+k",
+    display: "mod+k",
+    label: "Open the command palette",
+    group: "General",
+    where: everywhere,
+    allowInInputs: true,
+  },
+  {
+    id: "newIssue",
+    binding: "c",
+    display: "c",
+    label: "New issue",
+    group: "General",
+    where: everywhere,
+  },
+  {
+    id: "newSubIssue",
+    binding: "Shift+c",
+    display: "shift+c",
+    label: "New sub-issue",
+    group: "General",
+    where: ["issue"],
+  },
+  {
+    id: "search",
+    binding: "/",
+    display: "/",
+    label: "Filter the view by title, or search",
+    group: "General",
+    where: everywhere,
+  },
+  {
+    id: "escape",
+    binding: "Escape",
+    display: "esc",
+    label: "Back, close, or clear the selection",
+    group: "General",
+    where: everywhere,
+  },
+  {
+    id: "submit",
+    binding: "$mod+Enter",
+    display: "mod+enter",
+    label: "Submit a comment or issue",
+    group: "General",
+    where: everywhere,
+    unbound: true,
+  },
+  {
+    id: "sidebar",
+    binding: "[",
+    display: "[",
+    label: "Fold or unfold the sidebar",
+    group: "General",
+    where: everywhere,
+  },
+  {
+    id: "help",
+    binding: "[Shift]+?",
+    display: "?",
+    label: "Show keyboard shortcuts",
+    group: "General",
+    where: everywhere,
+  },
 
-  { id: "next", binding: "j", display: "j", label: "Move the cursor down", group: "Selection", where: lists, repeat: true },
-  { id: "previous", binding: "k", display: "k", label: "Move the cursor up", group: "Selection", where: lists, repeat: true },
-  { id: "select", binding: "x", display: "x", label: "Select or deselect (multi-select)", group: "Selection", where: lists },
-  { id: "open", binding: "Enter", display: "enter", label: "Open the issue", group: "Selection", where: lists },
+  {
+    id: "next",
+    binding: "j",
+    display: "j",
+    label: "Move the cursor down",
+    group: "Selection",
+    where: lists,
+    repeat: true,
+  },
+  {
+    id: "previous",
+    binding: "k",
+    display: "k",
+    label: "Move the cursor up",
+    group: "Selection",
+    where: lists,
+    repeat: true,
+  },
+  {
+    id: "select",
+    binding: "x",
+    display: "x",
+    label: "Select or deselect (multi-select)",
+    group: "Selection",
+    where: lists,
+  },
+  {
+    id: "open",
+    binding: "Enter",
+    display: "enter",
+    label: "Open the issue",
+    group: "Selection",
+    where: lists,
+  },
 
-  { id: "status", binding: "s", display: "s", label: "Change status", group: "Edit issues", where: editable },
-  { id: "assignee", binding: "a", display: "a", label: "Change assignee", group: "Edit issues", where: editable },
-  { id: "assignToMe", binding: "i", display: "i", label: "Assign to me", group: "Edit issues", where: editable },
-  { id: "labels", binding: "l", display: "l", label: "Change labels", group: "Edit issues", where: editable },
-  { id: "priority", binding: "p", display: "p", label: "Change priority", group: "Edit issues", where: editable },
-  { id: "dueDate", binding: "d", display: "d", label: "Change due date", group: "Edit issues", where: editable },
+  {
+    id: "status",
+    binding: "s",
+    display: "s",
+    label: "Change status",
+    group: "Edit issues",
+    where: editable,
+  },
+  {
+    id: "assignee",
+    binding: "a",
+    display: "a",
+    label: "Change assignee",
+    group: "Edit issues",
+    where: editable,
+  },
+  {
+    id: "assignToMe",
+    binding: "i",
+    display: "i",
+    label: "Assign to me",
+    group: "Edit issues",
+    where: editable,
+  },
+  {
+    id: "labels",
+    binding: "l",
+    display: "l",
+    label: "Change labels",
+    group: "Edit issues",
+    where: editable,
+  },
+  {
+    id: "priority",
+    binding: "p",
+    display: "p",
+    label: "Change priority",
+    group: "Edit issues",
+    where: editable,
+  },
+  {
+    id: "dueDate",
+    binding: "d",
+    display: "d",
+    label: "Change due date",
+    group: "Edit issues",
+    where: editable,
+  },
 ];
 
 const BY_ID = new Map(SHORTCUTS.map((def) => [def.id, def]));
@@ -103,7 +254,12 @@ export function shortcut(id: ShortcutId): ShortcutDef {
 // Help (generated from the registry)
 // ---------------------------------------------------------------------------------------------
 
-export const HELP_GROUPS: ReadonlyArray<ShortcutGroup> = ["General", "Navigation", "Selection", "Edit issues"];
+export const HELP_GROUPS: ReadonlyArray<ShortcutGroup> = [
+  "General",
+  "Navigation",
+  "Selection",
+  "Edit issues",
+];
 
 const WHERE_TEXT: Record<string, string> = {
   global: "",
@@ -125,12 +281,21 @@ export function helpSections(defs: ReadonlyArray<ShortcutDef> = SHORTCUTS): Help
   return HELP_GROUPS.map((group) => {
     const rows = defs
       .filter((def) => def.group === group)
-      .map((def) => ({ id: def.id, label: def.label, keys: def.display, where: WHERE_TEXT[def.where.join(",")] ?? "" }));
+      .map((def) => ({
+        id: def.id,
+        label: def.label,
+        keys: def.display,
+        where: WHERE_TEXT[def.where.join(",")] ?? "",
+      }));
     // The group's note is the place most of its rows share.
     const counts = new Map<string, number>();
     for (const row of rows) counts.set(row.where, (counts.get(row.where) ?? 0) + 1);
     const where = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
-    return { group, where, rows: rows.map((row) => ({ ...row, where: row.where === where ? "" : row.where })) };
+    return {
+      group,
+      where,
+      rows: rows.map((row) => ({ ...row, where: row.where === where ? "" : row.where })),
+    };
   }).filter((section) => section.rows.length > 0);
 }
 
@@ -163,7 +328,8 @@ export function isTypingTarget(target: EventTarget | null): boolean {
  * Menus, listboxes and dialogs that aren't registered as an overlay scope (Base UI menus and
  * popovers move focus into their popup): keys pressed in them belong to them.
  */
-const POPUP_SELECTOR = '[role="menu"], [role="listbox"], [role="dialog"], [role="alertdialog"], [data-shortcut-overlay]';
+const POPUP_SELECTOR =
+  '[role="menu"], [role="listbox"], [role="dialog"], [role="alertdialog"], [data-shortcut-overlay]';
 
 function inPopup(target: EventTarget | null): boolean {
   if (!target || typeof (target as Element).closest !== "function") return false;
@@ -186,7 +352,11 @@ export class ShortcutRegistry {
   register(id: ShortcutId, scope: ShortcutScope, handler: ShortcutHandler): () => void {
     const entry: Entry = { scope, handler, order: ++this.counter };
     this.handlers.set(id, [...(this.handlers.get(id) ?? []), entry]);
-    return () => this.handlers.set(id, (this.handlers.get(id) ?? []).filter((item) => item !== entry));
+    return () =>
+      this.handlers.set(
+        id,
+        (this.handlers.get(id) ?? []).filter((item) => item !== entry),
+      );
   }
 
   /** Push a scope (a page or an open overlay); returns the pop. Pops in any order are safe. */
@@ -240,7 +410,8 @@ export class ShortcutRegistry {
       }
       this.unbind = tinykeys(target, map, {
         // Typing never starts a sequence; modifier chords (Cmd+K) still reach dispatch.
-        ignore: (event) => event.isComposing || (isTypingTarget(event.target) && !event.metaKey && !event.ctrlKey),
+        ignore: (event) =>
+          event.isComposing || (isTypingTarget(event.target) && !event.metaKey && !event.ctrlKey),
       });
     }
     return () => {

@@ -15,6 +15,9 @@ export function spaceAvatar(space: SpaceLike): PantryAvatarValue {
 export function SpaceAvatar({
   space,
   ...props
-}: { space: SpaceLike } & Omit<ComponentProps<typeof PantryAvatar>, "seed" | "shape" | "color" | "expression">) {
+}: { space: SpaceLike } & Omit<
+  ComponentProps<typeof PantryAvatar>,
+  "seed" | "shape" | "color" | "expression"
+>) {
   return <PantryAvatar seed={space.key} {...spaceAvatar(space)} {...props} />;
 }

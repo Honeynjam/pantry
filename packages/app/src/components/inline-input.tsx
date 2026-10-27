@@ -49,7 +49,7 @@ export function InlineInput({
         }
       }}
       className={cn(
-        "border-transparent bg-transparent shadow-none hover:border-input dark:bg-transparent",
+        "hover:border-input border-transparent bg-transparent shadow-none dark:bg-transparent",
         "focus-visible:bg-background dark:focus-visible:bg-gray-2",
         className,
       )}

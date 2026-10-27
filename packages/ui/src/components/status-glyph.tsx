@@ -52,9 +52,13 @@ function StatusGlyph({
       {(category === "unstarted" || category === "started" || category === "review") && (
         <circle cx="7" cy="7" r="5.75" fill="none" stroke="currentColor" strokeWidth="1.5" />
       )}
-      {category === "started" && <path d="M7 7 L7 3.5 A3.5 3.5 0 0 1 7 10.5 Z" fill="currentColor" />}
+      {category === "started" && (
+        <path d="M7 7 L7 3.5 A3.5 3.5 0 0 1 7 10.5 Z" fill="currentColor" />
+      )}
       {category === "review" && <path d="M7 7 L7 3.5 A3.5 3.5 0 1 1 3.5 7 Z" fill="currentColor" />}
-      {(category === "done" || category === "canceled") && <circle cx="7" cy="7" r="6.5" fill="currentColor" />}
+      {(category === "done" || category === "canceled") && (
+        <circle cx="7" cy="7" r="6.5" fill="currentColor" />
+      )}
       {category === "done" && (
         <path
           d="M4.4 7.2 L6.2 9 L9.7 5.3"

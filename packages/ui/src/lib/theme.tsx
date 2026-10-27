@@ -102,7 +102,10 @@ export function ThemeProvider({
     [storageKey],
   );
 
-  const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme]);
+  const value = useMemo(
+    () => ({ theme, resolvedTheme, setTheme }),
+    [theme, resolvedTheme, setTheme],
+  );
   return <ThemeContext value={value}>{children}</ThemeContext>;
 }
 

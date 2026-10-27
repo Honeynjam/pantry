@@ -57,7 +57,8 @@ function matchWord(
   starts: Set<number>,
   extras: string[],
 ): { score: number; matches: number[] } | null {
-  if (labelLower.startsWith(word)) return { score: SCORE.labelStart, matches: range(0, word.length) };
+  if (labelLower.startsWith(word))
+    return { score: SCORE.labelStart, matches: range(0, word.length) };
 
   let anywhere = -1;
   for (let at = labelLower.indexOf(word); at >= 0; at = labelLower.indexOf(word, at + 1)) {
@@ -152,7 +153,10 @@ export function rankGroups<T extends Rankable & { group: string }>(
 }
 
 /** Split a label into plain and matched runs for rendering. */
-export function highlightRuns(label: string, matches: ReadonlyArray<number>): { text: string; matched: boolean }[] {
+export function highlightRuns(
+  label: string,
+  matches: ReadonlyArray<number>,
+): { text: string; matched: boolean }[] {
   const set = new Set(matches);
   const runs: { text: string; matched: boolean }[] = [];
   for (let i = 0; i < label.length; i++) {

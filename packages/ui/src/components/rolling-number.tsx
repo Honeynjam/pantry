@@ -17,7 +17,10 @@ function RollingNumber({ value, className }: { value: number; className?: string
   const travel = reduce ? 0 : state.direction;
 
   return (
-    <span data-slot="rolling-number" className={cn("relative inline-flex overflow-hidden tabular-nums", className)}>
+    <span
+      data-slot="rolling-number"
+      className={cn("relative inline-flex overflow-hidden tabular-nums", className)}
+    >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
           key={value}

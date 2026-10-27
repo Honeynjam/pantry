@@ -1,8 +1,24 @@
 "use client";
 
 import type { Id } from "@pantry/backend/dataModel";
-import { CircleDotIcon, CalendarIcon, SignalIcon, TagIcon, UserRoundIcon, UserRoundCheckIcon, XIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  CircleDotIcon,
+  CalendarIcon,
+  SignalIcon,
+  TagIcon,
+  UserRoundIcon,
+  UserRoundCheckIcon,
+  XIcon,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { toast } from "sonner";
 import { routes, useNavigation } from "../navigation";
 import { usePaletteActions, type PaletteAction } from "../palette/palette-actions";
@@ -25,7 +41,12 @@ export type Selection = {
   toggle: (id: Id<"issues">) => void;
 };
 
-const QUICK_EDITS: { kind: QuickEditKind; id: "status" | "assignee" | "labels" | "priority" | "dueDate"; label: string; icon: ReactNode }[] = [
+const QUICK_EDITS: {
+  kind: QuickEditKind;
+  id: "status" | "assignee" | "labels" | "priority" | "dueDate";
+  label: string;
+  icon: ReactNode;
+}[] = [
   { kind: "status", id: "status", label: "Change status…", icon: <CircleDotIcon /> },
   { kind: "assignee", id: "assignee", label: "Change assignee…", icon: <UserRoundIcon /> },
   { kind: "labels", id: "labels", label: "Change labels…", icon: <TagIcon /> },
@@ -114,7 +135,9 @@ export function useIssueSelection({
   const edit = (kind: QuickEditKind) => {
     const list = targets();
     if (list.length === 0) {
-      toast("Pick an issue first", { description: "Move to one with J and K, or select some with X." });
+      toast("Pick an issue first", {
+        description: "Move to one with J and K, or select some with X.",
+      });
       return;
     }
     quickEdit.open(kind, list);
@@ -137,7 +160,8 @@ export function useIssueSelection({
     // Enter on some other control (a button, a menu trigger) is that control's.
     const target = event.target as HTMLElement | null;
     const row = target?.closest?.("[data-issue-id]");
-    if (target && target !== document.body && row?.getAttribute("data-issue-id") !== cursor) return false;
+    if (target && target !== document.body && row?.getAttribute("data-issue-id") !== cursor)
+      return false;
     const issue = ordered.find((row) => row._id === cursor);
     if (!issue) return false;
     navigate(routes.issue(issue.key));
@@ -147,7 +171,10 @@ export function useIssueSelection({
     else if (cursor) setCursorState(null);
     else return false;
   });
-  useShortcutMap("list", Object.fromEntries(QUICK_EDITS.map((item) => [item.id, () => edit(item.kind)])));
+  useShortcutMap(
+    "list",
+    Object.fromEntries(QUICK_EDITS.map((item) => [item.id, () => edit(item.kind)])),
+  );
   useShortcut("assignToMe", "list", () => {
     const list = targets();
     if (list.length === 0) return edit("assignee");
@@ -193,7 +220,10 @@ export function useIssueSelection({
     ];
   });
 
-  const value = useMemo<Selection>(() => ({ cursor, selected, setCursor: setCursorState, toggle }), [cursor, selected, toggle]);
+  const value = useMemo<Selection>(
+    () => ({ cursor, selected, setCursor: setCursorState, toggle }),
+    [cursor, selected, toggle],
+  );
   return { value, element: quickEdit.element };
 }
 
@@ -203,7 +233,12 @@ export function useIssueSelection({
 export function useIssueQuickEdit(issue: ListIssue, lookups: Lookups, actions: IssueActions) {
   const issues = useMemo(() => [issue], [issue]);
   const quickEdit = useQuickEdit(lookups, actions, issues);
-  useShortcutMap("issue", Object.fromEntries(QUICK_EDITS.map((item) => [item.id, () => quickEdit.open(item.kind, issues)])));
+  useShortcutMap(
+    "issue",
+    Object.fromEntries(
+      QUICK_EDITS.map((item) => [item.id, () => quickEdit.open(item.kind, issues)]),
+    ),
+  );
   useShortcut("assignToMe", "issue", () => assignToMe(issues, lookups, actions));
   usePaletteActions(() => [
     ...QUICK_EDITS.map<PaletteAction>((item) => ({

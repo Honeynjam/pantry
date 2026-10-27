@@ -21,7 +21,11 @@ export function SignInPage({ inviteToken }: { inviteToken?: string }) {
   return (
     <EntryGate allow={SIGNED_OUT_OR_JOINING}>
       {(state) =>
-        state.kind === "not-member" ? <AcceptInvite token={inviteToken} /> : <SignInForm inviteToken={inviteToken} />
+        state.kind === "not-member" ? (
+          <AcceptInvite token={inviteToken} />
+        ) : (
+          <SignInForm inviteToken={inviteToken} />
+        )
       }
     </EntryGate>
   );
@@ -55,7 +59,10 @@ function SignInForm({ inviteToken }: { inviteToken?: string }) {
       footer={
         <>
           Have an invite?{" "}
-          <Link href={withInvite(routes.signUp, inviteToken)} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
+          <Link
+            href={withInvite(routes.signUp, inviteToken)}
+            className="text-foreground decoration-gray-8 underline underline-offset-4 hover:decoration-current"
+          >
             Create your account
           </Link>
         </>
@@ -65,11 +72,24 @@ function SignInForm({ inviteToken }: { inviteToken?: string }) {
         <FieldGroup className="gap-4">
           <Field>
             <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
-            <Input id="sign-in-email" name="email" type="email" autoComplete="email" required autoFocus />
+            <Input
+              id="sign-in-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              autoFocus
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
-            <Input id="sign-in-password" name="password" type="password" autoComplete="current-password" required />
+            <Input
+              id="sign-in-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
           </Field>
           <FormError message={error} />
           <Button type="submit" size="lg" disabled={pending} className="w-full">

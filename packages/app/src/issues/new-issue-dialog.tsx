@@ -3,7 +3,12 @@
 import { api } from "@pantry/backend/api";
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import { Button } from "@pantry/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pantry/ui/components/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@pantry/ui/components/dialog";
 import { IssueKey } from "@pantry/ui/components/issue-key";
 import { Keycap } from "@pantry/ui/components/keycap";
 import type { Priority } from "@pantry/ui/lib/issue-meta";
@@ -17,7 +22,14 @@ import { routes, useNavigation } from "../navigation";
 import { useShortcutScope } from "../use-shortcuts";
 import { describeError, FormError } from "../screens/form-error";
 import type { WorkspaceData } from "../shell/app-shell";
-import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "./pickers";
+import {
+  AssigneePicker,
+  DueDatePicker,
+  LabelsPicker,
+  PriorityPicker,
+  ProjectPicker,
+  StatusPicker,
+} from "./pickers";
 
 export type NewIssueDefaults = {
   statusId?: Id<"statuses">;
@@ -47,7 +59,14 @@ export function NewIssueDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-2xl" showCloseButton={false}>
-        {open && <NewIssueForm data={data} space={space} defaults={defaults} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <NewIssueForm
+            data={data}
+            space={space}
+            defaults={defaults}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -72,13 +91,17 @@ function NewIssueForm({
   const { navigate } = useNavigation();
   const description = useRef<MarkdownEditorHandle>(null);
   const [title, setTitle] = useState("");
-  const [statusId, setStatusId] = useState<Id<"statuses">>(defaults.statusId ?? defaultStatus(data));
+  const [statusId, setStatusId] = useState<Id<"statuses">>(
+    defaults.statusId ?? defaultStatus(data),
+  );
   const [priority, setPriority] = useState<Priority>(0);
   const [assigneeId, setAssigneeId] = useState<Id<"members"> | undefined>(defaults.assigneeId);
   const [labelIds, setLabelIds] = useState<Id<"labels">[]>([]);
   const [dueDate, setDueDate] = useState<string | undefined>();
   // A sub-issue always takes its parent's project.
-  const [projectId, setProjectId] = useState<Id<"projects"> | undefined>(defaults.parent ? defaults.parent.projectId : defaults.projectId);
+  const [projectId, setProjectId] = useState<Id<"projects"> | undefined>(
+    defaults.parent ? defaults.parent.projectId : defaults.projectId,
+  );
   const projects = data.projects.filter((row) => row.spaceId === space._id);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -130,7 +153,7 @@ function NewIssueForm({
       }}
       className="flex flex-col"
     >
-      <div className="flex items-center gap-1.5 px-4 pt-3.5 text-xs text-muted-foreground">
+      <div className="text-muted-foreground flex items-center gap-1.5 px-4 pt-3.5 text-xs">
         <SpaceAvatar space={space} size="xs" />
         <span className="text-foreground">{space.name}</span>
         <ChevronRightIcon className="size-3" aria-hidden />
@@ -144,7 +167,9 @@ function NewIssueForm({
           <span>New issue</span>
         )}
       </div>
-      <DialogTitle className="sr-only">{defaults.parent ? "New sub-issue" : "New issue"}</DialogTitle>
+      <DialogTitle className="sr-only">
+        {defaults.parent ? "New sub-issue" : "New issue"}
+      </DialogTitle>
       <DialogDescription className="sr-only">
         Title, description and properties. Press Command or Control and Enter to create.
       </DialogDescription>
@@ -161,7 +186,7 @@ function NewIssueForm({
         aria-label="Issue title"
         autoFocus
         maxLength={200}
-        className="mx-4 mt-2 bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-faint-foreground"
+        className="text-foreground placeholder:text-faint-foreground mx-4 mt-2 bg-transparent text-lg font-medium outline-none"
       />
       <MarkdownEditor
         ref={description}
@@ -174,7 +199,12 @@ function NewIssueForm({
         fallback={<div className="min-h-24" aria-busy="true" />}
       />
       <div className="flex flex-wrap items-center gap-1.5 px-4 pt-1 pb-3">
-        <StatusPicker statuses={data.statuses} value={statusId} onChange={setStatusId} variant="chip" />
+        <StatusPicker
+          statuses={data.statuses}
+          value={statusId}
+          onChange={setStatusId}
+          variant="chip"
+        />
         <PriorityPicker value={priority} onChange={setPriority} variant="chip" />
         <AssigneePicker
           members={data.members}
@@ -184,7 +214,11 @@ function NewIssueForm({
           variant="chip"
         />
         <LabelsPicker labels={data.labels} value={labelIds} onChange={setLabelIds} variant="chip" />
-        <DueDatePicker value={dueDate} onChange={(day) => setDueDate(day ?? undefined)} variant="chip" />
+        <DueDatePicker
+          value={dueDate}
+          onChange={(day) => setDueDate(day ?? undefined)}
+          variant="chip"
+        />
         {(projects.length > 0 || projectId) && (
           <ProjectPicker
             projects={projects}
@@ -200,8 +234,8 @@ function NewIssueForm({
           <FormError message={error} />
         </div>
       )}
-      <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-2.5">
-        <span className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="border-border flex items-center justify-end gap-2 border-t px-4 py-2.5">
+        <span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-xs">
           <Keycap keys="mod+enter" /> to create
         </span>
         <Button type="button" variant="ghost" onClick={onDone}>

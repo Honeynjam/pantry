@@ -1,8 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 
 export type SignUpCheck =
-  | { allowed: true; reason: "setup" | "invite" }
-  | { allowed: false; reason: "invite_required" };
+  { allowed: true; reason: "setup" | "invite" } | { allowed: false; reason: "invite_required" };
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -26,5 +25,7 @@ export async function checkSignUp(
     (invite) =>
       invite.acceptedAt === undefined && invite.revokedAt === undefined && invite.expiresAt > now,
   );
-  return pending ? { allowed: true, reason: "invite" } : { allowed: false, reason: "invite_required" };
+  return pending
+    ? { allowed: true, reason: "invite" }
+    : { allowed: false, reason: "invite_required" };
 }

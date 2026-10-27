@@ -94,7 +94,11 @@ export function useQuickEdit(
 }
 
 /** `I`: assign every target to me, one mutation per issue that isn't mine yet. */
-export function assignToMe(targets: ReadonlyArray<ListIssue>, lookups: Lookups, actions: IssueActions) {
+export function assignToMe(
+  targets: ReadonlyArray<ListIssue>,
+  lookups: Lookups,
+  actions: IssueActions,
+) {
   const me = lookups.data.me._id;
   const todo = targets.filter((issue) => issue.assigneeId !== me);
   if (todo.length === 0) {
@@ -105,7 +109,11 @@ export function assignToMe(targets: ReadonlyArray<ListIssue>, lookups: Lookups, 
   if (todo.length > 1) toast(`Assigned ${plural(todo.length, "issue")} to you`);
 }
 
-function shared<T>(targets: ReadonlyArray<ListIssue>, read: (issue: ListIssue) => T, value: T): boolean | "mixed" {
+function shared<T>(
+  targets: ReadonlyArray<ListIssue>,
+  read: (issue: ListIssue) => T,
+  value: T,
+): boolean | "mixed" {
   const hits = targets.filter((issue) => read(issue) === value).length;
   return hits === 0 ? false : hits === targets.length ? true : "mixed";
 }
@@ -152,7 +160,11 @@ function buildOptions(
       const assign = (memberId: Id<"members"> | null, name: string) => {
         const changing = targets.filter((issue) => (issue.assigneeId ?? null) !== memberId);
         for (const issue of changing) void actions.update(issue._id, { assigneeId: memberId });
-        done(memberId ? `Assigned ${plural(changing.length, "issue")} to ${name}` : `Unassigned ${plural(changing.length, "issue")}`);
+        done(
+          memberId
+            ? `Assigned ${plural(changing.length, "issue")} to ${name}`
+            : `Unassigned ${plural(changing.length, "issue")}`,
+        );
       };
       return [
         {
@@ -167,7 +179,12 @@ function buildOptions(
           id: member._id,
           label: member._id === data.me._id ? `${member.displayName} (you)` : member.displayName,
           keywords: member._id === data.me._id ? ["me", "myself"] : [],
-          icon: <PersonAvatar person={{ name: member.displayName, avatarUrl: member.avatarUrl }} size="xs" />,
+          icon: (
+            <PersonAvatar
+              person={{ name: member.displayName, avatarUrl: member.avatarUrl }}
+              size="xs"
+            />
+          ),
           checked: shared(targets, (issue) => issue.assigneeId ?? null, member._id),
           apply: () => assign(member._id, member.displayName),
         })),
@@ -182,14 +199,23 @@ function buildOptions(
           return {
             id: label._id,
             label: label.name,
-            icon: <span className="size-2 rounded-full" style={{ background: resolveLabelColor(label.color) }} />,
+            icon: (
+              <span
+                className="size-2 rounded-full"
+                style={{ background: resolveLabelColor(label.color) }}
+              />
+            ),
             checked: hits === 0 ? false : all ? true : "mixed",
             // All have it: remove it from all. Otherwise add it where it's missing.
             apply: () => {
               for (const issue of targets) {
                 const has = issue.labelIds.includes(label._id);
-                if (all) void actions.update(issue._id, { labelIds: issue.labelIds.filter((id) => id !== label._id) });
-                else if (!has) void actions.update(issue._id, { labelIds: [...issue.labelIds, label._id] });
+                if (all)
+                  void actions.update(issue._id, {
+                    labelIds: issue.labelIds.filter((id) => id !== label._id),
+                  });
+                else if (!has)
+                  void actions.update(issue._id, { labelIds: [...issue.labelIds, label._id] });
               }
             },
           } satisfies Option;
@@ -198,10 +224,15 @@ function buildOptions(
       const set = (day: string | null) => {
         const changing = targets.filter((issue) => (issue.dueDate ?? null) !== day);
         for (const issue of changing) void actions.update(issue._id, { dueDate: day });
-        done(day ? `Set ${plural(changing.length, "due date")} to ${formatDay(day)}` : `Cleared ${plural(changing.length, "due date")}`);
+        done(
+          day
+            ? `Set ${plural(changing.length, "due date")} to ${formatDay(day)}`
+            : `Cleared ${plural(changing.length, "due date")}`,
+        );
       };
       const typed = query.trim();
-      const valid = /^\d{4}-\d{2}-\d{2}$/.test(typed) && !Number.isNaN(new Date(`${typed}T00:00:00`).getTime());
+      const valid =
+        /^\d{4}-\d{2}-\d{2}$/.test(typed) && !Number.isNaN(new Date(`${typed}T00:00:00`).getTime());
       const day = (id: string, label: string, value: string): Option => ({
         id,
         label,
@@ -256,7 +287,11 @@ function QuickEditDialog({
     <CommandDialog
       open={open}
       title={kind ? TITLES[kind] : "Edit issues"}
-      description={targets.length === 1 ? `${targets[0]!.key} ${targets[0]!.title}` : plural(targets.length, "issue")}
+      description={
+        targets.length === 1
+          ? `${targets[0]!.key} ${targets[0]!.title}`
+          : plural(targets.length, "issue")
+      }
       className="sm:max-w-md"
       finalFocus={returnFocus ? () => returnFocus() ?? true : undefined}
       onOpenChange={(next, details) => {
@@ -269,7 +304,15 @@ function QuickEditDialog({
       }}
     >
       {open && kind && (
-        <QuickEditBody kind={kind} targets={targets} lookups={lookups} actions={actions} query={query} setQuery={setQuery} close={close} />
+        <QuickEditBody
+          kind={kind}
+          targets={targets}
+          lookups={lookups}
+          actions={actions}
+          query={query}
+          setQuery={setQuery}
+          close={close}
+        />
       )}
     </CommandDialog>
   );
@@ -295,7 +338,10 @@ function QuickEditBody({
   const [value, setValue] = useState("");
   const options = buildOptions(kind, targets, lookups, actions, query);
   // A typed date isn't a filter: keep every option and put the typed one first.
-  const ranked = kind === "dueDate" && /^\d{4}-/.test(query.trim()) ? options.map((item) => ({ item, matches: [] as number[] })) : rank(options, query);
+  const ranked =
+    kind === "dueDate" && /^\d{4}-/.test(query.trim())
+      ? options.map((item) => ({ item, matches: [] as number[] }))
+      : rank(options, query);
   const ids = ranked.map((entry) => entry.item.id);
   // Start on the current value when every target shares it, else on the first option.
   const current = ranked.find((entry) => entry.item.checked === true)?.item.id;
@@ -304,8 +350,8 @@ function QuickEditBody({
 
   return (
     <Command shouldFilter={false} value={active} onValueChange={setValue} loop>
-      <div className="flex min-w-0 items-center gap-1.5 px-3.5 pt-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{TITLES[kind]}</span>
+      <div className="text-muted-foreground flex min-w-0 items-center gap-1.5 px-3.5 pt-3 text-xs">
+        <span className="text-foreground font-medium">{TITLES[kind]}</span>
         <span aria-hidden>·</span>
         {targets.length === 1 ? (
           <span className="flex min-w-0 items-center gap-1.5">
@@ -316,9 +362,19 @@ function QuickEditBody({
           <span>{plural(targets.length, "issue")}</span>
         )}
       </div>
-      <CommandInput value={query} onValueChange={(next) => (setQuery(next), setValue(""))} placeholder={PLACEHOLDERS[kind]} aria-label={TITLES[kind]} autoFocus />
+      <CommandInput
+        value={query}
+        onValueChange={(next) => (setQuery(next), setValue(""))}
+        placeholder={PLACEHOLDERS[kind]}
+        aria-label={TITLES[kind]}
+        autoFocus
+      />
       <CommandList>
-        <CommandEmpty>{kind === "labels" && lookups.data.labels.length === 0 ? "No labels yet. Add them in Settings." : "No matches."}</CommandEmpty>
+        <CommandEmpty>
+          {kind === "labels" && lookups.data.labels.length === 0
+            ? "No labels yet. Add them in Settings."
+            : "No matches."}
+        </CommandEmpty>
         {ranked.map(({ item, matches }) => (
           <CommandItem
             key={item.id}
@@ -338,14 +394,23 @@ function QuickEditBody({
                 </span>
               ))}
             </span>
-            <span className="ml-auto flex size-4 items-center justify-center text-muted-foreground" aria-hidden>
-              {item.checked === true ? <CheckIcon className="size-3.5" /> : item.checked === "mixed" ? <MinusIcon className="size-3.5" /> : null}
+            <span
+              className="text-muted-foreground ml-auto flex size-4 items-center justify-center"
+              aria-hidden
+            >
+              {item.checked === true ? (
+                <CheckIcon className="size-3.5" />
+              ) : item.checked === "mixed" ? (
+                <MinusIcon className="size-3.5" />
+              ) : null}
             </span>
-            <span className="sr-only">{item.checked === true ? "(current)" : item.checked === "mixed" ? "(some)" : ""}</span>
+            <span className="sr-only">
+              {item.checked === true ? "(current)" : item.checked === "mixed" ? "(some)" : ""}
+            </span>
           </CommandItem>
         ))}
       </CommandList>
-      <div className="flex h-9 items-center gap-3 border-t border-border px-3.5 text-xs text-muted-foreground">
+      <div className="border-border text-muted-foreground flex h-9 items-center gap-3 border-t px-3.5 text-xs">
         <span className="flex items-center gap-1.5">
           <Keycap keys="enter" /> {multi ? "to toggle" : "to apply"}
         </span>

@@ -10,7 +10,13 @@ import { setTimeout as sleep } from "node:timers/promises";
 const cwd = new URL("../../packages/backend/", import.meta.url).pathname;
 const asJson = process.argv.includes("--json");
 const convex = (args, input) =>
-  execFileSync("npx", ["convex", ...args], { cwd, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], input, maxBuffer: 1 << 28 });
+  execFileSync("npx", ["convex", ...args], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+    input,
+    maxBuffer: 1 << 28,
+  });
 const data = (table) =>
   convex(["data", table, "--limit", "10000", "--format", "jsonl"])
     .trim()
@@ -60,14 +66,22 @@ const call = (label, fn, args, options) => {
 const pan = spaces.PAN;
 call("workspace.current", "workspace:current");
 const list = call("issues.listBySpace PAN", "issues:listBySpace", { spaceId: pan._id });
-call("issues.listBySpace PAN includeDone", "issues:listBySpace", { spaceId: pan._id, includeDone: true });
+call("issues.listBySpace PAN includeDone", "issues:listBySpace", {
+  spaceId: pan._id,
+  includeDone: true,
+});
 call("issues.listBySpace WEB", "issues:listBySpace", { spaceId: spaces.WEB._id });
 call("issues.listMine", "issues:listMine");
 call("issues.get PAN-1200", "issues:get", { key: "PAN-1200" });
 call("issues.search 'board'", "issues:search", { text: "board" });
 call("issues.search '42'", "issues:search", { text: "42" });
 call("mcp.listIssues (no filter)", "mcp:listIssues", { token, limit: 50 }, { as: null });
-call("mcp.listIssues space=OPS status=In Review", "mcp:listIssues", { token, space: "OPS", status: "In Review" }, { as: null });
+call(
+  "mcp.listIssues space=OPS status=In Review",
+  "mcp:listIssues",
+  { token, space: "OPS", status: "In Review" },
+  { as: null },
+);
 call("mcp.getIssue PAN-1200", "mcp:getIssue", { token, key: "PAN-1200" }, { as: null });
 
 // Writes. Pick an open issue in PAN, move it to Done (the biggest column) and back.
@@ -75,10 +89,24 @@ const open = list.find((issue) => issue.statusCategory === "unstarted" && !issue
 const done = byCategory("done");
 call("issues.move → Done (top)", "issues:move", { issueId: open._id, statusId: done._id });
 call("issues.move → Todo (back)", "issues:move", { issueId: open._id, statusId: open.statusId });
-call("issues.update priority", "issues:update", { issueId: open._id, priority: open.priority === 1 ? 2 : 1 });
-call("issues.update priority (back)", "issues:update", { issueId: open._id, priority: open.priority });
-const probe = call("issues.create PAN (Todo)", "issues:create", { spaceId: pan._id, title: "Perf probe" });
-call("mcp.updateIssue status", "mcp:updateIssue", { token, key: open.key, status: "In Progress" }, { as: null });
+call("issues.update priority", "issues:update", {
+  issueId: open._id,
+  priority: open.priority === 1 ? 2 : 1,
+});
+call("issues.update priority (back)", "issues:update", {
+  issueId: open._id,
+  priority: open.priority,
+});
+const probe = call("issues.create PAN (Todo)", "issues:create", {
+  spaceId: pan._id,
+  title: "Perf probe",
+});
+call(
+  "mcp.updateIssue status",
+  "mcp:updateIssue",
+  { token, key: open.key, status: "In Progress" },
+  { as: null },
+);
 call("issues.move → Todo (back)", "issues:move", { issueId: open._id, statusId: open.statusId });
 
 await sleep(4000);
@@ -86,22 +114,35 @@ logs.kill();
 run("issues:remove", { issueId: probe.issueId });
 
 const rows = calls.map((entry) => {
-  const event = events.slice(entry.at).find((candidate) => candidate.identifier === entry.fn && !candidate.used);
+  const event = events
+    .slice(entry.at)
+    .find((candidate) => candidate.identifier === entry.fn && !candidate.used);
   if (event) event.used = true;
   const usage = event?.usageStats ?? {};
   return {
     call: entry.label + (event?.cachedResult ? " (cached)" : ""),
     docsRead: usage.databaseReadDocuments,
-    kbRead: usage.databaseReadBytes !== undefined ? +(usage.databaseReadBytes / 1024).toFixed(1) : undefined,
+    kbRead:
+      usage.databaseReadBytes !== undefined
+        ? +(usage.databaseReadBytes / 1024).toFixed(1)
+        : undefined,
     kbReturned: +(entry.returned / 1024).toFixed(1),
     ms: event ? +(event.executionTime * 1000).toFixed(1) : undefined,
   };
 });
-run("tokens:revoke", { tokenId: run("tokens:list").find((row) => row.name.startsWith("perf ") && !row.revokedAt)?._id });
+run("tokens:revoke", {
+  tokenId: run("tokens:list").find((row) => row.name.startsWith("perf ") && !row.revokedAt)?._id,
+});
 
 if (asJson) console.log(JSON.stringify(rows, null, 2));
 else {
-  console.log("call".padEnd(44), "docs".padStart(6), "kB read".padStart(9), "kB out".padStart(8), "ms".padStart(7));
+  console.log(
+    "call".padEnd(44),
+    "docs".padStart(6),
+    "kB read".padStart(9),
+    "kB out".padStart(8),
+    "ms".padStart(7),
+  );
   for (const row of rows) {
     console.log(
       row.call.padEnd(44),

@@ -64,7 +64,11 @@ export function formatChord(chord: string, isMac: boolean): string[] {
     .filter(Boolean)
     .map((part) => {
       const lower = part.toLowerCase();
-      return (isMac ? MAC_SYMBOLS : OTHER_SYMBOLS)[lower] ?? NAMED[lower] ?? (part.length === 1 ? part.toUpperCase() : part);
+      return (
+        (isMac ? MAC_SYMBOLS : OTHER_SYMBOLS)[lower] ??
+        NAMED[lower] ??
+        (part.length === 1 ? part.toUpperCase() : part)
+      );
     });
 }
 

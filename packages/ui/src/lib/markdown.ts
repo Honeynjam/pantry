@@ -57,7 +57,11 @@ export const RawMarkdownInline = Node.create({
     ];
   },
   renderHTML({ node }) {
-    return ["span", { "data-raw-markdown-inline": "", class: "raw-markdown-inline" }, String(node.attrs.markdown)];
+    return [
+      "span",
+      { "data-raw-markdown-inline": "", class: "raw-markdown-inline" },
+      String(node.attrs.markdown),
+    ];
   },
   markdownTokenName: "image",
   parseMarkdown: (token) => ({ type: "rawMarkdownInline", attrs: { markdown: token.raw ?? "" } }),
@@ -81,7 +85,9 @@ const rawBlockFor = (tokenName: string) =>
 const RAW_BLOCK_TOKENS = ["table", "html", "def"];
 
 /** Every extension the editor uses, minus UI-only ones (placeholder, keymaps): also used headless in tests. */
-export function markdownExtensions({ openLinksOnClick = false }: { openLinksOnClick?: boolean } = {}): AnyExtension[] {
+export function markdownExtensions({
+  openLinksOnClick = false,
+}: { openLinksOnClick?: boolean } = {}): AnyExtension[] {
   return [
     StarterKit.configure({
       // No markdown syntax for underline; keep the schema to what round-trips.
@@ -110,7 +116,10 @@ function splitBlocks(manager: MarkdownManagerLike, markdown: string): Block[] {
   return manager.instance
     .lexer(markdown)
     .filter((token) => token.type !== "space")
-    .map((token) => ({ raw: token.raw.replace(/^\n+|\n+$/g, ""), isDefinition: token.type === "def" }))
+    .map((token) => ({
+      raw: token.raw.replace(/^\n+|\n+$/g, ""),
+      isDefinition: token.type === "def",
+    }))
     .filter((block) => block.raw.trim().length > 0);
 }
 
@@ -124,7 +133,11 @@ function canonical(manager: MarkdownManagerLike, markdown: string): string {
  * `original`. Blocks are matched by what Tiptap would write for them, in order, so moved or
  * duplicated blocks still match.
  */
-export function preserveUnchangedBlocks(manager: MarkdownManagerLike, original: string, next: string): string {
+export function preserveUnchangedBlocks(
+  manager: MarkdownManagerLike,
+  original: string,
+  next: string,
+): string {
   const trimmedNext = next.replace(/\n+$/, "");
   if (!trimmedNext.trim()) return "";
   if (canonical(manager, original) === trimmedNext) return original;
@@ -132,12 +145,16 @@ export function preserveUnchangedBlocks(manager: MarkdownManagerLike, original: 
   const originalBlocks = splitBlocks(manager, original);
   // Reference links (`[text][ref]`) only resolve next to their `[ref]: url` definitions, so each
   // block is read with the document's definitions after it, which are then cut off again.
-  const definitions = originalBlocks.filter((block) => block.isDefinition).map((block) => block.raw);
+  const definitions = originalBlocks
+    .filter((block) => block.isDefinition)
+    .map((block) => block.raw);
   const context = definitions.length ? `\n\n${definitions.join("\n\n")}` : "";
   const canonicalInContext = (block: Block) => {
     if (!context || block.isDefinition) return canonical(manager, block.raw);
     const written = canonical(manager, block.raw + context);
-    return written.endsWith(context) ? written.slice(0, -context.length) : canonical(manager, block.raw);
+    return written.endsWith(context)
+      ? written.slice(0, -context.length)
+      : canonical(manager, block.raw);
   };
 
   // Where each original block sits, so neighbours that both survive keep the text between them.
@@ -164,7 +181,12 @@ export function preserveUnchangedBlocks(manager: MarkdownManagerLike, original: 
     if (i > 0) {
       const previous = blocks[i - 1]!.from;
       const current = block.from;
-      const adjacent = previous && current && current.index === previous.index + 1 && previous.end >= 0 && current.start >= 0;
+      const adjacent =
+        previous &&
+        current &&
+        current.index === previous.index + 1 &&
+        previous.end >= 0 &&
+        current.start >= 0;
       joined += adjacent ? original.slice(previous.end, current.start) : "\n\n";
     }
     joined += block.raw;

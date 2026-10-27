@@ -3,7 +3,8 @@ import { useState } from "react";
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && Object.getPrototypeOf(value) === Object.prototype;
 
-const idOf = (value: unknown) => (isPlainObject(value) && typeof value._id === "string" ? value._id : undefined);
+const idOf = (value: unknown) =>
+  isPlainObject(value) && typeof value._id === "string" ? value._id : undefined;
 
 /**
  * `next`, with every part that equals the matching part of `prev` replaced by `prev`'s object, so
@@ -25,7 +26,8 @@ export function reuseEqual<T>(prev: unknown, next: T): T {
     let same = prev.length === next.length;
     const out = next.map((item, index) => {
       const id = idOf(item);
-      const before = id !== undefined ? byId.get(id) : idOf(prev[index]) === undefined ? prev[index] : undefined;
+      const before =
+        id !== undefined ? byId.get(id) : idOf(prev[index]) === undefined ? prev[index] : undefined;
       const kept = reuseEqual(before, item);
       if (kept !== prev[index]) same = false;
       return kept;

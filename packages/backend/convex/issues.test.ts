@@ -10,7 +10,9 @@ const partner = { subject: "user-partner", name: "Partner", email: "partner@exam
 
 async function setUp() {
   const t = setupTest();
-  const created = await t.withIdentity(owner).mutation(api.setup.createWorkspace, { workspaceName: "Home" });
+  const created = await t
+    .withIdentity(owner)
+    .mutation(api.setup.createWorkspace, { workspaceName: "Home" });
   const partnerId = await t.run((ctx) =>
     ctx.db.insert("members", {
       workspaceId: created.workspaceId,
@@ -25,8 +27,10 @@ async function setUp() {
     "backlog" | "unstarted" | "started" | "review" | "done" | "canceled",
     Id<"statuses">
   >;
-  const create = (title: string, extra: Partial<Parameters<typeof as.mutation<typeof api.issues.create>>[1]> = {}) =>
-    as.mutation(api.issues.create, { spaceId: created.spaceId, title, ...extra });
+  const create = (
+    title: string,
+    extra: Partial<Parameters<typeof as.mutation<typeof api.issues.create>>[1]> = {},
+  ) => as.mutation(api.issues.create, { spaceId: created.spaceId, title, ...extra });
   return { t, as, ...created, partnerId, status, create };
 }
 
@@ -38,7 +42,8 @@ const activityOf = (t: TestConvex, issueId: Id<"issues">) =>
       .collect(),
   );
 
-const getIssue = (t: TestConvex, issueId: Id<"issues">) => t.run((ctx) => ctx.db.get("issues", issueId));
+const getIssue = (t: TestConvex, issueId: Id<"issues">) =>
+  t.run((ctx) => ctx.db.get("issues", issueId));
 
 afterEach(() => vi.useRealTimers());
 
@@ -48,7 +53,9 @@ describe("issues.create", () => {
     const keys: string[] = [];
     for (let i = 0; i < 12; i++) keys.push((await create(`Issue ${i}`)).key);
     // Concurrent creates are serialised by Convex's transactions; none share a number.
-    const parallel = await Promise.all(Array.from({ length: 8 }, (_, i) => create(`Parallel ${i}`)));
+    const parallel = await Promise.all(
+      Array.from({ length: 8 }, (_, i) => create(`Parallel ${i}`)),
+    );
     keys.push(...parallel.map((result) => result.key));
     expect(new Set(keys).size).toBe(20);
     expect(keys.map((key) => Number(key.split("-")[1])).sort((a, b) => a - b)).toEqual(
@@ -65,7 +72,13 @@ describe("issues.create", () => {
     const first = await create("First");
     const second = await create("Second");
     const [a, b] = [await getIssue(t, first.issueId), await getIssue(t, second.issueId)];
-    expect(a).toMatchObject({ statusId: status.unstarted, statusCategory: "unstarted", priority: 0, labelIds: [], description: "" });
+    expect(a).toMatchObject({
+      statusId: status.unstarted,
+      statusCategory: "unstarted",
+      priority: 0,
+      labelIds: [],
+      description: "",
+    });
     expect(a?.creatorId).toBe(memberId);
     expect(b!.sortOrder).toBe(a!.sortOrder - 1);
     expect((await activityOf(t, first.issueId)).map((row) => [row.type, row.to, row.via])).toEqual([
@@ -84,8 +97,16 @@ describe("issues.create", () => {
     await expect(create("   ")).rejects.toThrow(/title/);
     await expect(create("x".repeat(201))).rejects.toThrow(/200/);
     await expect(create("Bad day", { dueDate: "2026-02-30" })).rejects.toThrow(/calendar days/);
-    const { issueId } = await create("Good", { dueDate: "2026-10-28", assigneeId: partnerId, priority: 2 });
-    expect(await getIssue(t, issueId)).toMatchObject({ dueDate: "2026-10-28", assigneeId: partnerId, priority: 2 });
+    const { issueId } = await create("Good", {
+      dueDate: "2026-10-28",
+      assigneeId: partnerId,
+      priority: 2,
+    });
+    expect(await getIssue(t, issueId)).toMatchObject({
+      dueDate: "2026-10-28",
+      assigneeId: partnerId,
+      priority: 2,
+    });
   });
 
   it("rejects archived spaces", async () => {
@@ -100,9 +121,9 @@ describe("sub-issues", () => {
     const { t, as, create } = await setUp();
     const parent = await create("Parent");
     const web = await as.mutation(api.spaces.create, { name: "Web", key: "WEB" });
-    await expect(create("Wrong space", { parentId: parent.issueId, spaceId: web.spaceId })).rejects.toThrow(
-      /parent's space/,
-    );
+    await expect(
+      create("Wrong space", { parentId: parent.issueId, spaceId: web.spaceId }),
+    ).rejects.toThrow(/parent's space/);
     // Through the shared helper, any spaceId matching the parent works and the key follows it.
     const child = await create("Child", { parentId: parent.issueId });
     expect(child.key).toBe("PAN-2");
@@ -113,7 +134,9 @@ describe("sub-issues", () => {
     const { create } = await setUp();
     const parent = await create("Parent");
     const child = await create("Child", { parentId: parent.issueId });
-    await expect(create("Grandchild", { parentId: child.issueId })).rejects.toThrow(/already a sub-issue/);
+    await expect(create("Grandchild", { parentId: child.issueId })).rejects.toThrow(
+      /already a sub-issue/,
+    );
   });
 
   it("can't loop or nest through update", async () => {
@@ -121,18 +144,18 @@ describe("sub-issues", () => {
     const a = await create("A");
     const b = await create("B");
     const c = await create("C");
-    await expect(as.mutation(api.issues.update, { issueId: a.issueId, parentId: a.issueId })).rejects.toThrow(
-      /own parent/,
-    );
+    await expect(
+      as.mutation(api.issues.update, { issueId: a.issueId, parentId: a.issueId }),
+    ).rejects.toThrow(/own parent/);
     await as.mutation(api.issues.update, { issueId: b.issueId, parentId: a.issueId });
     // A has a sub-issue now, so it can't become one.
-    await expect(as.mutation(api.issues.update, { issueId: a.issueId, parentId: c.issueId })).rejects.toThrow(
-      /has sub-issues/,
-    );
+    await expect(
+      as.mutation(api.issues.update, { issueId: a.issueId, parentId: c.issueId }),
+    ).rejects.toThrow(/has sub-issues/);
     // B is a sub-issue, so nothing can go under it.
-    await expect(as.mutation(api.issues.update, { issueId: c.issueId, parentId: b.issueId })).rejects.toThrow(
-      /already a sub-issue/,
-    );
+    await expect(
+      as.mutation(api.issues.update, { issueId: c.issueId, parentId: b.issueId }),
+    ).rejects.toThrow(/already a sub-issue/);
     // Unparenting works, and then A can go under C.
     await as.mutation(api.issues.update, { issueId: b.issueId, parentId: null });
     await as.mutation(api.issues.update, { issueId: a.issueId, parentId: c.issueId });
@@ -141,11 +164,14 @@ describe("sub-issues", () => {
   it("can't take a parent from another space through update", async () => {
     const { as, create } = await setUp();
     const web = await as.mutation(api.spaces.create, { name: "Web", key: "WEB" });
-    const parent = await as.mutation(api.issues.create, { spaceId: web.spaceId, title: "Web parent" });
+    const parent = await as.mutation(api.issues.create, {
+      spaceId: web.spaceId,
+      title: "Web parent",
+    });
     const issue = await create("PAN issue");
-    await expect(as.mutation(api.issues.update, { issueId: issue.issueId, parentId: parent.issueId })).rejects.toThrow(
-      /same space/,
-    );
+    await expect(
+      as.mutation(api.issues.update, { issueId: issue.issueId, parentId: parent.issueId }),
+    ).rejects.toThrow(/same space/);
   });
 });
 
@@ -196,7 +222,13 @@ describe("issues.update", () => {
     expect((await getIssue(t, issueId))!.updatedAt).toBe(after!.updatedAt);
 
     // Clearing fields: one row each.
-    await as.mutation(api.issues.update, { issueId, assigneeId: null, dueDate: null, parentId: null, labelIds: [ui] });
+    await as.mutation(api.issues.update, {
+      issueId,
+      assigneeId: null,
+      dueDate: null,
+      parentId: null,
+      labelIds: [ui],
+    });
     const cleared = (await activityOf(t, issueId)).slice(8);
     expect(cleared.map((row) => [row.type, row.from, row.to])).toEqual([
       ["assigned", "Partner", undefined],
@@ -254,7 +286,8 @@ describe("issues.move", () => {
   it("puts a moved issue at the top of the new column, or between the given neighbours", async () => {
     const { t, as, create, status } = await setUp();
     const ids: Id<"issues">[] = [];
-    for (const title of ["A", "B", "C"]) ids.push((await create(title, { statusId: status.started })).issueId);
+    for (const title of ["A", "B", "C"])
+      ids.push((await create(title, { statusId: status.started })).issueId);
     // Created at the top each time: column order is C, B, A.
     const order = async () =>
       (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, ids[0]!))!.spaceId! }))
@@ -287,21 +320,32 @@ describe("issues.move", () => {
       await ctx.db.patch("issues", a.issueId, { sortOrder: 5 + MIN_GAP / 2 });
     });
     const { issueId: d } = await create("D");
-    await as.mutation(api.issues.move, { issueId: d, statusId: status.review, afterId: b.issueId, beforeId: a.issueId });
-    const rows = await t.run((ctx) => Promise.all([c, b, { issueId: d }, a].map((row) => ctx.db.get("issues", row.issueId))));
+    await as.mutation(api.issues.move, {
+      issueId: d,
+      statusId: status.review,
+      afterId: b.issueId,
+      beforeId: a.issueId,
+    });
+    const rows = await t.run((ctx) =>
+      Promise.all([c, b, { issueId: d }, a].map((row) => ctx.db.get("issues", row.issueId))),
+    );
     expect(rows.map((row) => row!.sortOrder)).toEqual([1, 2, 3, 4]);
   });
 
   it("places by neighbours exactly like the whole-column rule, ties and foreign anchors included", async () => {
     // The rule as it was written over the whole column (before placeInColumn read only neighbours).
     type Row = { _id: Id<"issues">; sortOrder: number };
-    const reference = (others: Row[], placement: { afterId?: Id<"issues">; beforeId?: Id<"issues"> }) => {
+    const reference = (
+      others: Row[],
+      placement: { afterId?: Id<"issues">; beforeId?: Id<"issues"> },
+    ) => {
       let index = -1;
       if (placement.afterId) {
         const at = others.findIndex((row) => row._id === placement.afterId);
         if (at >= 0) index = at + 1;
       }
-      if (index < 0 && placement.beforeId) index = others.findIndex((row) => row._id === placement.beforeId);
+      if (index < 0 && placement.beforeId)
+        index = others.findIndex((row) => row._id === placement.beforeId);
       if (index < 0) index = 0;
       const above = others[index - 1];
       const below = others[index];
@@ -309,7 +353,12 @@ describe("issues.move", () => {
       if (!above) return below!.sortOrder - 1;
       if (!below) return above.sortOrder + 1;
       const mid = (above.sortOrder + below.sortOrder) / 2;
-      if (below.sortOrder - above.sortOrder >= MIN_GAP && mid > above.sortOrder && mid < below.sortOrder) return mid;
+      if (
+        below.sortOrder - above.sortOrder >= MIN_GAP &&
+        mid > above.sortOrder &&
+        mid < below.sortOrder
+      )
+        return mid;
       return { renumberAt: index + 1 };
     };
 
@@ -322,17 +371,34 @@ describe("issues.move", () => {
         for (const before of [undefined, ...anchors]) {
           const { t, as, create, status } = await setUp();
           const ids = new Map<string, Id<"issues">>();
-          for (const title of ["A", "B", "C", "D", "E"]) ids.set(title, (await create(title, { statusId: status.started })).issueId);
-          ids.set("self", (await create("Moving", { statusId: from === "inside" ? status.started : status.backlog })).issueId);
+          for (const title of ["A", "B", "C", "D", "E"])
+            ids.set(title, (await create(title, { statusId: status.started })).issueId);
+          ids.set(
+            "self",
+            (
+              await create("Moving", {
+                statusId: from === "inside" ? status.started : status.backlog,
+              })
+            ).issueId,
+          );
           ids.set("elsewhere", (await create("Elsewhere", { statusId: status.review })).issueId);
           const others = await t.run(async (ctx) => {
-            for (const [title, sortOrder] of [["A", 1], ["B", 4], ["C", 4], ["D", 7], ["E", 9], ["self", 5.5]] as const) {
+            for (const [title, sortOrder] of [
+              ["A", 1],
+              ["B", 4],
+              ["C", 4],
+              ["D", 7],
+              ["E", 9],
+              ["self", 5.5],
+            ] as const) {
               await ctx.db.patch("issues", ids.get(title)!, { sortOrder });
             }
             const spaceId = (await ctx.db.get("issues", ids.get("A")!))!.spaceId!;
             const column = await ctx.db
               .query("issues")
-              .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", status.started))
+              .withIndex("by_space_and_status", (q) =>
+                q.eq("spaceId", spaceId).eq("statusId", status.started),
+              )
               .collect();
             return column.filter((row) => row._id !== ids.get("self"));
           });
@@ -341,7 +407,11 @@ describe("issues.move", () => {
             ...(before ? { beforeId: ids.get(before)! } : {}),
           };
           const expected = reference(others, placement);
-          await as.mutation(api.issues.move, { issueId: ids.get("self")!, statusId: status.started, ...placement });
+          await as.mutation(api.issues.move, {
+            issueId: ids.get("self")!,
+            statusId: status.started,
+            ...placement,
+          });
           const moved = (await getIssue(t, ids.get("self")!))!;
           expect([from, after, before, moved.sortOrder]).toEqual([
             from,
@@ -362,11 +432,18 @@ describe("issues.move", () => {
     const inserted: Id<"issues">[] = [];
     for (let i = 0; i < 45; i++) {
       const { issueId } = await create(`Mid ${i}`);
-      await as.mutation(api.issues.move, { issueId, statusId: status.backlog, afterId: bottom.issueId });
+      await as.mutation(api.issues.move, {
+        issueId,
+        statusId: status.backlog,
+        afterId: bottom.issueId,
+      });
       inserted.push(issueId);
     }
-    const column = (await as.query(api.issues.listBySpace, { spaceId: (await getIssue(t, top.issueId))!.spaceId! }))
-      .filter((issue) => issue.statusId === status.backlog);
+    const column = (
+      await as.query(api.issues.listBySpace, {
+        spaceId: (await getIssue(t, top.issueId))!.spaceId!,
+      })
+    ).filter((issue) => issue.statusId === status.backlog);
     const orders = column.map((issue) => issue.sortOrder);
     expect([...orders].sort((x, y) => x - y)).toEqual(orders);
     expect(new Set(orders).size).toBe(orders.length);
@@ -379,10 +456,22 @@ describe("issues.move", () => {
     const { t, as, create } = await setUp();
     const { issueId } = await create("Mine");
     const foreign = await t.run(async (ctx) => {
-      const workspaceId = await ctx.db.insert("workspaces", { name: "Other", slug: "other", createdBy: "x" });
-      return ctx.db.insert("statuses", { workspaceId, name: "Done", category: "done", order: 0, color: "red" });
+      const workspaceId = await ctx.db.insert("workspaces", {
+        name: "Other",
+        slug: "other",
+        createdBy: "x",
+      });
+      return ctx.db.insert("statuses", {
+        workspaceId,
+        name: "Done",
+        category: "done",
+        order: 0,
+        color: "red",
+      });
     });
-    await expect(as.mutation(api.issues.move, { issueId, statusId: foreign })).rejects.toThrow(/not found/);
+    await expect(as.mutation(api.issues.move, { issueId, statusId: foreign })).rejects.toThrow(
+      /not found/,
+    );
   });
 });
 
@@ -390,13 +479,19 @@ describe("issues.listBySpace / listMine / get / remove", () => {
   it("orders by status then sortOrder and hides old done issues unless asked", async () => {
     const { t, as, create, status, spaceId } = await setUp();
     const old = await create("Old done", { statusId: status.done });
-    await t.run((ctx) => ctx.db.patch("issues", old.issueId, { completedAt: Date.now() - RECENT_DONE_MS - 1000 }));
+    await t.run((ctx) =>
+      ctx.db.patch("issues", old.issueId, { completedAt: Date.now() - RECENT_DONE_MS - 1000 }),
+    );
     await create("Recent done", { statusId: status.done });
     await create("Backlog item", { statusId: status.backlog });
     await create("Todo item");
-    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map((issue) => issue.title);
+    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map(
+      (issue) => issue.title,
+    );
     expect(titles).toEqual(["Backlog item", "Todo item", "Recent done"]);
-    const all = (await as.query(api.issues.listBySpace, { spaceId, includeDone: true })).map((issue) => issue.title);
+    const all = (await as.query(api.issues.listBySpace, { spaceId, includeDone: true })).map(
+      (issue) => issue.title,
+    );
     expect(all).toEqual(["Backlog item", "Todo item", "Recent done", "Old done"]);
   });
 
@@ -410,17 +505,25 @@ describe("issues.listBySpace / listMine / get / remove", () => {
     await t.run(async (ctx) => {
       // completedAt order is the reverse of the column order: the list must follow sortOrder.
       await ctx.db.patch("issues", first.issueId, { sortOrder: 1, completedAt: Date.now() - 1000 });
-      await ctx.db.patch("issues", second.issueId, { sortOrder: 2, completedAt: Date.now() - 5000 });
+      await ctx.db.patch("issues", second.issueId, {
+        sortOrder: 2,
+        completedAt: Date.now() - 5000,
+      });
       await ctx.db.patch("issues", undatedRecent.issueId, { completedAt: undefined });
       await ctx.db.patch("issues", undatedOld.issueId, { completedAt: undefined, updatedAt: long });
     });
-    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map((issue) => issue.title);
+    const titles = (await as.query(api.issues.listBySpace, { spaceId })).map(
+      (issue) => issue.title,
+    );
     expect(titles).toEqual(["Done first", "Done second", "Undated recent"]);
   });
 
   it("returns list rows without descriptions (the issue page has them)", async () => {
     const { as, create, spaceId, memberId } = await setUp();
-    const { key } = await create("Described", { description: "A long description", assigneeId: memberId });
+    const { key } = await create("Described", {
+      description: "A long description",
+      assigneeId: memberId,
+    });
     const [row] = await as.query(api.issues.listBySpace, { spaceId });
     expect(row).not.toHaveProperty("description");
     expect(row).toMatchObject({ key, title: "Described" });
@@ -449,7 +552,9 @@ describe("issues.listBySpace / listMine / get / remove", () => {
     await as.mutation(api.comments.add, { issueId: parent.issueId, body: "First!" });
     const result = await as.query(api.issues.get, { key: parent.key });
     expect(result?.subIssues.map((issue) => issue.title)).toEqual(["Child"]);
-    expect(result?.comments.map((comment) => [comment.body, comment.via])).toEqual([["First!", "app"]]);
+    expect(result?.comments.map((comment) => [comment.body, comment.via])).toEqual([
+      ["First!", "app"],
+    ]);
     expect(result?.activity.map((row) => row.type)).toEqual(["created", "commented"]);
     const child = await as.query(api.issues.get, { key: "PAN-2" });
     expect(child?.parent?.key).toBe("PAN-1");
@@ -481,7 +586,9 @@ describe("issues.listBySpace / listMine / get / remove", () => {
     for (let i = 4; i <= 11; i++) await create(`Filler ${i}`);
     const twelve = await create("Mentions login too");
 
-    const byTitle = (await as.query(api.issues.search, { text: "login" })).map((issue) => issue.title).sort();
+    const byTitle = (await as.query(api.issues.search, { text: "login" }))
+      .map((issue) => issue.title)
+      .sort();
     expect(byTitle).toEqual(["Fix login redirect", "Login page copy", "Mentions login too"]);
 
     // An exact key comes first, even when its title doesn't match the text.
@@ -504,13 +611,26 @@ describe("issues.listBySpace / listMine / get / remove", () => {
     const { issueId } = await create("Private");
     const stranger = { subject: "stranger" };
     await t.run(async (ctx) => {
-      const workspaceId = await ctx.db.insert("workspaces", { name: "Other", slug: "other", createdBy: "stranger" });
-      await ctx.db.insert("members", { workspaceId, userId: "stranger", displayName: "S", role: "owner" });
+      const workspaceId = await ctx.db.insert("workspaces", {
+        name: "Other",
+        slug: "other",
+        createdBy: "stranger",
+      });
+      await ctx.db.insert("members", {
+        workspaceId,
+        userId: "stranger",
+        displayName: "S",
+        role: "owner",
+      });
     });
     const them = t.withIdentity(stranger);
-    await expect(them.mutation(api.issues.update, { issueId, title: "Mine" })).rejects.toThrow(/not found/);
+    await expect(them.mutation(api.issues.update, { issueId, title: "Mine" })).rejects.toThrow(
+      /not found/,
+    );
     await expect(them.mutation(api.issues.remove, { issueId })).rejects.toThrow(/not found/);
-    await expect(them.mutation(api.comments.add, { issueId, body: "hi" })).rejects.toThrow(/not found/);
+    await expect(them.mutation(api.comments.add, { issueId, body: "hi" })).rejects.toThrow(
+      /not found/,
+    );
     expect(await them.query(api.issues.get, { key: "PAN-1" })).toBeNull();
     expect(await them.query(api.issues.search, { text: "PAN-1" })).toEqual([]);
     expect(await them.query(api.issues.search, { text: "Private" })).toEqual([]);
@@ -525,11 +645,17 @@ describe("comments", () => {
     vi.useFakeTimers({ now: Date.now() + 1000 });
     const commentId = await as.mutation(api.comments.add, { issueId, body: "Hello" });
     expect((await getIssue(t, issueId))!.updatedAt).toBeGreaterThan(before);
-    await expect(as.mutation(api.comments.add, { issueId, body: "   " })).rejects.toThrow(/Write something/);
+    await expect(as.mutation(api.comments.add, { issueId, body: "   " })).rejects.toThrow(
+      /Write something/,
+    );
 
     const them = t.withIdentity(partner);
-    await expect(them.mutation(api.comments.edit, { commentId, body: "Hijack" })).rejects.toThrow(/Only the author/);
-    await expect(them.mutation(api.comments.remove, { commentId })).rejects.toThrow(/Only the author/);
+    await expect(them.mutation(api.comments.edit, { commentId, body: "Hijack" })).rejects.toThrow(
+      /Only the author/,
+    );
+    await expect(them.mutation(api.comments.remove, { commentId })).rejects.toThrow(
+      /Only the author/,
+    );
 
     await as.mutation(api.comments.edit, { commentId, body: "Hello again" });
     const edited = await t.run((ctx) => ctx.db.get("comments", commentId));

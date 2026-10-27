@@ -33,7 +33,13 @@ export function suggestKey(name: string): string {
  * Name, kind (product or client) and key; the key is suggested from the name until you type your
  * own. Opens the new space.
  */
-export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function NewSpaceDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const createSpace = useMutation(api.spaces.create);
   const [kind, setKind] = useState<"product" | "client">("product");
   const { navigate } = useNavigation();
@@ -81,7 +87,9 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>New space</DialogTitle>
-            <DialogDescription>Issues in it get keys like {shownKey || "KEY"}-1. The key can&apos;t change later.</DialogDescription>
+            <DialogDescription>
+              Issues in it get keys like {shownKey || "KEY"}-1. The key can&apos;t change later.
+            </DialogDescription>
           </DialogHeader>
           <FieldGroup className="gap-3">
             <Field>
@@ -116,14 +124,23 @@ export function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenCh
                   { value: "client", label: "Client" },
                 ]}
               />
-              <FieldDescription>One of your products, or client work. You can change it later.</FieldDescription>
+              <FieldDescription>
+                One of your products, or client work. You can change it later.
+              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="new-space-key">Key</FieldLabel>
               <Input
                 id="new-space-key"
                 value={shownKey}
-                onChange={(event) => setKey(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))}
+                onChange={(event) =>
+                  setKey(
+                    event.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .slice(0, 10),
+                  )
+                }
                 className="font-mono uppercase"
                 required
                 minLength={2}

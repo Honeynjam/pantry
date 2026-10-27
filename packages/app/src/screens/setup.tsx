@@ -18,7 +18,9 @@ import { SlowHint } from "./slow-hint";
 export function SetupPage() {
   return (
     <EntryGate allow={["needs-secret", "needs-setup"]}>
-      {(state) => (state.kind === "needs-setup" ? <CreateWorkspace state={state} /> : <MissingSecret />)}
+      {(state) =>
+        state.kind === "needs-setup" ? <CreateWorkspace state={state} /> : <MissingSecret />
+      }
     </EntryGate>
   );
 }
@@ -59,21 +61,26 @@ function MissingSecret() {
     >
       <div className="flex flex-col gap-4 text-sm">
         <div className="flex flex-col gap-1.5">
-          <span className="font-medium text-foreground">Run this in the repo, from packages/backend</span>
-          <div className="flex items-start gap-1 rounded-md border border-border bg-gray-2 p-1 pl-2.5">
-            <code className="min-w-0 flex-1 py-1 font-mono text-xs leading-5 break-all text-foreground">{command}</code>
+          <span className="text-foreground font-medium">
+            Run this in the repo, from packages/backend
+          </span>
+          <div className="border-border bg-gray-2 flex items-start gap-1 rounded-md border p-1 pl-2.5">
+            <code className="text-foreground min-w-0 flex-1 py-1 font-mono text-xs leading-5 break-all">
+              {command}
+            </code>
             <CopyButton text={command} label="Copy command" />
           </div>
-          <span className="text-xs text-muted-foreground">
-            Add <code className="font-mono">--prod</code> for a deployed instance. The value was generated in your browser
-            and isn&apos;t stored anywhere.
+          <span className="text-muted-foreground text-xs">
+            Add <code className="font-mono">--prod</code> for a deployed instance. The value was
+            generated in your browser and isn&apos;t stored anywhere.
           </span>
         </div>
         <div className="flex flex-col gap-1.5">
-          <span className="font-medium text-foreground">Or in the Convex dashboard</span>
+          <span className="text-foreground font-medium">Or in the Convex dashboard</span>
           <span className="text-muted-foreground">
-            Settings → Environment Variables → add <code className="font-mono text-foreground">BETTER_AUTH_SECRET</code> with
-            the value above.
+            Settings → Environment Variables → add{" "}
+            <code className="text-foreground font-mono">BETTER_AUTH_SECRET</code> with the value
+            above.
           </span>
         </div>
         <Button type="button" variant="secondary" onClick={() => window.location.reload()}>
@@ -161,14 +168,26 @@ function CreateWorkspace({ state }: { state: Extract<EntryState, { kind: "needs-
               </Field>
               <Field>
                 <FieldLabel htmlFor="setup-password">Password</FieldLabel>
-                <Input id="setup-password" name="password" type="password" autoComplete="new-password" minLength={8} required />
+                <Input
+                  id="setup-password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
                 <FieldDescription>At least 8 characters.</FieldDescription>
               </Field>
             </>
           )}
           <Field>
             <FieldLabel htmlFor="setup-workspace">Workspace name</FieldLabel>
-            <Input id="setup-workspace" name="workspace" placeholder="e.g. Home" autoFocus={state.signedIn} />
+            <Input
+              id="setup-workspace"
+              name="workspace"
+              placeholder="e.g. Home"
+              autoFocus={state.signedIn}
+            />
             <FieldDescription>
               Optional. You also get a sample project, {brand.defaultKey}, with its context doc.
             </FieldDescription>

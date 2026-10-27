@@ -79,7 +79,11 @@ export const touchToken = mutation({
 // Reading issues as agents see them
 // ---------------------------------------------------------------------------------------------
 
-async function issueByKey(ctx: QueryCtx, workspaceId: Id<"workspaces">, key: string): Promise<Doc<"issues">> {
+async function issueByKey(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  key: string,
+): Promise<Doc<"issues">> {
   const upper = key.trim().toUpperCase();
   const issue = await ctx.db
     .query("issues")
@@ -127,7 +131,8 @@ async function namer(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
     return parentKeys.get(issue.parentId) ?? null;
   }
 
-  const member = (id: Id<"members"> | undefined) => (id ? (memberMap.get(id)?.displayName ?? null) : null);
+  const member = (id: Id<"members"> | undefined) =>
+    id ? (memberMap.get(id)?.displayName ?? null) : null;
 
   /** One issue as a list row. */
   async function row(issue: Doc<"issues">) {
@@ -181,7 +186,12 @@ export const getIssue = query({
       completedAt: issue.completedAt !== undefined ? iso(issue.completedAt) : null,
       subIssues: subIssues
         .sort((a, b) => a.number - b.number)
-        .map((sub) => ({ key: sub.key, title: sub.title, status: names.status(sub.statusId), category: sub.statusCategory })),
+        .map((sub) => ({
+          key: sub.key,
+          title: sub.title,
+          status: names.status(sub.statusId),
+          category: sub.statusCategory,
+        })),
       comments: comments.reverse().map((comment) => ({
         id: comment._id,
         author: names.member(comment.authorId),
@@ -204,7 +214,9 @@ export const getSpaceContext = query({
       activeProjects(ctx, space._id),
       ctx.db
         .query("docs")
-        .withIndex("by_space_and_kind", (q) => q.eq("spaceId", space._id).eq("kind", "space_context"))
+        .withIndex("by_space_and_kind", (q) =>
+          q.eq("spaceId", space._id).eq("kind", "space_context"),
+        )
         .first(),
     ]);
     const editor = doc ? await ctx.db.get("members", doc.updatedBy) : null;
@@ -237,11 +249,20 @@ export const listIssues = query({
     if (args.project !== undefined && args.space === undefined) {
       fail("INVALID_INPUT", "Projects are found by name inside one space: give `space` too.");
     }
-    const space = args.space !== undefined ? await resolveSpaceByKey(ctx, workspaceId, args.space) : null;
-    const project = space && args.project !== undefined ? await resolveProjectByName(ctx, space, args.project) : undefined;
-    const status = args.status !== undefined ? await resolveStatusByName(ctx, workspaceId, args.status) : null;
-    const assignee = args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : undefined;
-    const label = args.label !== undefined ? (await resolveLabelsByName(ctx, workspaceId, [args.label]))[0]! : null;
+    const space =
+      args.space !== undefined ? await resolveSpaceByKey(ctx, workspaceId, args.space) : null;
+    const project =
+      space && args.project !== undefined
+        ? await resolveProjectByName(ctx, space, args.project)
+        : undefined;
+    const status =
+      args.status !== undefined ? await resolveStatusByName(ctx, workspaceId, args.status) : null;
+    const assignee =
+      args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : undefined;
+    const label =
+      args.label !== undefined
+        ? (await resolveLabelsByName(ctx, workspaceId, [args.label]))[0]!
+        : null;
     const limit = Math.max(1, Math.min(MAX_LIST_LIMIT, Math.floor(args.limit ?? LIST_LIMIT)));
 
     // Walk the narrowest newest-first index the filters allow, then filter in code and stop at
@@ -296,9 +317,12 @@ export const createIssue = mutation({
     const { member: me } = await requireToken(ctx, args.token);
     const workspaceId = me.workspaceId;
     const space = await resolveSpaceByKey(ctx, workspaceId, args.space);
-    const project = args.project !== undefined ? await resolveProjectByName(ctx, space, args.project) : null;
-    const status = args.status !== undefined ? await resolveStatusByName(ctx, workspaceId, args.status) : null;
-    const assignee = args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : null;
+    const project =
+      args.project !== undefined ? await resolveProjectByName(ctx, space, args.project) : null;
+    const status =
+      args.status !== undefined ? await resolveStatusByName(ctx, workspaceId, args.status) : null;
+    const assignee =
+      args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : null;
     const labels = await resolveLabelsByName(ctx, workspaceId, args.labels ?? []);
     const { key } = await insertIssue(ctx, asMcp(me), {
       spaceId: space._id,
@@ -328,7 +352,8 @@ export const createSubIssue = mutation({
   handler: async (ctx, args) => {
     const { member: me } = await requireToken(ctx, args.token);
     const parent = await issueByKey(ctx, me.workspaceId, args.parent);
-    const assignee = args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : null;
+    const assignee =
+      args.assignee !== undefined ? await resolveAssignee(ctx, me, args.assignee) : null;
     // The shared rule takes space and project from the parent and refuses a parent that is a sub-issue.
     const { issueId, key } = await insertIssue(ctx, asMcp(me), {
       parentId: parent._id,
@@ -375,20 +400,38 @@ export const updateIssue = mutation({
     const { member: me } = await requireToken(ctx, args.token);
     const workspaceId = me.workspaceId;
     const issue = await issueByKey(ctx, workspaceId, args.key);
-    const { status: statusName, priority: nextPriority, assignee: assigneeName, addLabels, removeLabels, project: projectName } = args;
+    const {
+      status: statusName,
+      priority: nextPriority,
+      assignee: assigneeName,
+      addLabels,
+      removeLabels,
+      project: projectName,
+    } = args;
     if (
-      [statusName, nextPriority, assigneeName, addLabels, removeLabels, projectName].every((value) => value === undefined)
+      [statusName, nextPriority, assigneeName, addLabels, removeLabels, projectName].every(
+        (value) => value === undefined,
+      )
     ) {
-      fail("INVALID_INPUT", "Nothing to change: give at least one of status, priority, assignee, addLabels, removeLabels or project.");
+      fail(
+        "INVALID_INPUT",
+        "Nothing to change: give at least one of status, priority, assignee, addLabels, removeLabels or project.",
+      );
     }
 
-    const status = statusName !== undefined ? await resolveStatusByName(ctx, workspaceId, statusName) : null;
-    const assignee = assigneeName !== undefined ? await resolveAssignee(ctx, me, assigneeName) : undefined;
+    const status =
+      statusName !== undefined ? await resolveStatusByName(ctx, workspaceId, statusName) : null;
+    const assignee =
+      assigneeName !== undefined ? await resolveAssignee(ctx, me, assigneeName) : undefined;
     let labelIds: Id<"labels">[] | undefined;
     if (addLabels !== undefined || removeLabels !== undefined) {
       const add = await resolveLabelsByName(ctx, workspaceId, addLabels ?? []);
-      const remove = new Set((await resolveLabelsByName(ctx, workspaceId, removeLabels ?? [])).map((label) => label._id));
-      labelIds = [...new Set([...issue.labelIds, ...add.map((label) => label._id)])].filter((id) => !remove.has(id));
+      const remove = new Set(
+        (await resolveLabelsByName(ctx, workspaceId, removeLabels ?? [])).map((label) => label._id),
+      );
+      labelIds = [...new Set([...issue.labelIds, ...add.map((label) => label._id)])].filter(
+        (id) => !remove.has(id),
+      );
     }
     let projectId: Id<"projects"> | null | undefined;
     if (projectName !== undefined) {

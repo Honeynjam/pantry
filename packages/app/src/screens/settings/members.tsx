@@ -25,14 +25,22 @@ export function MembersSettings({ data }: { data: WorkspaceData }) {
       description="People in this workspace. Agents aren't members: they work over MCP as the person whose token they use."
     >
       {isOwner && <InviteForm />}
-      <SettingsGroup title="Members" hint={<span className="font-mono tabular">{data.members.length}</span>}>
+      <SettingsGroup
+        title="Members"
+        hint={<span className="tabular font-mono">{data.members.length}</span>}
+      >
         <SettingsList>
           {data.members.map((member) => (
             <SettingsRow key={member._id}>
-              <PersonAvatar person={{ name: member.displayName, avatarUrl: member.avatarUrl }} size="sm" />
-              <span className="min-w-0 flex-1 truncate text-foreground">
+              <PersonAvatar
+                person={{ name: member.displayName, avatarUrl: member.avatarUrl }}
+                size="sm"
+              />
+              <span className="text-foreground min-w-0 flex-1 truncate">
                 {member.displayName}
-                {member._id === data.me._id && <span className="text-muted-foreground"> (you)</span>}
+                {member._id === data.me._id && (
+                  <span className="text-muted-foreground"> (you)</span>
+                )}
               </span>
               <Badge variant={member.role === "owner" ? "default" : "outline"}>
                 {member.role === "owner" ? "Owner" : "Member"}
@@ -63,7 +71,9 @@ function InviteForm() {
     setError(null);
     try {
       const result = await createInvite({ email });
-      const link = result.url ?? `${window.location.origin}/sign-up?invite=${encodeURIComponent(result.token)}`;
+      const link =
+        result.url ??
+        `${window.location.origin}/sign-up?invite=${encodeURIComponent(result.token)}`;
       setCreated({ email: email.toLowerCase(), link, expiresAt: result.expiresAt });
       formElement.reset();
     } catch (err) {
@@ -75,10 +85,13 @@ function InviteForm() {
 
   return (
     <SettingsGroup title="Invite someone">
-      <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+      <div className="border-border flex flex-col gap-3 rounded-lg border p-3">
         <form onSubmit={onSubmit} className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <MailIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint-foreground" aria-hidden />
+            <MailIcon
+              className="text-faint-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
+              aria-hidden
+            />
             <Input
               name="email"
               type="email"
@@ -96,24 +109,29 @@ function InviteForm() {
         </form>
         <FormError message={error} />
         {created ? (
-          <div className="flex flex-col gap-2 rounded-md bg-gray-2 p-2.5" role="status">
-            <div className="flex items-center gap-1 rounded-md border border-border bg-background py-0.5 pr-0.5 pl-2.5">
-              <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground" title={created.link}>
+          <div className="bg-gray-2 flex flex-col gap-2 rounded-md p-2.5" role="status">
+            <div className="border-border bg-background flex items-center gap-1 rounded-md border py-0.5 pr-0.5 pl-2.5">
+              <code
+                className="text-foreground min-w-0 flex-1 truncate font-mono text-xs"
+                title={created.link}
+              >
                 {created.link}
               </code>
               <CopyButton text={created.link} label="Copy invite link" variant="secondary">
                 Copy link
               </CopyButton>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Send this link to <span className="text-foreground">{created.email}</span> yourself; nothing is emailed. It
-              works once, for that address, until {fullDate(created.expiresAt)}. You won&apos;t see it again: create a new
-              one if it gets lost.
+            <p className="text-muted-foreground text-xs">
+              Send this link to <span className="text-foreground">{created.email}</span> yourself;
+              nothing is emailed. It works once, for that address, until{" "}
+              {fullDate(created.expiresAt)}. You won&apos;t see it again: create a new one if it
+              gets lost.
             </p>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            You get a link to copy and send yourself. It expires after 7 days and only works for that email address.
+          <p className="text-muted-foreground text-xs">
+            You get a link to copy and send yourself. It expires after 7 days and only works for
+            that email address.
           </p>
         )}
       </div>
@@ -129,7 +147,8 @@ function InviteList({ data }: { data: WorkspaceData }) {
 
   const pending = invites.filter((invite) => invite.state === "pending");
   const past = invites.filter((invite) => invite.state !== "pending").slice(0, 10);
-  const memberName = (id: Id<"members">) => data.members.find((member) => member._id === id)?.displayName ?? "Someone";
+  const memberName = (id: Id<"members">) =>
+    data.members.find((member) => member._id === id)?.displayName ?? "Someone";
 
   async function onRevoke(inviteId: Id<"invites">, email: string) {
     setRevoking(inviteId);
@@ -145,22 +164,25 @@ function InviteList({ data }: { data: WorkspaceData }) {
 
   return (
     <>
-      <SettingsGroup title="Pending invites" hint={<span className="font-mono tabular">{pending.length}</span>}>
+      <SettingsGroup
+        title="Pending invites"
+        hint={<span className="tabular font-mono">{pending.length}</span>}
+      >
         {pending.length === 0 ? (
           <SettingsEmpty>No pending invites.</SettingsEmpty>
         ) : (
           <SettingsList>
             {pending.map((invite) => (
               <SettingsRow key={invite._id}>
-                <MailIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-foreground">{invite.email}</span>
+                <MailIcon className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
+                <span className="text-foreground min-w-0 flex-1 truncate">{invite.email}</span>
                 <Tooltip>
-                  <TooltipTrigger render={<span className="text-xs text-muted-foreground" />}>
+                  <TooltipTrigger render={<span className="text-muted-foreground text-xs" />}>
                     Expires {timeAgo(invite.expiresAt)}
                   </TooltipTrigger>
                   <TooltipContent>
-                    Created by {memberName(invite.createdBy)} {timeAgo(invite._creationTime)}. Expires{" "}
-                    {fullDate(invite.expiresAt)}.
+                    Created by {memberName(invite.createdBy)} {timeAgo(invite._creationTime)}.
+                    Expires {fullDate(invite.expiresAt)}.
                   </TooltipContent>
                 </Tooltip>
                 <Button
@@ -182,11 +204,21 @@ function InviteList({ data }: { data: WorkspaceData }) {
             {past.map((invite) => (
               <SettingsRow key={invite._id} className="text-muted-foreground">
                 <span className="min-w-0 flex-1 truncate">{invite.email}</span>
-                <span className="text-xs" title={fullDate(invite.acceptedAt ?? invite.revokedAt ?? invite.expiresAt)}>
+                <span
+                  className="text-xs"
+                  title={fullDate(invite.acceptedAt ?? invite.revokedAt ?? invite.expiresAt)}
+                >
                   {timeAgo(invite.acceptedAt ?? invite.revokedAt ?? invite.expiresAt)}
                 </span>
-                <Badge variant={invite.state === "accepted" ? "secondary" : "outline"} className="w-16 justify-center">
-                  {invite.state === "accepted" ? "Joined" : invite.state === "revoked" ? "Revoked" : "Expired"}
+                <Badge
+                  variant={invite.state === "accepted" ? "secondary" : "outline"}
+                  className="w-16 justify-center"
+                >
+                  {invite.state === "accepted"
+                    ? "Joined"
+                    : invite.state === "revoked"
+                      ? "Revoked"
+                      : "Expired"}
                 </Badge>
               </SettingsRow>
             ))}

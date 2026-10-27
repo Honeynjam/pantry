@@ -22,7 +22,9 @@ function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
 
 function SheetPortal({ container, ...props }: SheetPrimitive.Portal.Props) {
   const fallback = usePortalContainer();
-  return <SheetPrimitive.Portal data-slot="sheet-portal" container={container ?? fallback} {...props} />;
+  return (
+    <SheetPrimitive.Portal data-slot="sheet-portal" container={container ?? fallback} {...props} />
+  );
 }
 
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
@@ -53,7 +55,7 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col bg-popover text-sm text-popover-foreground shadow-overlay outline-none",
+          "bg-popover text-popover-foreground shadow-overlay fixed z-50 flex flex-col text-sm outline-none",
           "transition-[translate,opacity] duration-(--spring-smooth-duration) ease-(--ease-spring-smooth)",
           "data-ending-style:duration-(--duration-exit) data-ending-style:ease-(--ease-in)",
           "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:data-ending-style:translate-y-full data-[side=bottom]:data-starting-style:translate-y-full",
@@ -61,8 +63,8 @@ function SheetContent({
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:data-ending-style:translate-x-full data-[side=right]:data-starting-style:translate-x-full",
           "data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:data-ending-style:-translate-y-full data-[side=top]:data-starting-style:-translate-y-full",
           "data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
-          "motion-reduce:translate-none! motion-reduce:data-starting-style:opacity-0 motion-reduce:data-ending-style:opacity-0",
-          "in-[.reduce-motion]:translate-none! in-[.reduce-motion]:data-starting-style:opacity-0 in-[.reduce-motion]:data-ending-style:opacity-0",
+          "motion-reduce:translate-none! motion-reduce:data-ending-style:opacity-0 motion-reduce:data-starting-style:opacity-0",
+          "in-[.reduce-motion]:translate-none! in-[.reduce-motion]:data-ending-style:opacity-0 in-[.reduce-motion]:data-starting-style:opacity-0",
           className,
         )}
         {...props}
@@ -83,18 +85,26 @@ function SheetContent({
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="sheet-header" className={cn("flex flex-col gap-1 p-4", className)} {...props} />;
+  return (
+    <div data-slot="sheet-header" className={cn("flex flex-col gap-1 p-4", className)} {...props} />
+  );
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="sheet-footer" className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />;
+  return (
+    <div
+      data-slot="sheet-footer"
+      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      {...props}
+    />
+  );
 }
 
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("font-display text-base font-semibold text-foreground", className)}
+      className={cn("font-display text-foreground text-base font-semibold", className)}
       {...props}
     />
   );
@@ -104,10 +114,19 @@ function SheetDescription({ className, ...props }: SheetPrimitive.Description.Pr
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-muted-foreground text-sm", className)}
       {...props}
     />
   );
 }
 
-export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription };
+export {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+};

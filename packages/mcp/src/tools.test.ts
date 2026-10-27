@@ -46,9 +46,12 @@ async function connect(backend: Backend, auth: AuthInfo | null = stubAuth) {
     { required: true },
   );
   const client = new Client({ name: "test", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL("https://pantry.example.com/api/mcp"), {
-    fetch: (url, init) => handler(new Request(url, init)),
-  });
+  const transport = new StreamableHTTPClientTransport(
+    new URL("https://pantry.example.com/api/mcp"),
+    {
+      fetch: (url, init) => handler(new Request(url, init)),
+    },
+  );
   await client.connect(transport);
   return client;
 }
@@ -56,7 +59,11 @@ async function connect(backend: Backend, auth: AuthInfo | null = stubAuth) {
 async function call(client: Client, name: ToolName, args: Record<string, unknown>) {
   const result = await client.callTool({ name, arguments: args });
   const text = (result.content as { type: string; text: string }[])[0]!.text;
-  return { isError: result.isError === true, text, json: () => JSON.parse(text) as Record<string, unknown> };
+  return {
+    isError: result.isError === true,
+    text,
+    json: () => JSON.parse(text) as Record<string, unknown>,
+  };
 }
 
 const userError = (message: string) => new ConvexError({ code: "UNKNOWN_STATUS", message });
@@ -76,7 +83,9 @@ describe("tools/list", () => {
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.type).toBe("object");
-      expect(tool.description).toMatch(tool.name === "get_space_context" ? /Call this first/ : /Call get_space_context/);
+      expect(tool.description).toMatch(
+        tool.name === "get_space_context" ? /Call this first/ : /Call get_space_context/,
+      );
     }
     const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
     expect(byName.get_issue!.annotations?.readOnlyHint).toBe(true);
@@ -99,14 +108,26 @@ describe("tools/list", () => {
 
 describe("each tool passes the token to its Convex function", () => {
   it("get_issue", async () => {
-    const { backend, calls } = fakeBackend({ "mcp:getIssue": () => ({ key: "PAN-42", title: "Fix it" }) });
+    const { backend, calls } = fakeBackend({
+      "mcp:getIssue": () => ({ key: "PAN-42", title: "Fix it" }),
+    });
     const result = await call(await connect(backend), "get_issue", { key: "pan-42" });
     expect(calls).toEqual([{ fn: "mcp:getIssue", args: { token: TOKEN, key: "PAN-42" } }]);
-    expect(result.json()).toEqual({ key: "PAN-42", title: "Fix it", url: "https://pantry.example.com/issues/PAN-42" });
+    expect(result.json()).toEqual({
+      key: "PAN-42",
+      title: "Fix it",
+      url: "https://pantry.example.com/issues/PAN-42",
+    });
   });
 
   it("get_space_context", async () => {
-    const context = { space: { key: "PAN", name: "Pantry", kind: "product" }, projects: [], context: "# Hi", updatedAt: null, updatedBy: null };
+    const context = {
+      space: { key: "PAN", name: "Pantry", kind: "product" },
+      projects: [],
+      context: "# Hi",
+      updatedAt: null,
+      updatedBy: null,
+    };
     const { backend, calls } = fakeBackend({ "mcp:getSpaceContext": () => context });
     const result = await call(await connect(backend), "get_space_context", { space: " PAN " });
     expect(calls).toEqual([{ fn: "mcp:getSpaceContext", args: { token: TOKEN, space: "PAN" } }]);
@@ -114,10 +135,20 @@ describe("each tool passes the token to its Convex function", () => {
   });
 
   it("list_issues, with priority names turned into numbers and unset filters left out", async () => {
-    const { backend, calls } = fakeBackend({ "mcp:listIssues": () => [{ key: "PAN-1" }, { key: "WEB-2" }] });
-    const result = await call(await connect(backend), "list_issues", { space: "PAN", assignee: "me", priority: "urgent", limit: 5 });
+    const { backend, calls } = fakeBackend({
+      "mcp:listIssues": () => [{ key: "PAN-1" }, { key: "WEB-2" }],
+    });
+    const result = await call(await connect(backend), "list_issues", {
+      space: "PAN",
+      assignee: "me",
+      priority: "urgent",
+      limit: 5,
+    });
     expect(calls).toEqual([
-      { fn: "mcp:listIssues", args: { token: TOKEN, space: "PAN", assignee: "me", priority: 1, limit: 5 } },
+      {
+        fn: "mcp:listIssues",
+        args: { token: TOKEN, space: "PAN", assignee: "me", priority: 1, limit: 5 },
+      },
     ]);
     expect(result.json()).toEqual([
       { key: "PAN-1", url: "https://pantry.example.com/issues/PAN-1" },
@@ -126,36 +157,92 @@ describe("each tool passes the token to its Convex function", () => {
   });
 
   it("create_issue", async () => {
-    const { backend, calls } = fakeBackend({ "mcp:createIssue": () => ({ key: "PAN-7", space: "PAN", project: "Launch" }) });
-    const args = { space: "PAN", project: "Launch", title: "New", labels: ["Bug"], priority: 3, dueDate: "2026-11-30" };
+    const { backend, calls } = fakeBackend({
+      "mcp:createIssue": () => ({ key: "PAN-7", space: "PAN", project: "Launch" }),
+    });
+    const args = {
+      space: "PAN",
+      project: "Launch",
+      title: "New",
+      labels: ["Bug"],
+      priority: 3,
+      dueDate: "2026-11-30",
+    };
     const result = await call(await connect(backend), "create_issue", args);
     expect(calls).toEqual([{ fn: "mcp:createIssue", args: { token: TOKEN, ...args } }]);
-    expect(result.json()).toEqual({ key: "PAN-7", space: "PAN", project: "Launch", url: "https://pantry.example.com/issues/PAN-7" });
+    expect(result.json()).toEqual({
+      key: "PAN-7",
+      space: "PAN",
+      project: "Launch",
+      url: "https://pantry.example.com/issues/PAN-7",
+    });
   });
 
   it("create_sub_issue", async () => {
     const { backend, calls } = fakeBackend({
-      "mcp:createSubIssue": () => ({ key: "PAN-8", parent: "PAN-7", space: "PAN", project: "Launch" }),
+      "mcp:createSubIssue": () => ({
+        key: "PAN-8",
+        parent: "PAN-7",
+        space: "PAN",
+        project: "Launch",
+      }),
     });
-    const result = await call(await connect(backend), "create_sub_issue", { parent: "PAN-7", title: "Child", priority: "low" });
-    expect(calls).toEqual([{ fn: "mcp:createSubIssue", args: { token: TOKEN, parent: "PAN-7", title: "Child", priority: 4 } }]);
-    expect(result.json()).toMatchObject({ key: "PAN-8", parent: "PAN-7", url: "https://pantry.example.com/issues/PAN-8" });
+    const result = await call(await connect(backend), "create_sub_issue", {
+      parent: "PAN-7",
+      title: "Child",
+      priority: "low",
+    });
+    expect(calls).toEqual([
+      {
+        fn: "mcp:createSubIssue",
+        args: { token: TOKEN, parent: "PAN-7", title: "Child", priority: 4 },
+      },
+    ]);
+    expect(result.json()).toMatchObject({
+      key: "PAN-8",
+      parent: "PAN-7",
+      url: "https://pantry.example.com/issues/PAN-8",
+    });
   });
 
   it("add_comment", async () => {
-    const { backend, calls } = fakeBackend({ "mcp:addComment": () => ({ key: "PAN-7", commentId: "c1" }) });
-    const result = await call(await connect(backend), "add_comment", { key: "PAN-7", body: "Done **step 1**." });
-    expect(calls).toEqual([{ fn: "mcp:addComment", args: { token: TOKEN, key: "PAN-7", body: "Done **step 1**." } }]);
-    expect(result.json()).toEqual({ key: "PAN-7", commentId: "c1", url: "https://pantry.example.com/issues/PAN-7#comment-c1" });
+    const { backend, calls } = fakeBackend({
+      "mcp:addComment": () => ({ key: "PAN-7", commentId: "c1" }),
+    });
+    const result = await call(await connect(backend), "add_comment", {
+      key: "PAN-7",
+      body: "Done **step 1**.",
+    });
+    expect(calls).toEqual([
+      { fn: "mcp:addComment", args: { token: TOKEN, key: "PAN-7", body: "Done **step 1**." } },
+    ]);
+    expect(result.json()).toEqual({
+      key: "PAN-7",
+      commentId: "c1",
+      url: "https://pantry.example.com/issues/PAN-7#comment-c1",
+    });
   });
 
   it("update_issue", async () => {
-    const { backend, calls } = fakeBackend({ "mcp:updateIssue": () => ({ key: "PAN-7", status: "In Review" }) });
-    const result = await call(await connect(backend), "update_issue", { key: "PAN-7", status: "In Review", removeLabels: ["Bug"] });
+    const { backend, calls } = fakeBackend({
+      "mcp:updateIssue": () => ({ key: "PAN-7", status: "In Review" }),
+    });
+    const result = await call(await connect(backend), "update_issue", {
+      key: "PAN-7",
+      status: "In Review",
+      removeLabels: ["Bug"],
+    });
     expect(calls).toEqual([
-      { fn: "mcp:updateIssue", args: { token: TOKEN, key: "PAN-7", status: "In Review", removeLabels: ["Bug"] } },
+      {
+        fn: "mcp:updateIssue",
+        args: { token: TOKEN, key: "PAN-7", status: "In Review", removeLabels: ["Bug"] },
+      },
     ]);
-    expect(result.json()).toEqual({ key: "PAN-7", status: "In Review", url: "https://pantry.example.com/issues/PAN-7" });
+    expect(result.json()).toEqual({
+      key: "PAN-7",
+      status: "In Review",
+      url: "https://pantry.example.com/issues/PAN-7",
+    });
   });
 });
 
@@ -163,13 +250,17 @@ describe("errors", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("a refusal from Convex comes back as isError with its valid-values message", async () => {
-    const message = 'No status "Doing". Statuses: "Backlog", "Todo", "In Progress", "In Review", "Done", "Canceled".';
+    const message =
+      'No status "Doing". Statuses: "Backlog", "Todo", "In Progress", "In Review", "Done", "Canceled".';
     const { backend } = fakeBackend({
       "mcp:updateIssue": () => {
         throw userError(message);
       },
     });
-    const result = await call(await connect(backend), "update_issue", { key: "PAN-7", status: "Doing" });
+    const result = await call(await connect(backend), "update_issue", {
+      key: "PAN-7",
+      status: "Doing",
+    });
     expect(result).toMatchObject({ isError: true, text: message });
   });
 
@@ -198,7 +289,9 @@ describe("errors", () => {
     });
     const result = await call(await connect(backend), "get_issue", { key: "PAN-1" });
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Pantry couldn't complete get_issue because of a server error. Try again in a moment.");
+    expect(result.text).toBe(
+      "Pantry couldn't complete get_issue because of a server error. Try again in a moment.",
+    );
   });
 
   it("a request without a token gets 401 from withMcpAuth", async () => {

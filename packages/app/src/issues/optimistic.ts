@@ -22,7 +22,6 @@ type MoveArgs = FunctionArgs<typeof api.issues.move>;
 type UpdateArgs = FunctionArgs<typeof api.issues.update>;
 type CommentArgs = FunctionArgs<typeof api.comments.add>;
 
-
 /** Statuses in workspace order, and who "me" is, from the shell's cached workspace query. */
 function workspace(store: OptimisticLocalStore) {
   return store.getQuery(api.workspace.current, {});
@@ -46,7 +45,8 @@ function findIssue(store: OptimisticLocalStore, issueId: Id<"issues">): Issue | 
 function sortByStatus(issues: Issue[], statusOrder: Map<Id<"statuses">, number>): Issue[] {
   return [...issues].sort(
     (a, b) =>
-      (statusOrder.get(a.statusId) ?? 0) - (statusOrder.get(b.statusId) ?? 0) || a.sortOrder - b.sortOrder,
+      (statusOrder.get(a.statusId) ?? 0) - (statusOrder.get(b.statusId) ?? 0) ||
+      a.sortOrder - b.sortOrder,
   );
 }
 
@@ -55,8 +55,14 @@ function sortByStatus(issues: Issue[], statusOrder: Map<Id<"statuses">, number>)
  * `afterId` or right before `beforeId`, the midpoint between neighbours (the server's rule; it
  * may renumber a crowded column, which then arrives with its answer).
  */
-export function placeInColumn(column: ReadonlyArray<Issue>, args: Pick<MoveArgs, "afterId" | "beforeId">, issueId: Id<"issues">) {
-  const others = column.filter((issue) => issue._id !== issueId).sort((a, b) => a.sortOrder - b.sortOrder);
+export function placeInColumn(
+  column: ReadonlyArray<Issue>,
+  args: Pick<MoveArgs, "afterId" | "beforeId">,
+  issueId: Id<"issues">,
+) {
+  const others = column
+    .filter((issue) => issue._id !== issueId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
   let index = -1;
   if (args.afterId) {
     const at = others.findIndex((issue) => issue._id === args.afterId);
@@ -73,18 +79,27 @@ export function placeInColumn(column: ReadonlyArray<Issue>, args: Pick<MoveArgs,
 }
 
 /** Replace one issue in every cached query that shows it. `next` builds the new copy. */
-function replaceEverywhere(store: OptimisticLocalStore, issueId: Id<"issues">, next: <T extends Issue>(issue: T) => T) {
+function replaceEverywhere(
+  store: OptimisticLocalStore,
+  issueId: Id<"issues">,
+  next: <T extends Issue>(issue: T) => T,
+) {
   for (const { args, value } of store.getAllQueries(api.issues.get)) {
     if (!value) continue;
     const isIt = value.issue._id === issueId;
     const inSubs = value.subIssues.some((issue) => issue._id === issueId);
     const isParent = value.parent?._id === issueId;
     if (!isIt && !inSubs && !isParent) continue;
-    const parent = isParent && value.parent ? next({ ...findIssue(store, issueId), ...value.parent } as Issue) : null;
+    const parent =
+      isParent && value.parent
+        ? next({ ...findIssue(store, issueId), ...value.parent } as Issue)
+        : null;
     store.setQuery(api.issues.get, args, {
       ...value,
       issue: isIt ? next(value.issue) : value.issue,
-      subIssues: inSubs ? value.subIssues.map((issue) => (issue._id === issueId ? next(issue) : issue)) : value.subIssues,
+      subIssues: inSubs
+        ? value.subIssues.map((issue) => (issue._id === issueId ? next(issue) : issue))
+        : value.subIssues,
       parent:
         isParent && value.parent && parent
           ? { ...value.parent, title: parent.title, statusId: parent.statusId }
@@ -99,7 +114,13 @@ function replaceEverywhere(store: OptimisticLocalStore, issueId: Id<"issues">, n
       value.map((hit) => {
         if (hit._id !== issueId) return hit;
         const issue = next({ ...findIssue(store, issueId), ...hit } as Issue);
-        return { ...hit, title: issue.title, statusId: issue.statusId, priority: issue.priority, assigneeId: issue.assigneeId };
+        return {
+          ...hit,
+          title: issue.title,
+          statusId: issue.statusId,
+          priority: issue.priority,
+          assigneeId: issue.assigneeId,
+        };
       }),
     );
   }
@@ -135,19 +156,32 @@ export function optimisticMove(store: OptimisticLocalStore, args: MoveArgs, now 
         ? issue.completedAt
         : now
       : undefined;
-    return { ...issue, statusId: status._id, statusCategory: status.category, completedAt, sortOrder, updatedAt: now };
+    return {
+      ...issue,
+      statusId: status._id,
+      statusCategory: status.category,
+      completedAt,
+      sortOrder,
+      updatedAt: now,
+    };
   };
 
   let moved: Issue | undefined;
   for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listBySpace)) {
     if (!value?.some((issue) => issue._id === args.issueId)) continue;
     const column = value.filter((issue) => issue.statusId === status._id);
-    const updated = build(value.find((issue) => issue._id === args.issueId)!, column);
+    const updated = build(
+      value.find((issue) => issue._id === args.issueId)!,
+      column,
+    );
     moved = updated;
     store.setQuery(
       api.issues.listBySpace,
       queryArgs,
-      sortByStatus(value.map((issue) => (issue._id === args.issueId ? updated : issue)), statusOrder),
+      sortByStatus(
+        value.map((issue) => (issue._id === args.issueId ? updated : issue)),
+        statusOrder,
+      ),
     );
   }
   const result = moved ?? build(current, []);
@@ -192,22 +226,31 @@ export function optimisticUpdate(store: OptimisticLocalStore, args: UpdateArgs, 
     }
     // Parent changes reshape sub-issue lists and run server checks: they wait for the server.
     // Only the issue page's copy carries the description.
-    return args.description !== undefined && "description" in issue ? { ...next, description: args.description } : next;
+    return args.description !== undefined && "description" in issue
+      ? { ...next, description: args.description }
+      : next;
   };
   const isChild = (issue: Issue) => setsProject && issue.parentId === args.issueId;
 
   for (const { args: queryArgs, value } of store.getAllQueries(api.issues.listBySpace)) {
     if (!value?.some((issue) => issue._id === args.issueId || isChild(issue))) continue;
-    const next = value.map((issue) => (issue._id === args.issueId ? apply(issue) : isChild(issue) ? withProject(issue) : issue));
+    const next = value.map((issue) =>
+      issue._id === args.issueId ? apply(issue) : isChild(issue) ? withProject(issue) : issue,
+    );
     // A list narrowed to one project drops what left it.
-    const narrowed = queryArgs.projectId ? next.filter((issue) => issue.projectId === queryArgs.projectId) : next;
+    const narrowed = queryArgs.projectId
+      ? next.filter((issue) => issue.projectId === queryArgs.projectId)
+      : next;
     store.setQuery(api.issues.listBySpace, queryArgs, narrowed);
   }
   replaceEverywhere(store, args.issueId, apply);
   if (setsProject) {
     for (const { args: queryArgs, value } of store.getAllQueries(api.issues.get)) {
       if (!value || value.issue._id !== args.issueId || value.subIssues.length === 0) continue;
-      store.setQuery(api.issues.get, queryArgs, { ...value, subIssues: value.subIssues.map(withProject) });
+      store.setQuery(api.issues.get, queryArgs, {
+        ...value,
+        subIssues: value.subIssues.map(withProject),
+      });
     }
   }
   syncMine(store, apply(current));

@@ -17,7 +17,10 @@ async function resolveServer(): Promise<Server | null> {
   const serverUrl = process.env.PANTRY_SERVER_URL?.replace(/\/+$/, "");
   if (serverUrl) {
     const response = await fetch(`${serverUrl}/api/instance`);
-    if (!response.ok) throw new Error(`${serverUrl}/api/instance answered ${response.status}: not a Pantry server?`);
+    if (!response.ok)
+      throw new Error(
+        `${serverUrl}/api/instance answered ${response.status}: not a Pantry server?`,
+      );
     const info = (await response.json()) as { convexUrl: string; convexSiteUrl: string };
     return { convexUrl: info.convexUrl, convexSiteUrl: info.convexSiteUrl, source: serverUrl };
   }
@@ -25,7 +28,9 @@ async function resolveServer(): Promise<Server | null> {
   const convexUrl = env.VITE_CONVEX_URL ?? env.CONVEX_URL;
   if (!convexUrl) return null;
   const convexSiteUrl =
-    env.VITE_CONVEX_SITE_URL ?? env.CONVEX_SITE_URL ?? convexUrl.replace(/\.convex\.cloud\/?$/, ".convex.site");
+    env.VITE_CONVEX_SITE_URL ??
+    env.CONVEX_SITE_URL ??
+    convexUrl.replace(/\.convex\.cloud\/?$/, ".convex.site");
   return { convexUrl, convexSiteUrl, source: convexUrl };
 }
 

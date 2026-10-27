@@ -23,7 +23,11 @@ import { toast } from "sonner";
 import { AvatarStack, PersonAvatar } from "@pantry/ui/components/avatar-stack";
 import { PantryAvatar } from "@pantry/ui/components/pantry-avatar";
 import { PantryAvatarPicker } from "@pantry/ui/components/pantry-avatar-picker";
-import { PANTRY_SHAPE_NAMES, pickPantryAvatar, type PantryAvatarValue } from "@pantry/ui/lib/pantry-avatars";
+import {
+  PANTRY_SHAPE_NAMES,
+  pickPantryAvatar,
+  type PantryAvatarValue,
+} from "@pantry/ui/lib/pantry-avatars";
 import { Badge } from "@pantry/ui/components/badge";
 import { Button } from "@pantry/ui/components/button";
 import {
@@ -107,7 +111,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pantry/ui/components/
 import { Textarea } from "@pantry/ui/components/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@pantry/ui/components/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@pantry/ui/components/tooltip";
-import { STATUS_CATEGORIES, STATUS_CATEGORY_LABEL, type StatusCategory } from "@pantry/ui/lib/issue-meta";
+import {
+  STATUS_CATEGORIES,
+  STATUS_CATEGORY_LABEL,
+  type StatusCategory,
+} from "@pantry/ui/lib/issue-meta";
 import { useDesignBrand } from "./brand";
 import { Section, Specimen, SubSection } from "./section";
 
@@ -173,8 +181,11 @@ function Buttons() {
 function Inputs() {
   const id = React.useId();
   return (
-    <SubSection title="Input, field, textarea" hint="focus shifts the border; errors get border + icon + text">
-      <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+    <SubSection
+      title="Input, field, textarea"
+      hint="focus shifts the border; errors get border + icon + text"
+    >
+      <div className="border-border grid grid-cols-1 gap-4 rounded-lg border p-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor={`${id}-title`}>Title</FieldLabel>
           <Input id={`${id}-title`} placeholder="Issue title" />
@@ -229,7 +240,7 @@ function BadgesAndAvatars() {
           <PersonAvatar person={PEOPLE[0]!} size="sm" />
           <PersonAvatar person={PEOPLE[0]!} />
           <PersonAvatar person={PEOPLE[0]!} size="lg" />
-          <span className="mx-1 h-6 w-px bg-border" />
+          <span className="bg-border mx-1 h-6 w-px" />
           <AvatarStack people={PEOPLE} max={3} />
           <AvatarStack people={PEOPLE.slice(0, 2)} size="sm" />
         </Specimen>
@@ -246,7 +257,7 @@ function BadgesAndAvatars() {
           <PantryAvatar seed="PAN" />
           <PantryAvatar seed="PAN" size="lg" />
           <PantryAvatar seed="PAN" size="xl" />
-          <span className="mx-1 h-6 w-px bg-border" />
+          <span className="bg-border mx-1 h-6 w-px" />
           <AvatarPickerDemo />
         </Specimen>
       </SubSection>
@@ -267,20 +278,20 @@ function TabsAndToggles() {
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <SubSection title="Tabs" hint="indicator glides on --ease-spring-morph">
-        <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
+        <div className="border-border flex flex-col gap-4 rounded-lg border p-4">
           <Tabs defaultValue="activity">
             <TabsList variant="line">
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="sub-issues">Sub-issues</TabsTrigger>
             </TabsList>
-            <TabsContent value="activity" className="text-xs text-muted-foreground">
+            <TabsContent value="activity" className="text-muted-foreground text-xs">
               Kris moved this to In Progress · 2m
             </TabsContent>
-            <TabsContent value="comments" className="text-xs text-muted-foreground">
+            <TabsContent value="comments" className="text-muted-foreground text-xs">
               2 comments
             </TabsContent>
-            <TabsContent value="sub-issues" className="text-xs text-muted-foreground">
+            <TabsContent value="sub-issues" className="text-muted-foreground text-xs">
               3 sub-issues, 1 done
             </TabsContent>
           </Tabs>
@@ -294,7 +305,7 @@ function TabsAndToggles() {
         </div>
       </SubSection>
       <SubSection title="Segmented control and toggles" hint="single choice · multi-select toolbar">
-        <div className="flex flex-col items-start gap-4 rounded-lg border border-border p-4">
+        <div className="border-border flex flex-col items-start gap-4 rounded-lg border p-4">
           <SegmentedControl
             aria-label="Layout"
             value={display}
@@ -329,7 +340,10 @@ function Overlays() {
   const [status, setStatus] = React.useState<StatusCategory>("started");
   const [showDone, setShowDone] = React.useState(false);
   return (
-    <SubSection title="Menus, popover, tooltip, dialog, sheet" hint="popups scale from their trigger; exits are faster">
+    <SubSection
+      title="Menus, popover, tooltip, dialog, sheet"
+      hint="popups scale from their trigger; exits are faster"
+    >
       <Specimen>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="secondary" data-icon="inline-start" />}>
@@ -351,7 +365,9 @@ function Overlays() {
         </DropdownMenu>
 
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="More actions" />}>
+          <DropdownMenuTrigger
+            render={<Button variant="ghost" size="icon" aria-label="More actions" />}
+          >
             <SettingsIcon />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -432,7 +448,8 @@ function Overlays() {
             <DialogHeader>
               <DialogTitle>New issue</DialogTitle>
               <DialogDescription>
-                In <IssueKey value={brand.defaultKey} className="text-foreground" /> · it gets the next number.
+                In <IssueKey value={brand.defaultKey} className="text-foreground" /> · it gets the
+                next number.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3">
@@ -559,7 +576,7 @@ function CommandDemo() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_auto]">
         {/* cmdk scrolls its selected row into view on mount; mount it only once visible so the page doesn't jump. */}
         <WhenVisible className="min-h-[23rem]">
-          <Command className="h-auto rounded-xl shadow-overlay">{list}</Command>
+          <Command className="shadow-overlay h-auto rounded-xl">{list}</Command>
         </WhenVisible>
         <div className="flex flex-col items-start gap-2">
           <Button variant="secondary" onClick={() => setOpen(true)} data-icon="inline-end">
@@ -581,14 +598,20 @@ function Toasts() {
       <Specimen>
         <Button
           variant="secondary"
-          onClick={() => toast.success(`${brand.defaultKey}-42 moved to In Review`, { description: "via MCP · Kris" })}
+          onClick={() =>
+            toast.success(`${brand.defaultKey}-42 moved to In Review`, {
+              description: "via MCP · Kris",
+            })
+          }
         >
           Success
         </Button>
         <Button
           variant="secondary"
           onClick={() =>
-            toast(`Deleted ${brand.defaultKey}-17`, { action: { label: "Undo", onClick: () => undefined } })
+            toast(`Deleted ${brand.defaultKey}-17`, {
+              action: { label: "Undo", onClick: () => undefined },
+            })
           }
         >
           With action
@@ -596,7 +619,9 @@ function Toasts() {
         <Button
           variant="secondary"
           onClick={() =>
-            toast.error("Couldn’t save the description", { description: "You’re offline. We’ll retry when you’re back." })
+            toast.error("Couldn’t save the description", {
+              description: "You’re offline. We’ll retry when you’re back.",
+            })
           }
         >
           Error
@@ -613,7 +638,7 @@ function Keycaps() {
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <SubSection title="Keycap" hint="tinykeys notation; ⌘ on Mac, Ctrl elsewhere">
-        <Specimen className="gap-x-5 gap-y-3 text-xs text-muted-foreground">
+        <Specimen className="text-muted-foreground gap-x-5 gap-y-3 text-xs">
           {[
             ["mod+k", "Command palette"],
             ["c", "New issue"],
@@ -655,19 +680,19 @@ function SidebarDemo() {
   return (
     <SubSection title="Sidebar" hint="collapses to a 56px rail on --ease-spring-smooth">
       {/* transform makes this frame the containing block for the sidebar's fixed positioning */}
-      <div className="h-[26rem] overflow-hidden rounded-xl border border-border [transform:translateZ(0)]">
+      <div className="border-border h-[26rem] [transform:translateZ(0)] overflow-hidden rounded-xl border">
         <SidebarProvider className="h-full min-h-0">
           <Sidebar collapsible="icon" className="h-full">
             <SidebarHeader>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton size="lg" tooltip={`${brand.name} workspace`}>
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary font-display text-xs font-semibold text-primary-foreground">
+                    <span className="bg-primary font-display text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold">
                       {brand.name[0]}
                     </span>
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium text-foreground">Home</span>
-                      <span className="truncate text-2xs text-muted-foreground">2 members</span>
+                      <span className="text-foreground truncate text-sm font-medium">Home</span>
+                      <span className="text-2xs text-muted-foreground truncate">2 members</span>
                     </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -738,14 +763,17 @@ function SidebarDemo() {
             </SidebarFooter>
           </Sidebar>
           <SidebarInset className="min-h-0">
-            <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+            <header className="border-border flex h-11 shrink-0 items-center gap-2 border-b px-3">
               <SidebarTrigger />
-              <span className="text-sm font-medium text-foreground">My issues</span>
+              <span className="text-foreground text-sm font-medium">My issues</span>
               <Badge variant="secondary">7</Badge>
             </header>
-            <div className="flex flex-1 flex-col gap-2 p-4 text-sm text-muted-foreground">
-              <p>Click the panel icon to fold the sidebar to its rail; hover a rail icon for its tooltip.</p>
-              <p className="text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex flex-1 flex-col gap-2 p-4 text-sm">
+              <p>
+                Click the panel icon to fold the sidebar to its rail; hover a rail icon for its
+                tooltip.
+              </p>
+              <p className="text-muted-foreground text-xs">
                 In the app, <Keycap keys="[" /> folds it through the shortcut registry (M3).
               </p>
             </div>
@@ -775,4 +803,3 @@ export function ComponentsSection() {
     </Section>
   );
 }
-

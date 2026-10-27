@@ -29,18 +29,25 @@ function ColorPicker({
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
-  const swatches = [...extra, ...LABEL_COLORS.map((color) => ({ value: color, name: NAMES[color]! }))];
+  const swatches = [
+    ...extra,
+    ...LABEL_COLORS.map((color) => ({ value: color, name: NAMES[color]! })),
+  ];
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`${label}: ${swatches.find((swatch) => swatch.value === value)?.name ?? value}`}
         className={cn(
-          "flex size-6 shrink-0 items-center justify-center rounded-sm transition-colors duration-(--duration-instant) hover:bg-accent aria-expanded:bg-accent",
+          "hover:bg-accent aria-expanded:bg-accent flex size-6 shrink-0 items-center justify-center rounded-sm transition-colors duration-(--duration-instant)",
           focusRing,
           className,
         )}
       >
-        <span className="size-2.5 rounded-full" style={{ background: resolveLabelColor(value) }} aria-hidden />
+        <span
+          className="size-2.5 rounded-full"
+          style={{ background: resolveLabelColor(value) }}
+          aria-hidden
+        />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto gap-0 p-1.5">
         <div role="radiogroup" aria-label={label} className="grid grid-cols-6 gap-0.5">
@@ -59,7 +66,7 @@ function ColorPicker({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex size-7 items-center justify-center rounded-sm transition-colors duration-(--duration-instant) hover:bg-accent",
+                  "hover:bg-accent flex size-7 items-center justify-center rounded-sm transition-colors duration-(--duration-instant)",
                   focusRing,
                 )}
               >
@@ -67,7 +74,9 @@ function ColorPicker({
                   className="flex size-4 items-center justify-center rounded-full"
                   style={{ background: resolveLabelColor(swatch.value) }}
                 >
-                  {selected && <CheckIcon className="size-3 text-white" strokeWidth={3} aria-hidden />}
+                  {selected && (
+                    <CheckIcon className="size-3 text-white" strokeWidth={3} aria-hidden />
+                  )}
                 </span>
               </button>
             );

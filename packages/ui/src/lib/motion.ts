@@ -66,7 +66,10 @@ export const reveal = {
 } as const;
 
 /** The reduced-motion branch: no travel, a short opacity cross-fade keeps feedback. */
-export const reducedTransition = { duration: duration.instant, ease: "linear" } as const satisfies Transition;
+export const reducedTransition = {
+  duration: duration.instant,
+  ease: "linear",
+} as const satisfies Transition;
 
 /**
  * Pick a transition with its reduced-motion branch.

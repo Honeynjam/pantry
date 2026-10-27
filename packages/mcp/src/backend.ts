@@ -7,8 +7,14 @@ import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex
  * it itself, so one client can serve every request.
  */
 export type Backend = {
-  query<F extends FunctionReference<"query">>(fn: F, args: FunctionArgs<F>): Promise<FunctionReturnType<F>>;
-  mutation<F extends FunctionReference<"mutation">>(fn: F, args: FunctionArgs<F>): Promise<FunctionReturnType<F>>;
+  query<F extends FunctionReference<"query">>(
+    fn: F,
+    args: FunctionArgs<F>,
+  ): Promise<FunctionReturnType<F>>;
+  mutation<F extends FunctionReference<"mutation">>(
+    fn: F,
+    args: FunctionArgs<F>,
+  ): Promise<FunctionReturnType<F>>;
 };
 
 export function convexBackend(convexUrl: string): Backend {

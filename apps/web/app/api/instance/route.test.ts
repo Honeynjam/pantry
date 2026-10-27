@@ -21,7 +21,12 @@ function configure(url?: string, site?: string) {
   vi.stubEnv("NEXT_PUBLIC_CONVEX_SITE_URL", site ?? "");
 }
 
-const status = (needsSecret: boolean) => ({ needsSecret, needsSetup: true, signedIn: false, isMember: false });
+const status = (needsSecret: boolean) => ({
+  needsSecret,
+  needsSetup: true,
+  signedIn: false,
+  isMember: false,
+});
 
 describe("GET /api/instance", () => {
   beforeEach(() => {

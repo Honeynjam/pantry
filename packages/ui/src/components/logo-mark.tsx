@@ -16,7 +16,7 @@ function LogoMark({
       aria-hidden
       data-slot="logo-mark"
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-md bg-primary font-display font-semibold text-primary-foreground select-none",
+        "bg-primary font-display text-primary-foreground flex shrink-0 items-center justify-center rounded-md font-semibold select-none",
         size === "sm" && "size-5 rounded-sm text-[0.625rem]",
         size === "default" && "size-6 text-xs",
         size === "lg" && "size-9 rounded-lg text-base",

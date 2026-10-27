@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { reuseEqual } from "./stable";
 
-const row = (id: string, extra: Record<string, unknown> = {}) => ({ _id: id, title: `Issue ${id}`, labelIds: ["a"], ...extra });
+const row = (id: string, extra: Record<string, unknown> = {}) => ({
+  _id: id,
+  title: `Issue ${id}`,
+  labelIds: ["a"],
+  ...extra,
+});
 
 describe("reuseEqual", () => {
   it("returns the previous value when nothing changed", () => {
@@ -44,7 +49,10 @@ describe("reuseEqual", () => {
 
   it("never mutates either side", () => {
     const prev = Object.freeze([Object.freeze(row("1")), Object.freeze(row("2"))]);
-    const next = Object.freeze([Object.freeze(row("2")), Object.freeze(row("1", { title: "New" }))]);
+    const next = Object.freeze([
+      Object.freeze(row("2")),
+      Object.freeze(row("1", { title: "New" })),
+    ]);
     expect(() => reuseEqual(prev, next)).not.toThrow();
     expect(reuseEqual(prev, next)[0]).toBe(prev[1]);
   });

@@ -3,7 +3,14 @@
  * (packages/backend/convex/schema.ts) without importing it, so packages/ui stays standalone.
  */
 
-export const STATUS_CATEGORIES = ["backlog", "unstarted", "started", "review", "done", "canceled"] as const;
+export const STATUS_CATEGORIES = [
+  "backlog",
+  "unstarted",
+  "started",
+  "review",
+  "done",
+  "canceled",
+] as const;
 export type StatusCategory = (typeof STATUS_CATEGORIES)[number];
 
 export const STATUS_CATEGORY_LABEL: Record<StatusCategory, string> = {
@@ -47,5 +54,7 @@ export const labelColorVar = (color: LabelColor) => `var(--label-${color})`;
 
 /** A label colour is either one of the curated names or any CSS colour (e.g. a stored hex). */
 export function resolveLabelColor(color: string): string {
-  return (LABEL_COLORS as readonly string[]).includes(color) ? labelColorVar(color as LabelColor) : color;
+  return (LABEL_COLORS as readonly string[]).includes(color)
+    ? labelColorVar(color as LabelColor)
+    : color;
 }

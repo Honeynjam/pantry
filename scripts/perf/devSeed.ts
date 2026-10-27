@@ -34,8 +34,14 @@ function sentence(rand: () => number, words: number) {
 function description(rand: () => number) {
   if (rand() < 0.15) return "";
   const parts = [`## Context\n\n${sentence(rand, 30)}.\n\n${sentence(rand, 25)}.`];
-  if (rand() < 0.7) parts.push(`## Steps\n\n- ${sentence(rand, 8)}\n- ${sentence(rand, 10)}\n- [ ] ${sentence(rand, 6)}`);
-  if (rand() < 0.4) parts.push("```ts\nconst issue = await ctx.db.get(\"issues\", id);\nif (!issue) return notFound(\"Issue\");\n```");
+  if (rand() < 0.7)
+    parts.push(
+      `## Steps\n\n- ${sentence(rand, 8)}\n- ${sentence(rand, 10)}\n- [ ] ${sentence(rand, 6)}`,
+    );
+  if (rand() < 0.4)
+    parts.push(
+      '```ts\nconst issue = await ctx.db.get("issues", id);\nif (!issue) return notFound("Issue");\n```',
+    );
   if (rand() < 0.5) parts.push(`${sentence(rand, 40)}. ${sentence(rand, 30)}.`);
   return parts.join("\n\n");
 }
@@ -76,7 +82,13 @@ export const structure = internalMutation({
       const found = existing.find((space) => space.key === want.key);
       spaces.push(
         found?._id ??
-          (await ctx.db.insert("spaces", { workspaceId, name: want.name, key: want.key, nextIssueNumber: 1, kind: "product" })),
+          (await ctx.db.insert("spaces", {
+            workspaceId,
+            name: want.name,
+            key: want.key,
+            nextIssueNumber: 1,
+            kind: "product",
+          })),
       );
     }
     const projects: Id<"projects">[][] = [];
@@ -89,7 +101,9 @@ export const structure = internalMutation({
       const names = [["Launch", "MCP", "Desktop"], ["Landing", "Docs"], ["Retainer"]][index]!;
       for (const [order, name] of names.entries()) {
         if (rows.some((row) => row.name === name)) continue;
-        ids.push(await ctx.db.insert("projects", { workspaceId, spaceId, name, sortOrder: order + 1 }));
+        ids.push(
+          await ctx.db.insert("projects", { workspaceId, spaceId, name, sortOrder: order + 1 }),
+        );
       }
       projects.push(ids);
     }
@@ -139,12 +153,28 @@ export const batch = internalMutation({
     const recentParents: Doc<"issues">[] = [];
     for (let i = 0; i < args.count; i++) {
       const isOpen = rand() < args.openShare;
-      const status: Doc<"statuses"> = isOpen ? open[Math.floor(rand() * open.length)]! : rand() < 0.85 ? done : canceled;
-      const age = isOpen ? rand() * 60 * DAY : rand() < 0.93 ? 15 * DAY + rand() * 300 * DAY : rand() * 13 * DAY;
-      const parent = recentParents.length > 0 && rand() < 0.12 ? recentParents[Math.floor(rand() * recentParents.length)]! : undefined;
-      const projectId = parent ? parent.projectId : rand() < 0.6 ? args.projectIds[Math.floor(rand() * args.projectIds.length)] : undefined;
+      const status: Doc<"statuses"> = isOpen
+        ? open[Math.floor(rand() * open.length)]!
+        : rand() < 0.85
+          ? done
+          : canceled;
+      const age = isOpen
+        ? rand() * 60 * DAY
+        : rand() < 0.93
+          ? 15 * DAY + rand() * 300 * DAY
+          : rand() * 13 * DAY;
+      const parent =
+        recentParents.length > 0 && rand() < 0.12
+          ? recentParents[Math.floor(rand() * recentParents.length)]!
+          : undefined;
+      const projectId = parent
+        ? parent.projectId
+        : rand() < 0.6
+          ? args.projectIds[Math.floor(rand() * args.projectIds.length)]
+          : undefined;
       const labelIds = args.labelIds.filter(() => rand() < 0.22);
-      const assigneeId = rand() < 0.7 ? args.memberIds[Math.floor(rand() * args.memberIds.length)] : undefined;
+      const assigneeId =
+        rand() < 0.7 ? args.memberIds[Math.floor(rand() * args.memberIds.length)] : undefined;
       const updatedAt = now - age;
       const id = await ctx.db.insert("issues", {
         workspaceId: space.workspaceId,
@@ -161,7 +191,9 @@ export const batch = internalMutation({
         creatorId: args.memberIds[0]!,
         labelIds,
         ...(parent ? { parentId: parent._id } : {}),
-        ...(rand() < 0.2 ? { dueDate: new Date(now + (rand() - 0.3) * 60 * DAY).toISOString().slice(0, 10) } : {}),
+        ...(rand() < 0.2
+          ? { dueDate: new Date(now + (rand() - 0.3) * 60 * DAY).toISOString().slice(0, 10) }
+          : {}),
         sortOrder: number + rand(),
         ...(isOpen ? {} : { completedAt: updatedAt }),
         updatedAt,
@@ -173,7 +205,14 @@ export const batch = internalMutation({
         if (recentParents.length > 20) recentParents.shift();
       }
       const actor = assigneeId ?? args.memberIds[0]!;
-      await ctx.db.insert("activity", { workspaceId: space.workspaceId, issueId: id, actorId: actor, type: "created", to: "Todo", via: "app" });
+      await ctx.db.insert("activity", {
+        workspaceId: space.workspaceId,
+        issueId: id,
+        actorId: actor,
+        type: "created",
+        to: "Todo",
+        via: "app",
+      });
       const extra = Math.floor(rand() * 5);
       for (let a = 0; a < extra; a++) {
         await ctx.db.insert("activity", {
@@ -205,9 +244,21 @@ export const batch = internalMutation({
 export const run = internalAction({
   args: { scale: v.optional(v.number()) },
   handler: async (ctx, { scale = 1 }): Promise<{ spaces: number }> => {
-    const { memberIds }: { memberIds: Id<"members">[] } = await ctx.runQuery(internal.devSeed.info, {});
-    const { spaces, projects, labelIds, done }: { spaces: Id<"spaces">[]; projects: Id<"projects">[][]; labelIds: Id<"labels">[]; done: number[] } =
-      await ctx.runMutation(internal.devSeed.structure, {});
+    const { memberIds }: { memberIds: Id<"members">[] } = await ctx.runQuery(
+      internal.devSeed.info,
+      {},
+    );
+    const {
+      spaces,
+      projects,
+      labelIds,
+      done,
+    }: {
+      spaces: Id<"spaces">[];
+      projects: Id<"projects">[][];
+      labelIds: Id<"labels">[];
+      done: number[];
+    } = await ctx.runMutation(internal.devSeed.structure, {});
     const plan = [
       { count: 1500, openShare: 0.34 },
       { count: 800, openShare: 0.3 },

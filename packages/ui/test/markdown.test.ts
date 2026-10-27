@@ -19,7 +19,11 @@ afterEach(() => {
 
 /** A headless editor loaded the way MarkdownEditor loads content. */
 function load(markdown: string): Editor {
-  const editor = new Editor({ extensions: markdownExtensions(), content: markdown, contentType: "markdown" });
+  const editor = new Editor({
+    extensions: markdownExtensions(),
+    content: markdown,
+    contentType: "markdown",
+  });
   editors.push(editor);
   return editor;
 }
@@ -47,7 +51,13 @@ describe("markdown fixtures", () => {
     "%s keeps every block verbatim when a paragraph is added above it",
     (_name, markdown) => {
       const editor = load(markdown);
-      editor.chain().insertContentAt(0, { type: "paragraph", content: [{ type: "text", text: "Added by a person." }] }).run();
+      editor
+        .chain()
+        .insertContentAt(0, {
+          type: "paragraph",
+          content: [{ type: "text", text: "Added by a person." }],
+        })
+        .run();
       const saved = toMarkdown(editor, markdown);
       expect(saved.startsWith("Added by a person.\n\n")).toBe(true);
       for (const block of blocks(editor, markdown)) expect(saved).toContain(block);
@@ -61,7 +71,8 @@ describe("markdown fixtures", () => {
 
 describe("constructs Tiptap can't represent", () => {
   it("keeps tables, HTML and link definitions as editable raw blocks", () => {
-    const markdown = "| a | b |\n|---|---|\n| 1 | 2 |\n\n<div>html</div>\n\n[ref]: https://example.com\n";
+    const markdown =
+      "| a | b |\n|---|---|\n| 1 | 2 |\n\n<div>html</div>\n\n[ref]: https://example.com\n";
     const editor = load(markdown);
     const types = (editor.getJSON().content ?? []).map((node) => node.type);
     expect(types).toEqual(["rawMarkdownBlock", "rawMarkdownBlock", "rawMarkdownBlock"]);
@@ -70,14 +81,18 @@ describe("constructs Tiptap can't represent", () => {
     const tableEnd = editor.state.doc.child(0).nodeSize - 1;
     editor.chain().insertContentAt(tableEnd, "\n| 3 | 4 |").run();
     const saved = toMarkdown(editor, markdown);
-    expect(saved).toBe("| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n\n<div>html</div>\n\n[ref]: https://example.com\n");
+    expect(saved).toBe(
+      "| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n\n<div>html</div>\n\n[ref]: https://example.com\n",
+    );
   });
 
   it("keeps an image when its paragraph is edited", () => {
     const markdown = "See ![the board](https://example.com/b.png) here.\n";
     const editor = load(markdown);
     editor.chain().focus("end").insertContent(" Edited.").run();
-    expect(toMarkdown(editor, markdown)).toBe("See ![the board](https://example.com/b.png) here. Edited.\n");
+    expect(toMarkdown(editor, markdown)).toBe(
+      "See ![the board](https://example.com/b.png) here. Edited.\n",
+    );
   });
 
   it("saves new content from an empty document", () => {
@@ -94,7 +109,8 @@ describe("constructs Tiptap can't represent", () => {
   });
 
   it("keeps the original spacing between untouched neighbours", () => {
-    const markdown = "Para one.\n\n\nPara two.\n[ref]: https://example.com\nTail paragraph.\n\nLast one.\n";
+    const markdown =
+      "Para one.\n\n\nPara two.\n[ref]: https://example.com\nTail paragraph.\n\nLast one.\n";
     const editor = load(markdown);
     editor.chain().focus("end").insertContent(" Edited.").run();
     expect(toMarkdown(editor, markdown)).toBe(

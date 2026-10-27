@@ -27,7 +27,11 @@ export function SignUpPage({ inviteToken }: { inviteToken?: string }) {
   return (
     <EntryGate allow={SIGNED_OUT_OR_JOINING}>
       {(state) =>
-        state.kind === "not-member" ? <AcceptInvite token={inviteToken} /> : <InviteSignUp token={inviteToken} />
+        state.kind === "not-member" ? (
+          <AcceptInvite token={inviteToken} />
+        ) : (
+          <InviteSignUp token={inviteToken} />
+        )
       }
     </EntryGate>
   );
@@ -43,17 +47,27 @@ function InviteSignUp({ token }: { token: string }) {
   if (invite === undefined) {
     return (
       <AuthLayout title="Checking your invite…">
-        <p className="text-center text-sm text-muted-foreground" aria-busy="true">
+        <p className="text-muted-foreground text-center text-sm" aria-busy="true">
           One moment.
         </p>
       </AuthLayout>
     );
   }
-  if (invite.status !== "valid" || !invite.email) return <InviteProblem token={token} status={invite.status} />;
-  return <SignUpForm inviteToken={token} invitedEmail={invite.email} workspaceName={invite.workspaceName} />;
+  if (invite.status !== "valid" || !invite.email)
+    return <InviteProblem token={token} status={invite.status} />;
+  return (
+    <SignUpForm
+      inviteToken={token}
+      invitedEmail={invite.email}
+      workspaceName={invite.workspaceName}
+    />
+  );
 }
 
-const PROBLEM: Record<"expired" | "revoked" | "used" | "unknown" | "valid", { title: string; body: string }> = {
+const PROBLEM: Record<
+  "expired" | "revoked" | "used" | "unknown" | "valid",
+  { title: string; body: string }
+> = {
   expired: {
     title: "This invite has expired",
     body: "Invite links work for 7 days. Ask the person who invited you for a new one.",
@@ -83,15 +97,18 @@ function InviteProblem({ token, status }: { token: string; status: keyof typeof 
       footer={
         <>
           Already have an account?{" "}
-          <Link href={withInvite(routes.signIn, status === "used" ? undefined : token)} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
+          <Link
+            href={withInvite(routes.signIn, status === "used" ? undefined : token)}
+            className="text-foreground decoration-gray-8 underline underline-offset-4 hover:decoration-current"
+          >
             Sign in
           </Link>
         </>
       }
     >
       <div role="status" className="flex flex-col items-center gap-3 text-center">
-        <CircleSlashIcon className="size-5 text-muted-foreground" aria-hidden />
-        <p className="text-sm text-muted-foreground">{problem.body}</p>
+        <CircleSlashIcon className="text-muted-foreground size-5" aria-hidden />
+        <p className="text-muted-foreground text-sm">{problem.body}</p>
       </div>
     </AuthLayout>
   );
@@ -137,7 +154,10 @@ function SignUpForm({
       footer={
         <>
           Already have an account?{" "}
-          <Link href={withInvite(routes.signIn, inviteToken)} className="text-foreground underline decoration-gray-8 underline-offset-4 hover:decoration-current">
+          <Link
+            href={withInvite(routes.signIn, inviteToken)}
+            className="text-foreground decoration-gray-8 underline underline-offset-4 hover:decoration-current"
+          >
             Sign in
           </Link>
         </>
@@ -162,10 +182,10 @@ function SignUpForm({
                     value={invitedEmail}
                     readOnly
                     aria-describedby="sign-up-email-note"
-                    className="cursor-default bg-muted pr-8 text-muted-foreground dark:bg-gray-3"
+                    className="bg-muted text-muted-foreground dark:bg-gray-3 cursor-default pr-8"
                   />
                   <LockIcon
-                    className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    className="text-muted-foreground pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2"
                     aria-hidden
                   />
                 </div>
@@ -179,12 +199,23 @@ function SignUpForm({
           </Field>
           <Field>
             <FieldLabel htmlFor="sign-up-password">Password</FieldLabel>
-            <Input id="sign-up-password" name="password" type="password" autoComplete="new-password" minLength={8} required />
+            <Input
+              id="sign-up-password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
             <FieldDescription>At least 8 characters.</FieldDescription>
           </Field>
           <FormError message={error} />
           <Button type="submit" size="lg" disabled={pending} className="w-full">
-            {pending ? "Creating account…" : inviteToken ? "Create account and join" : "Create account"}
+            {pending
+              ? "Creating account…"
+              : inviteToken
+                ? "Create account and join"
+                : "Create account"}
           </Button>
           <SlowHint pending={pending} />
         </FieldGroup>

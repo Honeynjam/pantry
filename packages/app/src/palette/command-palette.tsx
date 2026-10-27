@@ -47,7 +47,12 @@ import { projectColor } from "../shell/space-color";
 import { slug } from "../issues/filters";
 import { shortcut } from "../shortcuts";
 import { useShortcut, useShortcutScope } from "../use-shortcuts";
-import { screenActions, useScreenActionsVersion, type PaletteAction, type PaletteGroup } from "./palette-actions";
+import {
+  screenActions,
+  useScreenActionsVersion,
+  type PaletteAction,
+  type PaletteGroup,
+} from "./palette-actions";
 import { highlightRuns, rankGroups, type Ranked } from "./rank";
 
 const GROUPS: PaletteGroup[] = ["Issues", "Spaces", "Navigation", "Actions"];
@@ -61,7 +66,13 @@ type Row = PaletteAction & { issue?: IssueHit; boost?: number };
  * The command palette (spec §9d): jump to issues, projects and screens, and run any action. Our
  * ranking replaces cmdk's filter; issues come from the debounced `issues.search`.
  */
-export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [query, setQuery] = useState("");
   useShortcutScope("overlay", open);
   useShortcut("palette", "overlay", () => onOpenChange(false), open);
@@ -104,7 +115,15 @@ function useIssueSearch(query: string): IssueHit[] {
   return results ?? last;
 }
 
-function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (query: string) => void; close: () => void }) {
+function PaletteBody({
+  query,
+  setQuery,
+  close,
+}: {
+  query: string;
+  setQuery: (query: string) => void;
+  close: () => void;
+}) {
   const commands = useAppCommands();
   const { data, currentSpace } = commands;
   const { navigate } = useNavigation();
@@ -114,11 +133,19 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
   const hits = useIssueSearch(query);
   const [value, setValue] = useState("");
 
-  const statusById = useMemo(() => new Map(data.statuses.map((status) => [status._id, status])), [data.statuses]);
+  const statusById = useMemo(
+    () => new Map(data.statuses.map((status) => [status._id, status])),
+    [data.statuses],
+  );
 
   // Rebuilt every render: a few dozen rows, and screen actions read their latest state.
   const rows: Row[] = (() => {
-    const settings = (section: SettingsSection, label: string, icon: ReactNode, keywords: string[]): Row => ({
+    const settings = (
+      section: SettingsSection,
+      label: string,
+      icon: ReactNode,
+      keywords: string[],
+    ): Row => ({
       id: `settings:${section}`,
       label,
       group: "Navigation",
@@ -160,12 +187,21 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
             group: "Spaces",
             description: `Project in ${parent.name}`,
             keywords: [parent.key, parent.name],
-            icon: <span className="size-2 rounded-[2px]" style={{ background: projectColor(row) }} />,
-            run: () => navigate(`${routes.space(parent.key)}?project=${encodeURIComponent(slug(row.name))}`),
+            icon: (
+              <span className="size-2 rounded-[2px]" style={{ background: projectColor(row) }} />
+            ),
+            run: () =>
+              navigate(`${routes.space(parent.key)}?project=${encodeURIComponent(slug(row.name))}`),
           },
         ];
       }),
-      { id: "nav:home", label: "Go to Home", group: "Navigation", icon: <HouseIcon />, run: () => navigate(routes.home) },
+      {
+        id: "nav:home",
+        label: "Go to Home",
+        group: "Navigation",
+        icon: <HouseIcon />,
+        run: () => navigate(routes.home),
+      },
       {
         id: "nav:my-issues",
         label: "Go to My issues",
@@ -210,7 +246,13 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
       settings("spaces", "Spaces", <FolderIcon />, ["archive", "products", "clients"]),
       settings("labels", "Labels", <TagIcon />, ["tags", "colours", "colors"]),
       settings("statuses", "Statuses", <CogIcon />, ["workflow", "columns"]),
-      settings("tokens", "API tokens", <KeyRoundIcon />, ["mcp", "agents", "claude", "cursor", "token"]),
+      settings("tokens", "API tokens", <KeyRoundIcon />, [
+        "mcp",
+        "agents",
+        "claude",
+        "cursor",
+        "token",
+      ]),
       {
         id: "action:new-issue",
         label: "New issue",
@@ -262,10 +304,38 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         shortcut: "sidebar",
         run: () => commands.toggleSidebar(),
       },
-      { id: "action:theme-light", label: "Use the light theme", group: "Actions", keywords: ["appearance", "mode"], icon: <SunIcon />, run: () => setTheme("light") },
-      { id: "action:theme-dark", label: "Use the dark theme", group: "Actions", keywords: ["appearance", "mode"], icon: <MoonIcon />, run: () => setTheme("dark") },
-      { id: "action:theme-system", label: "Use the system theme", group: "Actions", keywords: ["appearance", "mode", "auto"], icon: <MonitorIcon />, run: () => setTheme("system") },
-      { id: "action:sign-out", label: "Sign out", group: "Actions", keywords: ["log out"], icon: <LogOutIcon />, run: () => void authClient.signOut() },
+      {
+        id: "action:theme-light",
+        label: "Use the light theme",
+        group: "Actions",
+        keywords: ["appearance", "mode"],
+        icon: <SunIcon />,
+        run: () => setTheme("light"),
+      },
+      {
+        id: "action:theme-dark",
+        label: "Use the dark theme",
+        group: "Actions",
+        keywords: ["appearance", "mode"],
+        icon: <MoonIcon />,
+        run: () => setTheme("dark"),
+      },
+      {
+        id: "action:theme-system",
+        label: "Use the system theme",
+        group: "Actions",
+        keywords: ["appearance", "mode", "auto"],
+        icon: <MonitorIcon />,
+        run: () => setTheme("system"),
+      },
+      {
+        id: "action:sign-out",
+        label: "Sign out",
+        group: "Actions",
+        keywords: ["log out"],
+        icon: <LogOutIcon />,
+        run: () => void authClient.signOut(),
+      },
     ];
   })();
 
@@ -300,16 +370,23 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         autoFocus
       />
       <CommandList>
-        <CommandEmpty>{query.trim() ? `Nothing matches “${query.trim()}”.` : "Type to search."}</CommandEmpty>
+        <CommandEmpty>
+          {query.trim() ? `Nothing matches “${query.trim()}”.` : "Type to search."}
+        </CommandEmpty>
         {groups.map((group) => (
           <CommandGroup key={group.group} heading={group.group}>
             {group.items.map((entry) => (
-              <PaletteRow key={entry.item.id} entry={entry} onSelect={() => run(entry.item)} statusById={statusById} />
+              <PaletteRow
+                key={entry.item.id}
+                entry={entry}
+                onSelect={() => run(entry.item)}
+                statusById={statusById}
+              />
             ))}
           </CommandGroup>
         ))}
       </CommandList>
-      <div className="flex h-9 items-center gap-3 border-t border-border px-3.5 text-xs text-muted-foreground">
+      <div className="border-border text-muted-foreground flex h-9 items-center gap-3 border-t px-3.5 text-xs">
         <span className="flex items-center gap-1.5">
           <Keycap keys="up" />
           <Keycap keys="down" /> to move
@@ -322,7 +399,11 @@ function PaletteBody({ query, setQuery, close }: { query: string; setQuery: (que
         </span>
       </div>
       <div aria-live="polite" role="status" className="sr-only">
-        {query.trim() ? (count === 0 ? "No results" : `${count} ${count === 1 ? "result" : "results"}`) : ""}
+        {query.trim()
+          ? count === 0
+            ? "No results"
+            : `${count} ${count === 1 ? "result" : "results"}`
+          : ""}
       </div>
     </Command>
   );
@@ -333,7 +414,7 @@ function Highlighted({ label, matches }: { label: string; matches: number[] }) {
     <span className="truncate">
       {highlightRuns(label, matches).map((run, index) =>
         run.matched ? (
-          <span key={index} className="font-medium text-foreground">
+          <span key={index} className="text-foreground font-medium">
             {run.text}
           </span>
         ) : (
@@ -359,7 +440,11 @@ function PaletteRow({
     <CommandItem value={item.id} onSelect={onSelect} className="text-foreground/90">
       {item.issue ? (
         <>
-          {status ? <StatusGlyph category={status.category} color={statusColor(status)} /> : <span className="size-3.5" />}
+          {status ? (
+            <StatusGlyph category={status.category} color={statusColor(status)} />
+          ) : (
+            <span className="size-3.5" />
+          )}
           <IssueKey value={item.issue.key} className="w-16 shrink-0" />
         </>
       ) : (
@@ -368,7 +453,9 @@ function PaletteRow({
         </span>
       )}
       <Highlighted label={item.label} matches={matches} />
-      {item.description && <span className="truncate text-xs text-muted-foreground">{item.description}</span>}
+      {item.description && (
+        <span className="text-muted-foreground truncate text-xs">{item.description}</span>
+      )}
       {item.shortcut && (
         <CommandShortcut>
           <Keycap keys={shortcut(item.shortcut).display} />

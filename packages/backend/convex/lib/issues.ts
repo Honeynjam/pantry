@@ -25,13 +25,21 @@ const MAX_DESCRIPTION = 100_000;
 // Lookups, always inside one workspace ("not found" for anything else)
 // ---------------------------------------------------------------------------------------------
 
-export async function getIssue(ctx: QueryCtx, workspaceId: Id<"workspaces">, issueId: Id<"issues">) {
+export async function getIssue(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  issueId: Id<"issues">,
+) {
   const issue = await ctx.db.get("issues", issueId);
   if (!issue || issue.workspaceId !== workspaceId) return notFound("Issue");
   return issue;
 }
 
-export async function getStatus(ctx: QueryCtx, workspaceId: Id<"workspaces">, statusId: Id<"statuses">) {
+export async function getStatus(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  statusId: Id<"statuses">,
+) {
   const status = await ctx.db.get("statuses", statusId);
   if (!status || status.workspaceId !== workspaceId) return notFound("Status");
   return status;
@@ -46,7 +54,9 @@ async function getMember(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId:
 async function getLabels(ctx: QueryCtx, workspaceId: Id<"workspaces">, labelIds: Id<"labels">[]) {
   const unique = [...new Set(labelIds)];
   const labels = await Promise.all(unique.map((id) => ctx.db.get("labels", id)));
-  return labels.map((label) => (label && label.workspaceId === workspaceId ? label : notFound("Label")));
+  return labels.map((label) =>
+    label && label.workspaceId === workspaceId ? label : notFound("Label"),
+  );
 }
 
 /** The first `unstarted` status by order (Todo by default): where new issues land unless told otherwise. */
@@ -67,13 +77,17 @@ export async function defaultStatus(ctx: QueryCtx, workspaceId: Id<"workspaces">
 export function cleanTitle(title: string): string {
   const clean = normalizeTitle(title);
   if (!clean) fail("INVALID_TITLE", "Give the issue a title.");
-  if (clean.length > MAX_TITLE) fail("INVALID_TITLE", `Titles can be at most ${MAX_TITLE} characters.`);
+  if (clean.length > MAX_TITLE)
+    fail("INVALID_TITLE", `Titles can be at most ${MAX_TITLE} characters.`);
   return clean;
 }
 
 export function checkDescription(description: string): string {
   if (description.length > MAX_DESCRIPTION) {
-    fail("TOO_LONG", `Descriptions can be at most ${MAX_DESCRIPTION.toLocaleString("en")} characters.`);
+    fail(
+      "TOO_LONG",
+      `Descriptions can be at most ${MAX_DESCRIPTION.toLocaleString("en")} characters.`,
+    );
   }
   return description;
 }
@@ -121,7 +135,10 @@ export async function checkParent(
       .withIndex("by_parent", (q) => q.eq("parentId", child._id))
       .first();
     if (grandchild) {
-      fail("INVALID_PARENT", `${child.key} has sub-issues of its own, so it can't become a sub-issue.`);
+      fail(
+        "INVALID_PARENT",
+        `${child.key} has sub-issues of its own, so it can't become a sub-issue.`,
+      );
     }
     if (child.spaceId !== parent.spaceId) {
       fail("INVALID_PARENT", "A sub-issue has to be in the same space as its parent.");
@@ -137,19 +154,29 @@ export async function checkParent(
 type Column = { spaceId: Id<"spaces">; statusId: Id<"statuses"> };
 
 const inColumn = (ctx: QueryCtx, { spaceId, statusId }: Column) =>
-  ctx.db.query("issues").withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", statusId));
+  ctx.db
+    .query("issues")
+    .withIndex("by_space_and_status", (q) => q.eq("spaceId", spaceId).eq("statusId", statusId));
 
 /**
  * The issue right after `anchor` (or right before it, `direction: "desc"`) in column order
  * (`sortOrder`, then creation), skipping `skip`. Reads only the anchor's ties and one neighbour, not
  * the column.
  */
-async function neighbour(ctx: QueryCtx, column: Column, anchor: Doc<"issues">, direction: "asc" | "desc", skip?: Id<"issues">) {
+async function neighbour(
+  ctx: QueryCtx,
+  column: Column,
+  anchor: Doc<"issues">,
+  direction: "asc" | "desc",
+  skip?: Id<"issues">,
+) {
   const rows = ctx.db
     .query("issues")
     .withIndex("by_space_and_status", (q) => {
       const inIt = q.eq("spaceId", column.spaceId).eq("statusId", column.statusId);
-      return direction === "asc" ? inIt.gte("sortOrder", anchor.sortOrder) : inIt.lte("sortOrder", anchor.sortOrder);
+      return direction === "asc"
+        ? inIt.gte("sortOrder", anchor.sortOrder)
+        : inIt.lte("sortOrder", anchor.sortOrder);
     })
     .order(direction);
   let passed = false;
@@ -199,19 +226,30 @@ export async function placeInColumn(
   if (!above) return below!.sortOrder - 1;
   if (!below) return above.sortOrder + 1;
   const mid = (above.sortOrder + below.sortOrder) / 2;
-  if (below.sortOrder - above.sortOrder >= MIN_GAP && mid > above.sortOrder && mid < below.sortOrder) return mid;
+  if (
+    below.sortOrder - above.sortOrder >= MIN_GAP &&
+    mid > above.sortOrder &&
+    mid < below.sortOrder
+  )
+    return mid;
   return renumberColumn(ctx, column, placement, issueId);
 }
 
 /** Too close: renumber the whole column 1, 2, 3… with a slot left for the moved issue. */
-async function renumberColumn(ctx: MutationCtx, column: Column, placement: Placement, issueId?: Id<"issues">) {
+async function renumberColumn(
+  ctx: MutationCtx,
+  column: Column,
+  placement: Placement,
+  issueId?: Id<"issues">,
+) {
   const others = (await inColumn(ctx, column).collect()).filter((row) => row._id !== issueId);
   let index = -1;
   if (placement.afterId) {
     const at = others.findIndex((row) => row._id === placement.afterId);
     if (at >= 0) index = at + 1;
   }
-  if (index < 0 && placement.beforeId) index = others.findIndex((row) => row._id === placement.beforeId);
+  if (index < 0 && placement.beforeId)
+    index = others.findIndex((row) => row._id === placement.beforeId);
   if (index < 0) index = 0;
   for (const [position, row] of others.entries()) {
     const sortOrder = position < index ? position + 1 : position + 2;
@@ -294,7 +332,11 @@ export async function createIssue(ctx: MutationCtx, actor: Actor, input: CreateI
   if (parent && input.spaceId && input.spaceId !== parent.spaceId) {
     fail("INVALID_PARENT", "A sub-issue is always in its parent's space.");
   }
-  if (parent && input.projectId !== undefined && (input.projectId ?? undefined) !== parent.projectId) {
+  if (
+    parent &&
+    input.projectId !== undefined &&
+    (input.projectId ?? undefined) !== parent.projectId
+  ) {
     fail("INVALID_PARENT", "A sub-issue is always in its parent's project.");
   }
   const spaceId = parent?.spaceId ?? input.spaceId;
@@ -385,7 +427,12 @@ export type UpdateIssueInput = {
  * new parent brings its project along. A project change on a parent moves its sub-issues too; a
  * sub-issue can't take a project of its own.
  */
-export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"issues">, input: UpdateIssueInput) {
+export async function updateIssue(
+  ctx: MutationCtx,
+  actor: Actor,
+  issue: Doc<"issues">,
+  input: UpdateIssueInput,
+) {
   const workspaceId = issue.workspaceId;
   const patch: Partial<Doc<"issues">> = {};
   const rows: { type: Doc<"activity">["type"]; from?: string; to?: string }[] = [];
@@ -403,7 +450,11 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
   }
   if (input.priority !== undefined && input.priority !== issue.priority) {
     patch.priority = input.priority;
-    rows.push({ type: "priority_changed", from: String(issue.priority), to: String(input.priority) });
+    rows.push({
+      type: "priority_changed",
+      from: String(issue.priority),
+      to: String(input.priority),
+    });
   }
   if (input.assigneeId !== undefined && (input.assigneeId ?? undefined) !== issue.assigneeId) {
     const next = input.assigneeId ? await getMember(ctx, workspaceId, input.assigneeId) : null;
@@ -418,11 +469,13 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
   if (input.labelIds !== undefined) {
     const next = await getLabels(ctx, workspaceId, input.labelIds);
     const nextIds = next.map((label) => label._id);
-    const same = nextIds.length === issue.labelIds.length && nextIds.every((id) => issue.labelIds.includes(id));
+    const same =
+      nextIds.length === issue.labelIds.length &&
+      nextIds.every((id) => issue.labelIds.includes(id));
     if (!same) {
-      const previous = (await Promise.all(issue.labelIds.map((id) => ctx.db.get("labels", id)))).filter(
-        (label): label is Doc<"labels"> => label !== null,
-      );
+      const previous = (
+        await Promise.all(issue.labelIds.map((id) => ctx.db.get("labels", id)))
+      ).filter((label): label is Doc<"labels"> => label !== null);
       patch.labelIds = nextIds;
       rows.push({
         type: "labels_changed",
@@ -440,7 +493,9 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
     });
   }
   if (input.parentId !== undefined && (input.parentId ?? undefined) !== issue.parentId) {
-    const parent = input.parentId ? await checkParent(ctx, workspaceId, input.parentId, issue) : null;
+    const parent = input.parentId
+      ? await checkParent(ctx, workspaceId, input.parentId, issue)
+      : null;
     const previous = issue.parentId ? await ctx.db.get("issues", issue.parentId) : null;
     patch.parentId = parent?._id;
     rows.push({
@@ -451,19 +506,32 @@ export async function updateIssue(ctx: MutationCtx, actor: Actor, issue: Doc<"is
   }
 
   // The project: asked for directly, or brought along by a new parent.
-  const newParent = patch.parentId !== undefined ? await ctx.db.get("issues", patch.parentId) : null;
-  const parentAfter = "parentId" in patch ? newParent : issue.parentId ? await ctx.db.get("issues", issue.parentId) : null;
+  const newParent =
+    patch.parentId !== undefined ? await ctx.db.get("issues", patch.parentId) : null;
+  const parentAfter =
+    "parentId" in patch
+      ? newParent
+      : issue.parentId
+        ? await ctx.db.get("issues", issue.parentId)
+        : null;
   let project: Project | null | undefined; // undefined: unchanged
   if (input.projectId !== undefined) {
     if (parentAfter && (input.projectId ?? undefined) !== parentAfter.projectId) {
-      fail("INVALID_PARENT", `A sub-issue is always in its parent's project. Change ${parentAfter.key}'s project instead.`);
+      fail(
+        "INVALID_PARENT",
+        `A sub-issue is always in its parent's project. Change ${parentAfter.key}'s project instead.`,
+      );
     }
     if ((input.projectId ?? undefined) !== issue.projectId) {
       const space = await getSpace(ctx, workspaceId, issueSpaceId(issue));
-      project = input.projectId ? await getProjectForSpace(ctx, workspaceId, space, input.projectId) : null;
+      project = input.projectId
+        ? await getProjectForSpace(ctx, workspaceId, space, input.projectId)
+        : null;
     }
   } else if (newParent && newParent.projectId !== issue.projectId) {
-    const parentProject = newParent.projectId ? await ctx.db.get("projects", newParent.projectId) : null;
+    const parentProject = newParent.projectId
+      ? await ctx.db.get("projects", newParent.projectId)
+      : null;
     project = parentProject && isProject(parentProject) ? parentProject : null;
   }
 

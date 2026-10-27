@@ -24,7 +24,7 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground",
+        "bg-popover text-popover-foreground flex size-full flex-col overflow-hidden rounded-xl",
         className,
       )}
       {...props}
@@ -62,7 +62,11 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={cn("gap-0 overflow-hidden rounded-xl! p-0 sm:max-w-xl", paletteMotion, className)}
+        className={cn(
+          "gap-0 overflow-hidden rounded-xl! p-0 sm:max-w-xl",
+          paletteMotion,
+          className,
+        )}
         showCloseButton={showCloseButton}
         finalFocus={finalFocus}
       >
@@ -72,14 +76,20 @@ function CommandDialog({
   );
 }
 
-function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+function CommandInput({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div data-slot="command-input-wrapper" className="flex h-11 items-center gap-2.5 border-b border-border px-3.5">
-      <SearchIcon className="size-4 shrink-0 text-faint-foreground" />
+    <div
+      data-slot="command-input-wrapper"
+      className="border-border flex h-11 items-center gap-2.5 border-b px-3.5"
+    >
+      <SearchIcon className="text-faint-foreground size-4 shrink-0" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "h-full w-full bg-transparent text-base text-foreground outline-hidden placeholder:text-faint-foreground disabled:cursor-not-allowed",
+          "text-foreground placeholder:text-faint-foreground h-full w-full bg-transparent text-base outline-hidden disabled:cursor-not-allowed",
           className,
         )}
         {...props}
@@ -92,13 +102,17 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
  * The scrolling results frame. Its height follows cmdk's `--cmdk-list-height` on the smooth spring
  * (instant with reduced motion); the highlight lives inside it.
  */
-function CommandList({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
+function CommandList({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
         "h-[calc(var(--cmdk-list-height)+0.75rem)] max-h-80 scroll-py-1.5 overflow-x-hidden overflow-y-auto overscroll-contain p-1.5 outline-none",
-        "transition-[height] duration-(--spring-smooth-duration) ease-(--ease-spring-smooth) motion-reduce:transition-none in-[.reduce-motion]:transition-none",
+        "transition-[height] duration-(--spring-smooth-duration) ease-(--ease-spring-smooth) in-[.reduce-motion]:transition-none motion-reduce:transition-none",
         "**:[[cmdk-list-sizer]]:relative",
         className,
       )}
@@ -136,11 +150,18 @@ function CommandHighlight() {
       const height = item.offsetHeight;
       const snap = last === null || Math.abs(top - last) > height * 4;
       last = top;
-      setBox((prev) => (prev && prev.top === top && prev.height === height ? prev : { top, height, snap }));
+      setBox((prev) =>
+        prev && prev.top === top && prev.height === height ? prev : { top, height, snap },
+      );
     };
     measure();
     const mutations = new MutationObserver(measure);
-    mutations.observe(sizer, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
+    mutations.observe(sizer, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-selected"],
+    });
     const resize = new ResizeObserver(measure);
     resize.observe(sizer);
     return () => {
@@ -154,7 +175,7 @@ function CommandHighlight() {
       ref={ref}
       aria-hidden
       data-slot="command-highlight"
-      className="pointer-events-none absolute inset-x-0 top-0 rounded-md bg-accent"
+      className="bg-accent pointer-events-none absolute inset-x-0 top-0 rounded-md"
       initial={false}
       animate={box ? { y: box.top, height: box.height, opacity: 1 } : { opacity: 0 }}
       transition={reduce || box?.snap ? { duration: 0 } : spring.morph}
@@ -162,22 +183,28 @@ function CommandHighlight() {
   );
 }
 
-function CommandEmpty({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+function CommandEmpty({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn("py-8 text-center text-sm text-muted-foreground", className)}
+      className={cn("text-muted-foreground py-8 text-center text-sm", className)}
       {...props}
     />
   );
 }
 
-function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        "overflow-hidden text-foreground not-first:mt-1.5 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:pt-1 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
+        "text-foreground **:[[cmdk-group-heading]]:text-muted-foreground overflow-hidden not-first:mt-1.5 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:pt-1 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium",
         className,
       )}
       {...props}
@@ -185,24 +212,31 @@ function CommandGroup({ className, ...props }: React.ComponentProps<typeof Comma
   );
 }
 
-function CommandSeparator({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+function CommandSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn("-mx-1.5 my-1.5 h-px bg-border", className)}
+      className={cn("bg-border -mx-1.5 my-1.5 h-px", className)}
       {...props}
     />
   );
 }
 
-function CommandItem({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
+function CommandItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-md px-2 text-sm text-foreground outline-hidden select-none",
-        "data-[disabled=true]:pointer-events-none data-[disabled=true]:text-faint-foreground",
-        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground data-selected:[&_svg:not([class*='text-'])]:text-foreground",
+        "group/command-item text-foreground relative flex h-8 cursor-default items-center gap-2.5 rounded-md px-2 text-sm outline-hidden select-none",
+        "data-[disabled=true]:text-faint-foreground data-[disabled=true]:pointer-events-none",
+        "[&_svg:not([class*='text-'])]:text-muted-foreground data-selected:[&_svg:not([class*='text-'])]:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -217,7 +251,10 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) 
   return (
     <span
       data-slot="command-shortcut"
-      className={cn("ml-auto flex items-center gap-0.5 font-mono text-2xs text-muted-foreground", className)}
+      className={cn(
+        "text-2xs text-muted-foreground ml-auto flex items-center gap-0.5 font-mono",
+        className,
+      )}
       {...props}
     />
   );

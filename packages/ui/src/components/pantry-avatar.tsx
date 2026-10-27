@@ -66,9 +66,23 @@ function PantryAvatar({
       <defs>
         {/* Felt grain: dark and light speckles from one noise field, kept inside the cutout. */}
         <filter id={grainId} x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="3.2" numOctaves="2" seed="4" result="noise" />
-          <feColorMatrix in="noise" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 -0.32" result="dark" />
-          <feColorMatrix in="noise" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.7 0.3" result="light" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="3.2"
+            numOctaves="2"
+            seed="4"
+            result="noise"
+          />
+          <feColorMatrix
+            in="noise"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 -0.32"
+            result="dark"
+          />
+          <feColorMatrix
+            in="noise"
+            values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.7 0.3"
+            result="light"
+          />
           <feMerge result="speckle">
             <feMergeNode in="dark" />
             <feMergeNode in="light" />
@@ -116,17 +130,34 @@ function PantryAvatar({
             className={eyes.blinks ? "pantry-avatar-eyes" : undefined}
             style={
               eyes.blinks
-                ? { animationDuration: `${picked.blink.duration}s`, animationDelay: `${picked.blink.delay}s` }
+                ? {
+                    animationDuration: `${picked.blink.duration}s`,
+                    animationDelay: `${picked.blink.delay}s`,
+                  }
                 : undefined
             }
           >
             {eyes.eyes.map((mark, index) =>
               mark.el === "line" ? (
-                <path key={index} d={mark.d} fill="none" stroke={tones.ink} strokeWidth={1.2} strokeLinecap="round" />
+                <path
+                  key={index}
+                  d={mark.d}
+                  fill="none"
+                  stroke={tones.ink}
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                />
               ) : mark.el === "circle" ? (
                 <circle key={index} cx={mark.cx} cy={mark.cy} r={mark.r} fill={tones.ink} />
               ) : (
-                <ellipse key={index} cx={mark.cx} cy={mark.cy} rx={mark.rx} ry={mark.ry} fill={tones.ink} />
+                <ellipse
+                  key={index}
+                  cx={mark.cx}
+                  cy={mark.cy}
+                  rx={mark.rx}
+                  ry={mark.ry}
+                  fill={tones.ink}
+                />
               ),
             )}
           </g>

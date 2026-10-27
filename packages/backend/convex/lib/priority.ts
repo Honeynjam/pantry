@@ -7,4 +7,5 @@ import type { Doc } from "../_generated/dataModel";
 export const PRIORITY_NAMES = ["none", "urgent", "high", "medium", "low"] as const;
 export type PriorityName = (typeof PRIORITY_NAMES)[number];
 
-export const priorityName = (priority: Doc<"issues">["priority"]): PriorityName => PRIORITY_NAMES[priority];
+export const priorityName = (priority: Doc<"issues">["priority"]): PriorityName =>
+  PRIORITY_NAMES[priority];

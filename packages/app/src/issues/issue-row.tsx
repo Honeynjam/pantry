@@ -60,7 +60,7 @@ export const IssueRow = memo(function IssueRow({
       data-selected={isSelected || undefined}
       onFocus={() => onCursor?.(issue._id)}
       className={cn(
-        "group/row relative isolate flex h-row items-center gap-2 border-b border-border px-3 text-sm transition-colors duration-(--duration-instant) last:border-b-0 hover:bg-accent",
+        "group/row h-row border-border hover:bg-accent relative isolate flex items-center gap-2 border-b px-3 text-sm transition-colors duration-(--duration-instant) last:border-b-0",
         isSelected && "bg-gray-3",
         !selectable && "focus-within:bg-accent",
       )}
@@ -70,7 +70,7 @@ export const IssueRow = memo(function IssueRow({
           layoutId={reduceMotion ? undefined : "issue-cursor"}
           transition={spring.morph}
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-selected"
+          className="bg-selected pointer-events-none absolute inset-0 -z-10"
         />
       )}
       {selectable && (
@@ -84,12 +84,16 @@ export const IssueRow = memo(function IssueRow({
               "transition-opacity duration-(--duration-instant)",
               // Every box shows once anything is selected: the list sets data-any-selected, so rows
               // don't re-render for it.
-              !isSelected && "opacity-0 group-hover/row:opacity-100 [[data-any-selected]_&]:opacity-100",
+              !isSelected &&
+                "opacity-0 group-hover/row:opacity-100 [[data-any-selected]_&]:opacity-100",
             )}
           />
         </span>
       )}
-      <PriorityPicker value={issue.priority} onChange={(priority) => void actions.update(issue._id, { priority })} />
+      <PriorityPicker
+        value={issue.priority}
+        onChange={(priority) => void actions.update(issue._id, { priority })}
+      />
       <IssueKey value={issue.key} className="w-14 shrink-0" />
       <StatusPicker
         statuses={data.statuses}
@@ -98,7 +102,10 @@ export const IssueRow = memo(function IssueRow({
       />
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
         {parentKey && (
-          <span className="flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground" title={`Sub-issue of ${parentKey}`}>
+          <span
+            className="text-muted-foreground flex shrink-0 items-center gap-0.5 text-xs"
+            title={`Sub-issue of ${parentKey}`}
+          >
             <CornerDownRightIcon className="size-3" aria-hidden />
             <span className="font-mono">{parentKey}</span>
           </span>
@@ -106,20 +113,33 @@ export const IssueRow = memo(function IssueRow({
         <Link
           href={routes.issue(issue.key)}
           data-issue-focus
-          className="min-w-0 truncate text-foreground outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
+          className="text-foreground min-w-0 truncate outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
         >
           {issue.title}
         </Link>
         {subIssues && subIssues.length > 0 && <SubIssueProgress subIssues={subIssues} />}
       </span>
       <span className="relative z-10 hidden max-w-80 items-center gap-1 overflow-hidden md:flex">
-        {project && <ProjectChip name={project.name} color={project.color} title={`Project: ${project.name}`} />}
+        {project && (
+          <ProjectChip
+            name={project.name}
+            color={project.color}
+            title={`Project: ${project.name}`}
+          />
+        )}
         {labels.slice(0, 3).map((label) => (
           <LabelChip key={label._id} name={label.name} color={label.color} />
         ))}
-        {labels.length > 3 && <span className="text-xs text-muted-foreground">+{labels.length - 3}</span>}
+        {labels.length > 3 && (
+          <span className="text-muted-foreground text-xs">+{labels.length - 3}</span>
+        )}
       </span>
-      <span className={cn("relative z-10 hidden lg:flex", !issue.dueDate && "invisible group-hover/row:visible")}>
+      <span
+        className={cn(
+          "relative z-10 hidden lg:flex",
+          !issue.dueDate && "invisible group-hover/row:visible",
+        )}
+      >
         <DueDatePicker
           value={issue.dueDate}
           onChange={(dueDate) => void actions.update(issue._id, { dueDate })}

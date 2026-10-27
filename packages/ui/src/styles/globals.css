@@ -33,12 +33,12 @@
   --tint-chroma: 0;
 
   /* Type */
-  --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
-  --font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
-  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas,
-    monospace;
+  --font-display:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:
+    "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Density */
   --row-height: 2rem; /* 32px: list rows, board cards' header line */
@@ -66,14 +66,74 @@
   --spring-snappy-duration: 260ms;
   --spring-morph-duration: 420ms;
   --ease-spring-smooth: linear(
-    0, 0.02937, 0.09908, 0.1888, 0.2855, 0.381, 0.4707, 0.5522, 0.6243, 0.6872, 0.7411, 0.7868,
-    0.8253, 0.8574, 0.884, 0.9059, 0.9239, 0.9387, 0.9507, 0.9604, 0.9683, 0.9746, 0.9797, 0.9838,
-    0.9871, 0.9898, 0.9919, 0.9935, 0.9949, 0.9959, 0.9968, 0.9975, 1
+    0,
+    0.02937,
+    0.09908,
+    0.1888,
+    0.2855,
+    0.381,
+    0.4707,
+    0.5522,
+    0.6243,
+    0.6872,
+    0.7411,
+    0.7868,
+    0.8253,
+    0.8574,
+    0.884,
+    0.9059,
+    0.9239,
+    0.9387,
+    0.9507,
+    0.9604,
+    0.9683,
+    0.9746,
+    0.9797,
+    0.9838,
+    0.9871,
+    0.9898,
+    0.9919,
+    0.9935,
+    0.9949,
+    0.9959,
+    0.9968,
+    0.9975,
+    1
   );
   --ease-spring-bouncy: linear(
-    0, 0.0275, 0.09536, 0.186, 0.2869, 0.3892, 0.4873, 0.5775, 0.658, 0.728, 0.7876, 0.8373,
-    0.8781, 0.9109, 0.9369, 0.957, 0.9724, 0.9838, 0.9921, 0.9979, 1.002, 1.004, 1.006, 1.006,
-    1.006, 1.006, 1.006, 1.005, 1.004, 1.004, 1.003, 1.002, 1
+    0,
+    0.0275,
+    0.09536,
+    0.186,
+    0.2869,
+    0.3892,
+    0.4873,
+    0.5775,
+    0.658,
+    0.728,
+    0.7876,
+    0.8373,
+    0.8781,
+    0.9109,
+    0.9369,
+    0.957,
+    0.9724,
+    0.9838,
+    0.9921,
+    0.9979,
+    1.002,
+    1.004,
+    1.006,
+    1.006,
+    1.006,
+    1.006,
+    1.006,
+    1.005,
+    1.004,
+    1.004,
+    1.003,
+    1.002,
+    1
   );
   --ease-spring-snappy: var(--ease-spring-bouncy);
   --ease-spring-morph: var(--ease-spring-bouncy);
@@ -101,7 +161,6 @@
   --gray-11: oklch(0.49 var(--tint-chroma) var(--tint-hue));
   --gray-12: oklch(0.2 calc(var(--tint-chroma) * 1.5) var(--tint-hue));
 
-
   /* shadcn semantic tokens */
   --background: var(--gray-1);
   --foreground: var(--gray-12);
@@ -127,7 +186,9 @@
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.6 0.14 155);
   --warning: oklch(0.7 0.15 75);
-  --border: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.1); /* alpha: recedes on any light surface */
+  --border: oklch(
+    0.2 var(--tint-chroma) var(--tint-hue) / 0.1
+  ); /* alpha: recedes on any light surface */
   --border-strong: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.16);
   --input: oklch(0.2 var(--tint-chroma) var(--tint-hue) / 0.14);
   --ring: var(--gray-10); /* keyboard focus: neutral, >= 3:1 on every surface */
@@ -174,7 +235,8 @@
   --label-pink: oklch(0.67 0.18 350);
 
   /* Elevation: overlays only (menus, popovers, dialogs, toasts). Everything else uses borders. */
-  --shadow-overlay: 0 0 0 1px var(--border), 0 2px 4px -1px oklch(0.2 0.005 265 / 0.06),
+  --shadow-overlay:
+    0 0 0 1px var(--border), 0 2px 4px -1px oklch(0.2 0.005 265 / 0.06),
     0 8px 20px -4px oklch(0.2 0.005 265 / 0.1), 0 20px 40px -12px oklch(0.2 0.005 265 / 0.12);
   --shadow-raised: 0 0 0 1px var(--border), 0 1px 2px oklch(0.2 0.005 265 / 0.06);
   --overlay-backdrop: oklch(0.2 0.005 265 / 0.18);
@@ -198,7 +260,6 @@
   --gray-10: oklch(0.61 var(--tint-chroma) var(--tint-hue));
   --gray-11: oklch(0.77 var(--tint-chroma) var(--tint-hue));
   --gray-12: oklch(0.945 calc(var(--tint-chroma) * 0.6) var(--tint-hue));
-
 
   --background: var(--gray-1);
   --foreground: var(--gray-12);
@@ -249,7 +310,8 @@
   --priority-bar: var(--gray-11);
   --priority-bar-dim: var(--gray-7);
 
-  --shadow-overlay: 0 0 0 1px var(--border), 0 2px 4px -1px oklch(0 0 0 / 0.3),
+  --shadow-overlay:
+    0 0 0 1px var(--border), 0 2px 4px -1px oklch(0 0 0 / 0.3),
     0 10px 24px -6px oklch(0 0 0 / 0.45), 0 24px 48px -16px oklch(0 0 0 / 0.5);
   --shadow-raised: 0 0 0 1px var(--border), 0 1px 2px oklch(0 0 0 / 0.3);
   --overlay-backdrop: oklch(0 0 0 / 0.5);
@@ -391,7 +453,7 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-background font-sans text-sm text-foreground;
+    @apply bg-background text-foreground font-sans text-sm;
     font-feature-settings:
       "cv11" 1,
       "calt" 1;

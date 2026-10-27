@@ -17,7 +17,7 @@ function LabelChip({
     <span
       data-slot="label-chip"
       className={cn(
-        "inline-flex h-5 max-w-40 shrink-0 items-center gap-1.5 rounded-full border border-border bg-background pr-2 pl-1.5 text-xs text-muted-foreground",
+        "border-border bg-background text-muted-foreground inline-flex h-5 max-w-40 shrink-0 items-center gap-1.5 rounded-full border pr-2 pl-1.5 text-xs",
         className,
       )}
       {...props}

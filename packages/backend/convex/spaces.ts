@@ -14,13 +14,21 @@ import { spaceKind } from "./schema";
  * random avatar the creator can change first; without one the space gets a look seeded from its key.
  */
 export const create = mutation({
-  args: { name: v.string(), key: v.string(), kind: v.optional(spaceKind), avatar: v.optional(avatarValidator) },
+  args: {
+    name: v.string(),
+    key: v.string(),
+    kind: v.optional(spaceKind),
+    avatar: v.optional(avatarValidator),
+  },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const name = cleanName(args.name, "Space name");
     const key = args.key.trim().toUpperCase();
     if (!SPACE_KEY_PATTERN.test(key)) {
-      fail("INVALID_KEY", "Keys are 2–10 letters or digits and start with a letter, like PAN or WEB2.");
+      fail(
+        "INVALID_KEY",
+        "Keys are 2–10 letters or digits and start with a letter, like PAN or WEB2.",
+      );
     }
     const taken = await ctx.db
       .query("spaces")
@@ -85,6 +93,7 @@ export const archive = mutation({
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const space = await getSpace(ctx, me.workspaceId, args.spaceId);
-    if (space.archivedAt === undefined) await ctx.db.patch("spaces", space._id, { archivedAt: Date.now() });
+    if (space.archivedAt === undefined)
+      await ctx.db.patch("spaces", space._id, { archivedAt: Date.now() });
   },
 });

@@ -14,7 +14,14 @@ import {
 } from "@pantry/ui/components/dropdown-menu";
 import { SidebarMenuButton } from "@pantry/ui/components/sidebar";
 import { useTheme, type Theme } from "@pantry/ui/lib/theme";
-import { ChevronsUpDownIcon, KeyRoundIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import {
+  ChevronsUpDownIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SunIcon,
+} from "lucide-react";
 import { routes, useNavigation } from "../navigation";
 import { useAuthClient } from "../providers";
 
@@ -29,14 +36,20 @@ export function UserMenu({ displayName }: { displayName: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<SidebarMenuButton size="lg" tooltip={displayName} className="data-popup-open:bg-sidebar-accent" />}
+        render={
+          <SidebarMenuButton
+            size="lg"
+            tooltip={displayName}
+            className="data-popup-open:bg-sidebar-accent"
+          />
+        }
       >
         <PersonAvatar person={{ name: displayName }} size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
-          {email && <span className="truncate text-xs text-muted-foreground">{email}</span>}
+          <span className="text-foreground truncate text-sm font-medium">{displayName}</span>
+          {email && <span className="text-muted-foreground truncate text-xs">{email}</span>}
         </span>
-        <ChevronsUpDownIcon className="ml-auto size-3.5! text-muted-foreground" />
+        <ChevronsUpDownIcon className="text-muted-foreground ml-auto size-3.5!" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-(--anchor-width) min-w-56">
         <DropdownMenuGroup>

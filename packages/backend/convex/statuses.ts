@@ -22,7 +22,9 @@ export const update = mutation({
         .query("statuses")
         .withIndex("by_workspace_and_order", (q) => q.eq("workspaceId", me.workspaceId))
         .collect();
-      const clash = all.find((row) => row._id !== status._id && row.name.toLowerCase() === name.toLowerCase());
+      const clash = all.find(
+        (row) => row._id !== status._id && row.name.toLowerCase() === name.toLowerCase(),
+      );
       if (clash) fail("NAME_TAKEN", `There's already a status called ${clash.name}.`);
       patch.name = name;
     }
@@ -42,7 +44,11 @@ export const reorder = mutation({
       .collect();
     const known = new Set(all.map((status) => status._id));
     const given = new Set(args.statusIds);
-    if (given.size !== args.statusIds.length || given.size !== known.size || args.statusIds.some((id) => !known.has(id))) {
+    if (
+      given.size !== args.statusIds.length ||
+      given.size !== known.size ||
+      args.statusIds.some((id) => !known.has(id))
+    ) {
       fail("INVALID_ORDER", "Reorder needs every status exactly once.");
     }
     for (const [order, statusId] of args.statusIds.entries()) {

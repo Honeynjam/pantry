@@ -51,7 +51,13 @@ export function EntryGate({
   if (!allowed) {
     return (
       <LoadingScreen
-        diagnostics={() => ({ pathname, state, redirectingTo: target, auth, status: status ?? "pending" })}
+        diagnostics={() => ({
+          pathname,
+          state,
+          redirectingTo: target,
+          auth,
+          status: status ?? "pending",
+        })}
       />
     );
   }

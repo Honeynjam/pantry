@@ -32,7 +32,9 @@ export const current = query({
         .collect(),
     ]);
     const activeSpaces = spaces.filter((space) => space.archivedAt === undefined);
-    const projects = (await Promise.all(activeSpaces.map((space) => activeProjects(ctx, space._id)))).flat();
+    const projects = (
+      await Promise.all(activeSpaces.map((space) => activeProjects(ctx, space._id)))
+    ).flat();
 
     return {
       workspace,

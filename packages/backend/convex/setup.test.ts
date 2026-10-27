@@ -27,7 +27,11 @@ describe("setup.createWorkspace", () => {
     }));
 
     expect(data.workspaces).toHaveLength(1);
-    expect(data.workspaces[0]).toMatchObject({ name: "Home", slug: "home", createdBy: owner.subject });
+    expect(data.workspaces[0]).toMatchObject({
+      name: "Home",
+      slug: "home",
+      createdBy: owner.subject,
+    });
 
     expect(data.members).toHaveLength(1);
     expect(data.members[0]).toMatchObject({
@@ -131,7 +135,10 @@ describe("setup.status", () => {
     const t = setupTest();
     expect(await t.query(api.setup.status, {})).toMatchObject({ signedIn: false, isMember: false });
     const stranger = t.withIdentity({ subject: "user-stranger" });
-    expect(await stranger.query(api.setup.status, {})).toMatchObject({ signedIn: true, isMember: false });
+    expect(await stranger.query(api.setup.status, {})).toMatchObject({
+      signedIn: true,
+      isMember: false,
+    });
     await t.withIdentity(owner).mutation(api.setup.createWorkspace, {});
     expect(await t.withIdentity(owner).query(api.setup.status, {})).toMatchObject({
       needsSetup: false,

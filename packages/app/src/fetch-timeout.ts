@@ -7,7 +7,10 @@ export function fetchWithTimeout(timeoutMs: number, baseFetch: typeof fetch = fe
   return (input, init) => {
     const controller = new AbortController();
     const timer = setTimeout(
-      () => controller.abort(new DOMException(`Request timed out after ${timeoutMs}ms`, "TimeoutError")),
+      () =>
+        controller.abort(
+          new DOMException(`Request timed out after ${timeoutMs}ms`, "TimeoutError"),
+        ),
       timeoutMs,
     );
     const callerSignal = init?.signal;

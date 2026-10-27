@@ -18,7 +18,13 @@ import {
 } from "@pantry/ui/components/dropdown-menu";
 import { Input } from "@pantry/ui/components/input";
 import { LabelChip } from "@pantry/ui/components/label-chip";
-import { createPopoverHandle, Popover, PopoverContent, PopoverTrigger, type PopoverHandle } from "@pantry/ui/components/popover";
+import {
+  createPopoverHandle,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  type PopoverHandle,
+} from "@pantry/ui/components/popover";
 import { PriorityGlyph } from "@pantry/ui/components/priority-glyph";
 import { StatusGlyph } from "@pantry/ui/components/status-glyph";
 import { PRIORITY_LABEL, resolveLabelColor, type Priority } from "@pantry/ui/lib/issue-meta";
@@ -46,7 +52,8 @@ export function pickerTrigger(variant: PickerVariant, className?: string) {
   return cn(
     triggerBase,
     variant === "icon" && "size-6 justify-center",
-    variant === "full" && "h-7 w-full min-w-0 justify-start gap-2 rounded-md px-2 text-sm text-foreground",
+    variant === "full" &&
+      "h-7 w-full min-w-0 justify-start gap-2 rounded-md px-2 text-sm text-foreground",
     variant === "chip" && "h-6 gap-1.5 border border-border px-2 text-xs text-foreground",
     className,
   );
@@ -97,21 +104,40 @@ export function RowPickers({
     <RowPickersContext value={handles}>
       {children}
       <DropdownMenu handle={handles.status}>
-        {({ payload }) => payload && <StatusMenu statuses={statuses} value={payload.value} onChange={payload.onChange} />}
+        {({ payload }) =>
+          payload && (
+            <StatusMenu statuses={statuses} value={payload.value} onChange={payload.onChange} />
+          )
+        }
       </DropdownMenu>
       <DropdownMenu handle={handles.priority}>
-        {({ payload }) => payload && <PriorityMenu value={payload.value} onChange={payload.onChange} />}
+        {({ payload }) =>
+          payload && <PriorityMenu value={payload.value} onChange={payload.onChange} />
+        }
       </DropdownMenu>
       <DropdownMenu handle={handles.assignee}>
         {({ payload }) =>
-          payload && <AssigneeMenu members={members} me={me} value={payload.value} onChange={payload.onChange} align="end" />
+          payload && (
+            <AssigneeMenu
+              members={members}
+              me={me}
+              value={payload.value}
+              onChange={payload.onChange}
+              align="end"
+            />
+          )
         }
       </DropdownMenu>
       <Popover handle={handles.dueDate}>
         {({ payload }) =>
           payload && (
             // Keyed by the trigger: the date field starts from that row's date.
-            <DueDateContent key={payload.key} value={payload.value} onChange={payload.onChange} close={() => handles.dueDate.close()} />
+            <DueDateContent
+              key={payload.key}
+              value={payload.value}
+              onChange={payload.onChange}
+              close={() => handles.dueDate.close()}
+            />
           )
         }
       </Popover>
@@ -134,7 +160,10 @@ function StatusMenu({
     <DropdownMenuContent className="w-48">
       <DropdownMenuGroup>
         <DropdownMenuLabel>Status</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={value} onValueChange={(next) => next !== value && onChange(next as Id<"statuses">)}>
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => next !== value && onChange(next as Id<"statuses">)}
+        >
           {statuses.map((status) => (
             <DropdownMenuRadioItem key={status._id} value={status._id} closeOnClick>
               <StatusGlyph category={status.category} color={statusColor(status)} />
@@ -174,7 +203,9 @@ export function StatusPicker({
     ),
   };
   if (shared && variant === "icon") {
-    return <DropdownMenuTrigger handle={shared.status} payload={{ key, value, onChange }} {...trigger} />;
+    return (
+      <DropdownMenuTrigger handle={shared.status} payload={{ key, value, onChange }} {...trigger} />
+    );
   }
   return (
     <DropdownMenu>
@@ -184,7 +215,13 @@ export function StatusPicker({
   );
 }
 
-function PriorityMenu({ value, onChange }: { value: Priority; onChange: (priority: Priority) => void }) {
+function PriorityMenu({
+  value,
+  onChange,
+}: {
+  value: Priority;
+  onChange: (priority: Priority) => void;
+}) {
   return (
     <DropdownMenuContent className="w-44">
       <DropdownMenuGroup>
@@ -233,7 +270,13 @@ export function PriorityPicker({
     ),
   };
   if (shared && variant === "icon") {
-    return <DropdownMenuTrigger handle={shared.priority} payload={{ key, value, onChange }} {...trigger} />;
+    return (
+      <DropdownMenuTrigger
+        handle={shared.priority}
+        payload={{ key, value, onChange }}
+        {...trigger}
+      />
+    );
   }
   return (
     <DropdownMenu>
@@ -274,7 +317,10 @@ function AssigneeMenu({
           </DropdownMenuRadioItem>
           {ordered.map((member) => (
             <DropdownMenuRadioItem key={member._id} value={member._id} closeOnClick>
-              <PersonAvatar person={{ name: member.displayName, avatarUrl: member.avatarUrl }} size="xs" />
+              <PersonAvatar
+                person={{ name: member.displayName, avatarUrl: member.avatarUrl }}
+                size="xs"
+              />
               <span className="truncate">
                 {member.displayName}
                 {member._id === me._id && <span className="text-muted-foreground"> (you)</span>}
@@ -311,11 +357,14 @@ export function AssigneePicker({
     children: (
       <>
         {current ? (
-          <PersonAvatar person={{ name: current.displayName, avatarUrl: current.avatarUrl }} size="xs" />
+          <PersonAvatar
+            person={{ name: current.displayName, avatarUrl: current.avatarUrl }}
+            size="xs"
+          />
         ) : variant === "icon" ? (
-          <span className="size-5 rounded-full border border-dashed border-gray-8" aria-hidden />
+          <span className="border-gray-8 size-5 rounded-full border border-dashed" aria-hidden />
         ) : (
-          <UserRoundIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          <UserRoundIcon className="text-muted-foreground size-3.5" aria-hidden />
         )}
         {variant !== "icon" && (
           <span className={cn("truncate", !current && "text-muted-foreground")}>
@@ -326,12 +375,24 @@ export function AssigneePicker({
     ),
   };
   if (shared && variant === "icon") {
-    return <DropdownMenuTrigger handle={shared.assignee} payload={{ key, value, onChange }} {...trigger} />;
+    return (
+      <DropdownMenuTrigger
+        handle={shared.assignee}
+        payload={{ key, value, onChange }}
+        {...trigger}
+      />
+    );
   }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger {...trigger} />
-      <AssigneeMenu members={members} me={me} value={value} onChange={onChange} align={variant === "icon" ? "end" : "start"} />
+      <AssigneeMenu
+        members={members}
+        me={me}
+        value={value}
+        onChange={onChange}
+        align={variant === "icon" ? "end" : "start"}
+      />
     </DropdownMenu>
   );
 }
@@ -354,13 +415,18 @@ export function LabelsPicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(pickerTrigger(variant, className), variant === "full" && "h-auto min-h-7 flex-wrap py-1")}
+        className={cn(
+          pickerTrigger(variant, className),
+          variant === "full" && "h-auto min-h-7 flex-wrap py-1",
+        )}
         aria-label={`Labels: ${selected.map((label) => label.name).join(", ") || "none"}. Change labels`}
       >
         {selected.length === 0 ? (
           <>
-            <TagIcon className="size-3.5 text-muted-foreground" aria-hidden />
-            <span className="text-muted-foreground">{variant === "chip" ? "Labels" : "No labels"}</span>
+            <TagIcon className="text-muted-foreground size-3.5" aria-hidden />
+            <span className="text-muted-foreground">
+              {variant === "chip" ? "Labels" : "No labels"}
+            </span>
           </>
         ) : variant === "chip" ? (
           <>
@@ -368,7 +434,7 @@ export function LabelsPicker({
               {selected.slice(0, 3).map((label) => (
                 <span
                   key={label._id}
-                  className="size-2 rounded-full ring-1 ring-background"
+                  className="ring-background size-2 rounded-full ring-1"
                   style={{ background: resolveLabelColor(label.color) }}
                 />
               ))}
@@ -376,14 +442,18 @@ export function LabelsPicker({
             {selected.length === 1 ? selected[0]!.name : `${selected.length} labels`}
           </>
         ) : (
-          selected.map((label) => <LabelChip key={label._id} name={label.name} color={label.color} />)
+          selected.map((label) => (
+            <LabelChip key={label._id} name={label.name} color={label.color} />
+          ))
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-52">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Labels</DropdownMenuLabel>
           {sorted.length === 0 && (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">No labels yet. Add them in Settings.</div>
+            <div className="text-muted-foreground px-2 py-1.5 text-sm">
+              No labels yet. Add them in Settings.
+            </div>
           )}
           {sorted.map((label) => (
             <DropdownMenuCheckboxItem
@@ -394,7 +464,11 @@ export function LabelsPicker({
                 onChange(checked ? [...value, label._id] : value.filter((id) => id !== label._id))
               }
             >
-              <span className="size-2 shrink-0 rounded-full" style={{ background: resolveLabelColor(label.color) }} aria-hidden />
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ background: resolveLabelColor(label.color) }}
+                aria-hidden
+              />
               <span className="truncate">{label.name}</span>
             </DropdownMenuCheckboxItem>
           ))}
@@ -439,13 +513,29 @@ function DueDateContent({
         <Button size="sm" variant="ghost" className="justify-start" onClick={() => pick(today())}>
           Today
         </Button>
-        <Button size="sm" variant="ghost" className="justify-start" onClick={() => pick(addDays(1))}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="justify-start"
+          onClick={() => pick(addDays(1))}
+        >
           Tomorrow
         </Button>
-        <Button size="sm" variant="ghost" className="justify-start" onClick={() => pick(addDays(7))}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="justify-start"
+          onClick={() => pick(addDays(7))}
+        >
           In a week
         </Button>
-        <Button size="sm" variant="ghost" className="justify-start" disabled={!value} onClick={() => pick(null)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="justify-start"
+          disabled={!value}
+          onClick={() => pick(null)}
+        >
           Clear
         </Button>
       </div>
@@ -471,9 +561,17 @@ export function DueDatePicker({
   const overdue = value !== undefined && value < today();
   let label: ReactNode;
   if (value) {
-    label = <span className={cn("font-mono text-xs tabular", overdue && "text-destructive")}>{formatDay(value)}</span>;
+    label = (
+      <span className={cn("tabular font-mono text-xs", overdue && "text-destructive")}>
+        {formatDay(value)}
+      </span>
+    );
   } else if (variant !== "icon") {
-    label = <span className="text-muted-foreground">{variant === "chip" ? "Due date" : "No due date"}</span>;
+    label = (
+      <span className="text-muted-foreground">
+        {variant === "chip" ? "Due date" : "No due date"}
+      </span>
+    );
   }
   const trigger = {
     className: cn(pickerTrigger(variant, className), variant === "icon" && value && "w-auto px-1"),
@@ -481,14 +579,19 @@ export function DueDatePicker({
     children: (
       <>
         {(variant !== "icon" || !value) && (
-          <CalendarIcon className={cn("size-3.5", value ? "text-muted-foreground" : "text-faint-foreground")} aria-hidden />
+          <CalendarIcon
+            className={cn("size-3.5", value ? "text-muted-foreground" : "text-faint-foreground")}
+            aria-hidden
+          />
         )}
         {label}
       </>
     ),
   };
   if (shared && variant === "icon") {
-    return <PopoverTrigger handle={shared.dueDate} payload={{ key, value, onChange }} {...trigger} />;
+    return (
+      <PopoverTrigger handle={shared.dueDate} payload={{ key, value, onChange }} {...trigger} />
+    );
   }
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -522,9 +625,13 @@ export function ProjectPicker({
   const label = (
     <>
       {current ? (
-        <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(current) }} aria-hidden />
+        <span
+          className="size-2 shrink-0 rounded-[2px]"
+          style={{ background: projectColor(current) }}
+          aria-hidden
+        />
       ) : (
-        <LayersIcon className="size-3.5 text-muted-foreground" aria-hidden />
+        <LayersIcon className="text-muted-foreground size-3.5" aria-hidden />
       )}
       <span className={cn("truncate", !current && "text-muted-foreground")}>
         {current?.name ?? (variant === "chip" ? "Project" : "No project")}
@@ -533,7 +640,10 @@ export function ProjectPicker({
   );
   if (lockedReason) {
     return (
-      <span className={cn(pickerTrigger(variant, className), "hover:bg-transparent")} title={lockedReason}>
+      <span
+        className={cn(pickerTrigger(variant, className), "hover:bg-transparent")}
+        title={lockedReason}
+      >
         {label}
       </span>
     );
@@ -562,13 +672,19 @@ export function ProjectPicker({
             </DropdownMenuRadioItem>
             {projects.map((project) => (
               <DropdownMenuRadioItem key={project._id} value={project._id} closeOnClick>
-                <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(project) }} aria-hidden />
+                <span
+                  className="size-2 shrink-0 rounded-[2px]"
+                  style={{ background: projectColor(project) }}
+                  aria-hidden
+                />
                 <span className="truncate">{project.name}</span>
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
           {projects.length === 0 && (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">No projects in this space yet. Add them in space settings.</div>
+            <div className="text-muted-foreground px-2 py-1.5 text-xs">
+              No projects in this space yet. Add them in space settings.
+            </div>
           )}
         </DropdownMenuGroup>
       </DropdownMenuContent>

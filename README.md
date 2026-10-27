@@ -53,16 +53,16 @@ call gets a 401). Tools: `get_issue`, `get_space_context`, `list_issues`, `creat
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| Build log: `CONVEX_DEPLOY_KEY is not set` | Connect the Convex integration to the project for Production and Preview, with no Custom Prefix, then redeploy. |
-| Build fails with "Pantry must be built from apps/web", "No Output Directory named public", "No Next.js version detected" or can't find `scripts/vercel-build.sh` | Root Directory isn't `apps/web`. Project → Settings → Build and Deployment → Root Directory → `apps/web`, then redeploy. |
-| App is blank or says "This app has no Convex address" | `NEXT_PUBLIC_CONVEX_URL` wasn't injected: the build command must be `bash ../../scripts/vercel-build.sh` (from `apps/web/vercel.json`). |
-| Sign-in fails with an origin or URL error | Convex `SITE_URL` must match the URL you opened. Use the production URL, not a deployment-specific one; after adding a domain, redeploy. |
-| Setup screen: "One more step" | See above: set `BETTER_AUTH_SECRET` once. `GET /api/instance` shows `"needsSecret": false` when it's fixed. |
-| Vercel can't connect the repo | Hobby can't use repos owned by a GitHub organisation; clone into a personal account. |
-| An MCP client says 401 / unauthorized | The token was revoked or mistyped: create a new one in Settings → API tokens and update the client's header. |
-| You hit a Convex free-plan limit | Convex dashboard → Usage. A runaway agent loop is the usual cause; revoke its token. |
+| Symptom                                                                                                                                                          | Fix                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Build log: `CONVEX_DEPLOY_KEY is not set`                                                                                                                        | Connect the Convex integration to the project for Production and Preview, with no Custom Prefix, then redeploy.                          |
+| Build fails with "Pantry must be built from apps/web", "No Output Directory named public", "No Next.js version detected" or can't find `scripts/vercel-build.sh` | Root Directory isn't `apps/web`. Project → Settings → Build and Deployment → Root Directory → `apps/web`, then redeploy.                 |
+| App is blank or says "This app has no Convex address"                                                                                                            | `NEXT_PUBLIC_CONVEX_URL` wasn't injected: the build command must be `bash ../../scripts/vercel-build.sh` (from `apps/web/vercel.json`).  |
+| Sign-in fails with an origin or URL error                                                                                                                        | Convex `SITE_URL` must match the URL you opened. Use the production URL, not a deployment-specific one; after adding a domain, redeploy. |
+| Setup screen: "One more step"                                                                                                                                    | See above: set `BETTER_AUTH_SECRET` once. `GET /api/instance` shows `"needsSecret": false` when it's fixed.                              |
+| Vercel can't connect the repo                                                                                                                                    | Hobby can't use repos owned by a GitHub organisation; clone into a personal account.                                                     |
+| An MCP client says 401 / unauthorized                                                                                                                            | The token was revoked or mistyped: create a new one in Settings → API tokens and update the client's header.                             |
+| You hit a Convex free-plan limit                                                                                                                                 | Convex dashboard → Usage. A runaway agent loop is the usual cause; revoke its token.                                                     |
 
 `GET https://<your-app>/api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion,
 needsSecret }`; it's the quickest health check.
@@ -83,13 +83,14 @@ reopen it.
 3. **Review and merge** the "Update Pantry to vX.Y.Z" PR.
 
 Good to know:
+
 - **The first update replaces files.** Your copy and Pantry don't share git history, so the first PR takes the
   release's files as they are. If you edited files yourself, those edits show up in its diff as removed; put
   them back on the PR branch before merging. After that the histories are linked, and later updates are normal
   merges that keep your changes (GitHub shows any conflicts in the PR).
 - **Releases that change `.github/workflows`.** GitHub won't let the built-in token push changes to workflow
   files, and the run then fails with an error that says so. Fix: create a fine-grained personal access token for
-  this repo only, with *Contents*, *Pull requests* and *Workflows* set to read and write. Save it as the repository
+  this repo only, with _Contents_, _Pull requests_ and _Workflows_ set to read and write. Save it as the repository
   secret `SYNC_UPSTREAM_TOKEN` and run the workflow again; it uses that token whenever the secret exists.
 - PRs opened with the built-in token don't trigger other workflows, so CI doesn't run on them. Vercel still
   deploys once you merge.
@@ -156,19 +157,19 @@ it the site uses Vercel's production URL. `apps/site/vercel.json` skips builds w
 
 ## Repo layout
 
-| Path | What |
-|---|---|
-| `apps/web` | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance`, `/api/mcp` |
-| `apps/site` | One-page landing site (Next.js, its own Vercel project; see Landing site above) |
-| `apps/desktop` | Tauri v2 Mac app. For now the M2 sign-in spike: see [`docs/spikes/tauri-auth.md`](docs/spikes/tauri-auth.md) (needs Rust; not part of the default checks) |
-| `packages/backend` | Convex functions, schema and Better Auth (`convex/`). All business logic lives here |
-| `packages/app` | Client-only React screens (shared by web and the Mac app) |
-| `packages/ui` | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens, `MarkdownEditor` (Tiptap 3) |
-| `packages/mcp` | MCP tools (zod inputs, token check, Convex calls) behind `/api/mcp` |
-| `packages/tsconfig`, `packages/eslint-config` | Shared config |
-| `scripts/vercel-build.sh` | The Vercel build: Convex env, `convex deploy`, web build |
-| `.github/workflows` | CI (typecheck, lint, test), Release (GitHub Release from a version tag) and Sync upstream (update PRs for self-hosted copies) |
-| `docs/` | Spec (`PANTRY-SPEC.md`), deploy test checklist, Tauri spike notes; build plans and milestone notes in `docs/internal/` |
+| Path                                          | What                                                                                                                                                      |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                                    | Next.js App Router web app (Vercel): renders `packages/app`, `/api/auth`, `/api/instance`, `/api/mcp`                                                     |
+| `apps/site`                                   | One-page landing site (Next.js, its own Vercel project; see Landing site above)                                                                           |
+| `apps/desktop`                                | Tauri v2 Mac app. For now the M2 sign-in spike: see [`docs/spikes/tauri-auth.md`](docs/spikes/tauri-auth.md) (needs Rust; not part of the default checks) |
+| `packages/backend`                            | Convex functions, schema and Better Auth (`convex/`). All business logic lives here                                                                       |
+| `packages/app`                                | Client-only React screens (shared by web and the Mac app)                                                                                                 |
+| `packages/ui`                                 | Design system: tokens, theme, shadcn/ui components on Base UI, motion tokens, `MarkdownEditor` (Tiptap 3)                                                 |
+| `packages/mcp`                                | MCP tools (zod inputs, token check, Convex calls) behind `/api/mcp`                                                                                       |
+| `packages/tsconfig`, `packages/eslint-config` | Shared config                                                                                                                                             |
+| `scripts/vercel-build.sh`                     | The Vercel build: Convex env, `convex deploy`, web build                                                                                                  |
+| `.github/workflows`                           | CI (typecheck, lint, test), Release (GitHub Release from a version tag) and Sync upstream (update PRs for self-hosted copies)                             |
+| `docs/`                                       | Spec (`PANTRY-SPEC.md`), deploy test checklist, Tauri spike notes; build plans and milestone notes in `docs/internal/`                                    |
 
 ## Contributing
 

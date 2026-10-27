@@ -22,7 +22,8 @@ export default function ClientApp({ children }: { children: ReactNode }) {
       pathname,
       search: params ? `?${params}` : "",
       // Filter changes replace the URL in place: no scroll jump, no history entry per click.
-      navigate: (to, options) => (options?.replace ? router.replace(to, { scroll: false }) : router.push(to)),
+      navigate: (to, options) =>
+        options?.replace ? router.replace(to, { scroll: false }) : router.push(to),
       Link,
     }),
     [pathname, params, router],

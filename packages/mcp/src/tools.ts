@@ -37,18 +37,32 @@ const issueKey = z
   .toUpperCase()
   .regex(ISSUE_KEY, `An issue key looks like ${KEY}-42.`)
   .describe(`Issue key, like ${KEY}-42`);
-const spaceKey = z.string().trim().min(1).max(10).describe(`Space key, like ${KEY} (the part of an issue key before the dash)`);
+const spaceKey = z
+  .string()
+  .trim()
+  .min(1)
+  .max(10)
+  .describe(`Space key, like ${KEY} (the part of an issue key before the dash)`);
 const name = (what: string) => z.string().trim().min(1).max(80).describe(what);
 const priorityInput = z
   .union([z.enum(PRIORITY_NAMES), z.number().int().min(0).max(4)])
   .describe('Priority: "none", "urgent", "high", "medium" or "low" (or 0–4 in that order)');
 const assignee = name(`Assignee: "me" (the token's owner), "none", or a member's display name`);
-const CATEGORIES = ["backlog", "unstarted", "started", "review", "done", "canceled"] as const satisfies readonly NonNullable<
-  FunctionArgs<typeof api.mcp.listIssues>["category"]
->[];
+const CATEGORIES = [
+  "backlog",
+  "unstarted",
+  "started",
+  "review",
+  "done",
+  "canceled",
+] as const satisfies readonly NonNullable<FunctionArgs<typeof api.mcp.listIssues>["category"]>[];
 
 const toPriority = (value: z.infer<typeof priorityInput> | undefined) =>
-  value === undefined ? undefined : typeof value === "number" ? (value as 0 | 1 | 2 | 3 | 4) : (PRIORITY_NAMES.indexOf(value) as 0 | 1 | 2 | 3 | 4);
+  value === undefined
+    ? undefined
+    : typeof value === "number"
+      ? (value as 0 | 1 | 2 | 3 | 4)
+      : (PRIORITY_NAMES.indexOf(value) as 0 | 1 | 2 | 3 | 4);
 
 /** Drops undefined values, so Convex validators only see the fields that were given. */
 function defined<T extends Record<string, unknown>>(value: T): T {
@@ -60,13 +74,21 @@ export const schemas = {
   get_space_context: z.object({ space: spaceKey }),
   list_issues: z.object({
     space: spaceKey.optional(),
-    project: name('Project name inside `space` (needs `space`), or "none" for issues without a project').optional(),
+    project: name(
+      'Project name inside `space` (needs `space`), or "none" for issues without a project',
+    ).optional(),
     status: name(`Status name, like "In Progress"`).optional(),
     category: z.enum(CATEGORIES).optional().describe("Status category"),
     assignee: assignee.optional(),
     label: name("Label name").optional(),
     priority: priorityInput.optional(),
-    limit: z.number().int().min(1).max(100).optional().describe("How many to return (default 50, at most 100)"),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("How many to return (default 50, at most 100)"),
   }),
   create_issue: z.object({
     space: spaceKey,
@@ -76,7 +98,11 @@ export const schemas = {
     status: name('Status name; default is the first "unstarted" status (Todo)').optional(),
     priority: priorityInput.optional(),
     assignee: assignee.optional(),
-    labels: z.array(name("Label name")).max(20).optional().describe("Existing label names; labels are never created on the fly"),
+    labels: z
+      .array(name("Label name"))
+      .max(20)
+      .optional()
+      .describe("Existing label names; labels are never created on the fly"),
     dueDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Due dates look like 2026-11-30.")
@@ -109,20 +135,32 @@ export const schemas = {
 // Results
 // ---------------------------------------------------------------------------------------------
 
-const json = (data: unknown): CallToolResult => ({ content: [{ type: "text", text: JSON.stringify(data, null, 2) }] });
-const failure = (message: string): CallToolResult => ({ content: [{ type: "text", text: message }], isError: true });
+const json = (data: unknown): CallToolResult => ({
+  content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+});
+const failure = (message: string): CallToolResult => ({
+  content: [{ type: "text", text: message }],
+  isError: true,
+});
 
 /** A ConvexError's message (what our functions raise on purpose), else null. */
 function userMessage(err: unknown): string | null {
   const data = (err as { data?: unknown } | null)?.data;
-  if (data && typeof data === "object" && typeof (data as { message?: unknown }).message === "string") {
+  if (
+    data &&
+    typeof data === "object" &&
+    typeof (data as { message?: unknown }).message === "string"
+  ) {
     return (data as { message: string }).message;
   }
   return null;
 }
 
 type Links = { issue: (key: string) => string };
-type Run<S extends z.ZodType> = (args: z.infer<S>, call: { token: string; backend: Backend; links: Links }) => Promise<unknown>;
+type Run<S extends z.ZodType> = (
+  args: z.infer<S>,
+  call: { token: string; backend: Backend; links: Links },
+) => Promise<unknown>;
 
 type ToolDef<S extends z.ZodType> = {
   title: string;
@@ -150,7 +188,8 @@ export const tools = {
     description: `Read a space's context doc (what it is, how to work in it, conventions) and its project names. Call this first, before starting work on any issue in the space: the space is the part of the issue key before the dash (${KEY}-42 → ${KEY}).`,
     readOnly: true,
     schema: schemas.get_space_context,
-    run: ({ space }, { token, backend }) => backend.query(api.mcp.getSpaceContext, { token, space }),
+    run: ({ space }, { token, backend }) =>
+      backend.query(api.mcp.getSpaceContext, { token, space }),
   }),
   list_issues: tool({
     title: "List issues",
@@ -158,7 +197,10 @@ export const tools = {
     readOnly: true,
     schema: schemas.list_issues,
     run: async (args, { token, backend, links }) => {
-      const rows = await backend.query(api.mcp.listIssues, defined({ token, ...args, priority: toPriority(args.priority) }));
+      const rows = await backend.query(
+        api.mcp.listIssues,
+        defined({ token, ...args, priority: toPriority(args.priority) }),
+      );
       return rows.map((row) => ({ ...row, url: links.issue(row.key) }));
     },
   }),
@@ -168,7 +210,10 @@ export const tools = {
     readOnly: false,
     schema: schemas.create_issue,
     run: async (args, { token, backend, links }) => {
-      const created = await backend.mutation(api.mcp.createIssue, defined({ token, ...args, priority: toPriority(args.priority) }));
+      const created = await backend.mutation(
+        api.mcp.createIssue,
+        defined({ token, ...args, priority: toPriority(args.priority) }),
+      );
       return { ...created, url: links.issue(created.key) };
     },
   }),
@@ -178,7 +223,10 @@ export const tools = {
     readOnly: false,
     schema: schemas.create_sub_issue,
     run: async (args, { token, backend, links }) => {
-      const created = await backend.mutation(api.mcp.createSubIssue, defined({ token, ...args, priority: toPriority(args.priority) }));
+      const created = await backend.mutation(
+        api.mcp.createSubIssue,
+        defined({ token, ...args, priority: toPriority(args.priority) }),
+      );
       return { ...created, url: links.issue(created.key) };
     },
   }),
@@ -189,7 +237,11 @@ export const tools = {
     schema: schemas.add_comment,
     run: async ({ key, body }, { token, backend, links }) => {
       const result = await backend.mutation(api.mcp.addComment, { token, key, body });
-      return { key: result.key, commentId: result.commentId, url: `${links.issue(result.key)}#comment-${result.commentId}` };
+      return {
+        key: result.key,
+        commentId: result.commentId,
+        url: `${links.issue(result.key)}#comment-${result.commentId}`,
+      };
     },
   }),
   update_issue: tool({
@@ -198,7 +250,10 @@ export const tools = {
     readOnly: false,
     schema: schemas.update_issue,
     run: async (args, { token, backend, links }) => {
-      const row = await backend.mutation(api.mcp.updateIssue, defined({ token, ...args, priority: toPriority(args.priority) }));
+      const row = await backend.mutation(
+        api.mcp.updateIssue,
+        defined({ token, ...args, priority: toPriority(args.priority) }),
+      );
       return { ...row, url: links.issue(row.key) };
     },
   }),
@@ -224,15 +279,20 @@ export function registerTools(server: McpServer, { backend }: { backend: Backend
       async (args: unknown, ctx: ServerContext): Promise<CallToolResult> => {
         const auth = ctx.http?.authInfo;
         const extra = auth?.extra as PantryAuthExtra | undefined;
-        if (!auth?.token || !extra) return failure(`Send your ${brand.name} API token as "Authorization: Bearer <token>".`);
-        const links: Links = { issue: (key) => `${extra.appUrl}/issues/${encodeURIComponent(key)}` };
+        if (!auth?.token || !extra)
+          return failure(`Send your ${brand.name} API token as "Authorization: Bearer <token>".`);
+        const links: Links = {
+          issue: (key) => `${extra.appUrl}/issues/${encodeURIComponent(key)}`,
+        };
         try {
           return json(await def.run(args, { token: auth.token, backend, links }));
         } catch (err) {
           const message = userMessage(err);
           if (message) return failure(message);
           console.error(`MCP tool ${toolName} failed:`, err);
-          return failure(`${brand.name} couldn't complete ${toolName} because of a server error. Try again in a moment.`);
+          return failure(
+            `${brand.name} couldn't complete ${toolName} because of a server error. Try again in a moment.`,
+          );
         }
       },
     );

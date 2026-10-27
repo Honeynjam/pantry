@@ -15,12 +15,17 @@ const tsFiles = ["**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"];
 const testFiles = ["**/*.test.{ts,tsx}"];
 
 /** The shortcut registry: the only files in packages/app that may listen for keys (M3, spec §4). */
-export const shortcutRegistryFiles = ["src/shortcuts.ts", "src/use-shortcuts.ts", "src/shortcuts/**"];
+export const shortcutRegistryFiles = [
+  "src/shortcuts.ts",
+  "src/use-shortcuts.ts",
+  "src/shortcuts/**",
+];
 
 // Only the entry points @pantry/backend lists in package.json "exports" may be imported, so adding an
 // export there is the one deliberate step that makes a new one importable.
 const backendExports = Object.keys(
-  JSON.parse(readFileSync(new URL("../backend/package.json", import.meta.url), "utf8")).exports ?? {},
+  JSON.parse(readFileSync(new URL("../backend/package.json", import.meta.url), "utf8")).exports ??
+    {},
 )
   .filter((key) => key.startsWith("./"))
   .map((key) => `@pantry/backend/${key.slice(2)}`);
@@ -40,17 +45,24 @@ function restrictions({ backend, clientOnly, motion, shortcuts, test }) {
   const patterns = [];
   if (backend) {
     patterns.push(
-      { group: ["@pantry/backend/*", ...backendExports.map((name) => `!${name}`)], message: backendMessage },
+      {
+        group: ["@pantry/backend/*", ...backendExports.map((name) => `!${name}`)],
+        message: backendMessage,
+      },
       // Relative paths into packages/backend (the group above covers the package name).
       { regex: "^[./].*/backend/convex(/|$)", message: backendMessage },
     );
   }
   if (clientOnly) {
-    paths.push({ name: "next", message: clientOnlyMessage }, { name: "server-only", message: clientOnlyMessage });
+    paths.push(
+      { name: "next", message: clientOnlyMessage },
+      { name: "server-only", message: clientOnlyMessage },
+    );
     patterns.push({ group: ["next/*"], message: clientOnlyMessage });
     // Types from convex/server (FunctionReturnType, FunctionArgs) are erased at build time, and tests
     // run under Node, so both may use it.
-    if (!test) paths.push({ name: "convex/server", message: clientOnlyMessage, allowTypeImports: true });
+    if (!test)
+      paths.push({ name: "convex/server", message: clientOnlyMessage, allowTypeImports: true });
   }
   if (motion) {
     patterns.push({ regex: "^(motion|framer-motion)(/|$)", message: motionMessage });
@@ -74,7 +86,12 @@ const keyListener = {
  * - `motion`: no direct motion / framer-motion imports (everything except packages/ui).
  * - `shortcuts`: no keydown/keyup listeners or tinykeys outside the shortcut registry (packages/app).
  */
-export function boundaries({ backend = false, clientOnly = false, motion = false, shortcuts = false } = {}) {
+export function boundaries({
+  backend = false,
+  clientOnly = false,
+  motion = false,
+  shortcuts = false,
+} = {}) {
   const options = { backend, clientOnly, motion, shortcuts };
   const configs = [
     {
@@ -85,15 +102,26 @@ export function boundaries({ backend = false, clientOnly = false, motion = false
   if (clientOnly) {
     configs.push({
       files: testFiles,
-      rules: { "@typescript-eslint/no-restricted-imports": restrictions({ ...options, test: true }) },
+      rules: {
+        "@typescript-eslint/no-restricted-imports": restrictions({ ...options, test: true }),
+      },
     });
   }
   if (shortcuts) {
     configs.push(
-      { files: tsFiles, ignores: shortcutRegistryFiles, rules: { "no-restricted-syntax": ["error", keyListener] } },
+      {
+        files: tsFiles,
+        ignores: shortcutRegistryFiles,
+        rules: { "no-restricted-syntax": ["error", keyListener] },
+      },
       {
         files: shortcutRegistryFiles,
-        rules: { "@typescript-eslint/no-restricted-imports": restrictions({ ...options, shortcuts: false }) },
+        rules: {
+          "@typescript-eslint/no-restricted-imports": restrictions({
+            ...options,
+            shortcuts: false,
+          }),
+        },
       },
     );
   }

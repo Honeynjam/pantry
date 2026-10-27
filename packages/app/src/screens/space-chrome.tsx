@@ -32,7 +32,7 @@ export function SpaceTitle({
   return (
     <>
       <SpaceAvatar space={space ?? { key: spaceKey }} size="sm" />
-      <span className="truncate font-medium text-foreground">{space?.name ?? spaceKey}</span>
+      <span className="text-foreground truncate font-medium">{space?.name ?? spaceKey}</span>
       <IssueKey value={spaceKey} />
       {space && (
         <nav aria-label="Space views" className="ml-2 flex items-center gap-0.5">
@@ -44,7 +44,7 @@ export function SpaceTitle({
               className={cn(
                 "flex h-6 items-center rounded-sm px-2 text-xs transition-colors duration-(--duration-instant)",
                 item.id === view
-                  ? "bg-selected font-medium text-foreground"
+                  ? "bg-selected text-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
@@ -60,9 +60,13 @@ export function SpaceTitle({
 export function SpaceNotFound({ spaceKey }: { spaceKey: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <InboxIcon className="size-5 text-muted-foreground" aria-hidden />
-      <p className="text-sm font-medium text-foreground">There&apos;s no space with the key {spaceKey}</p>
-      <p className="max-w-sm text-sm text-muted-foreground">It may have been archived. Pick a space from the sidebar.</p>
+      <InboxIcon className="text-muted-foreground size-5" aria-hidden />
+      <p className="text-foreground text-sm font-medium">
+        There&apos;s no space with the key {spaceKey}
+      </p>
+      <p className="text-muted-foreground max-w-sm text-sm">
+        It may have been archived. Pick a space from the sidebar.
+      </p>
     </div>
   );
 }

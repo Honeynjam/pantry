@@ -15,7 +15,9 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
   return <MenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />;
 }
 
-function DropdownMenuTrigger<Payload = unknown>({ ...props }: MenuPrimitive.Trigger.Props<Payload>) {
+function DropdownMenuTrigger<Payload = unknown>({
+  ...props
+}: MenuPrimitive.Trigger.Props<Payload>) {
   return <MenuPrimitive.Trigger<Payload> data-slot="dropdown-menu-trigger" {...props} />;
 }
 
@@ -74,7 +76,10 @@ function DropdownMenuLabel({
     <MenuPrimitive.GroupLabel
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn("px-2 pt-1.5 pb-1 text-xs font-medium text-muted-foreground data-inset:pl-7.5", className)}
+      className={cn(
+        "text-muted-foreground px-2 pt-1.5 pb-1 text-xs font-medium data-inset:pl-7.5",
+        className,
+      )}
       {...props}
     />
   );
@@ -95,7 +100,7 @@ function DropdownMenuItem({
         "group/dropdown-menu-item",
         menuItem,
         "data-inset:pl-7.5",
-        "data-[variant=destructive]:text-destructive data-[variant=destructive]:data-highlighted:bg-[color-mix(in_oklch,var(--destructive)_10%,transparent)] data-[variant=destructive]:*:[svg]:text-destructive",
+        "data-[variant=destructive]:text-destructive data-[variant=destructive]:*:[svg]:text-destructive data-[variant=destructive]:data-highlighted:bg-[color-mix(in_oklch,var(--destructive)_10%,transparent)]",
         className,
       )}
       {...props}
@@ -117,7 +122,7 @@ function DropdownMenuSubTrigger({
     <MenuPrimitive.SubmenuTrigger
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
-      className={cn(menuItem, "data-inset:pl-7.5 data-popup-open:bg-accent", className)}
+      className={cn(menuItem, "data-popup-open:bg-accent data-inset:pl-7.5", className)}
       {...props}
     >
       {children}
@@ -209,7 +214,7 @@ function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      className={cn("bg-border -mx-1 my-1 h-px", className)}
       {...props}
     />
   );
@@ -220,7 +225,10 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<"spa
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={cn("ml-auto flex items-center gap-0.5 pl-4 font-mono text-2xs text-muted-foreground", className)}
+      className={cn(
+        "text-2xs text-muted-foreground ml-auto flex items-center gap-0.5 pl-4 font-mono",
+        className,
+      )}
       {...props}
     />
   );

@@ -52,11 +52,11 @@ function TabsList({
         data-slot="tabs-indicator"
         className={cn(
           "pointer-events-none absolute top-0 left-0 -z-10",
-          "translate-x-(--active-tab-left) translate-y-(--active-tab-top) w-(--active-tab-width)",
+          "w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top)",
           "transition-[translate,width,height] duration-(--spring-morph-duration) ease-(--ease-spring-morph)",
-          "motion-reduce:transition-none in-[.reduce-motion]:transition-none",
-          "group-data-[variant=default]/tabs-list:h-(--active-tab-height) group-data-[variant=default]/tabs-list:rounded-sm group-data-[variant=default]/tabs-list:bg-background group-data-[variant=default]/tabs-list:shadow-raised dark:group-data-[variant=default]/tabs-list:bg-gray-6",
-          "group-data-[variant=line]/tabs-list:top-auto group-data-[variant=line]/tabs-list:-bottom-px group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:translate-y-0 group-data-[variant=line]/tabs-list:rounded-full group-data-[variant=line]/tabs-list:bg-foreground",
+          "in-[.reduce-motion]:transition-none motion-reduce:transition-none",
+          "group-data-[variant=default]/tabs-list:bg-background group-data-[variant=default]/tabs-list:shadow-raised dark:group-data-[variant=default]/tabs-list:bg-gray-6 group-data-[variant=default]/tabs-list:h-(--active-tab-height) group-data-[variant=default]/tabs-list:rounded-sm",
+          "group-data-[variant=line]/tabs-list:bg-foreground group-data-[variant=line]/tabs-list:top-auto group-data-[variant=line]/tabs-list:-bottom-px group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:translate-y-0 group-data-[variant=line]/tabs-list:rounded-full",
         )}
       />
     </TabsPrimitive.List>
@@ -69,10 +69,10 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
       data-slot="tabs-trigger"
       className={cn(
         "relative inline-flex h-full flex-1 cursor-default items-center justify-center gap-1.5 rounded-sm px-2 text-sm font-medium whitespace-nowrap select-none",
-        "text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground data-active:text-foreground",
+        "text-muted-foreground hover:text-foreground data-active:text-foreground transition-colors duration-(--duration-instant)",
         "group-data-[variant=line]/tabs-list:px-0.5",
         "group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start",
-        "disabled:pointer-events-none disabled:text-faint-foreground aria-disabled:pointer-events-none",
+        "disabled:text-faint-foreground disabled:pointer-events-none aria-disabled:pointer-events-none",
         "focus-visible:outline-offset-0",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
         className,
@@ -83,7 +83,13 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 }
 
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
-  return <TabsPrimitive.Panel data-slot="tabs-content" className={cn("flex-1 text-sm", className)} {...props} />;
+  return (
+    <TabsPrimitive.Panel
+      data-slot="tabs-content"
+      className={cn("flex-1 text-sm", className)}
+      {...props}
+    />
+  );
 }
 
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants };

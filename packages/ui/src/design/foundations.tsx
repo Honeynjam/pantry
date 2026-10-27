@@ -71,8 +71,8 @@ export function ColorSection() {
             <div key={role} className="flex min-w-0 flex-col gap-1.5">
               <Swatch color={`var(--gray-${index + 1})`} className="h-12" />
               <div className="flex flex-col">
-                <span className="font-mono text-2xs text-foreground tabular">{index + 1}</span>
-                <span className="truncate text-2xs text-muted-foreground" title={role}>
+                <span className="text-2xs text-foreground tabular font-mono">{index + 1}</span>
+                <span className="text-2xs text-muted-foreground truncate" title={role}>
                   {role}
                 </span>
               </div>
@@ -87,7 +87,7 @@ export function ColorSection() {
             <div key={token.name} className="flex h-8 items-center gap-3">
               {token.text ? (
                 <span
-                  className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border font-display text-sm font-semibold"
+                  className="border-border font-display flex size-7 shrink-0 items-center justify-center rounded-md border text-sm font-semibold"
                   style={{ color: `var(--${token.name})` }}
                 >
                   Aa
@@ -96,7 +96,7 @@ export function ColorSection() {
                 <Swatch color={`var(--${token.name})`} className="size-7 shrink-0" />
               )}
               <div className="flex min-w-0 flex-col">
-                <TokenName className="text-xs text-foreground">--{token.name}</TokenName>
+                <TokenName className="text-foreground text-xs">--{token.name}</TokenName>
                 <span className="text-2xs text-muted-foreground">{token.note}</span>
               </div>
             </div>
@@ -126,7 +126,7 @@ export function ColorSection() {
             {STATUS_CATEGORIES.map((category) => (
               <div key={category} className="flex h-8 items-center gap-2.5 rounded-sm px-2">
                 <StatusGlyph category={category} />
-                <span className="text-sm text-foreground">{STATUS_CATEGORY_LABEL[category]}</span>
+                <span className="text-foreground text-sm">{STATUS_CATEGORY_LABEL[category]}</span>
                 <TokenName className="ml-auto">{category}</TokenName>
               </div>
             ))}
@@ -139,12 +139,12 @@ export function ColorSection() {
               return (
                 <div key={priority} className="flex h-8 items-center gap-2.5 rounded-sm px-2">
                   <PriorityGlyph priority={priority} />
-                  <span className="text-sm text-foreground">{PRIORITY_LABEL[priority]}</span>
+                  <span className="text-foreground text-sm">{PRIORITY_LABEL[priority]}</span>
                   <TokenName className="ml-auto">{priority}</TokenName>
                 </div>
               );
             })}
-            <div className="flex h-8 items-center px-2 text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex h-8 items-center px-2 text-xs">
               Shapes carry the meaning; only urgent is coloured.
             </div>
           </Specimen>
@@ -159,7 +159,10 @@ export function ColorSection() {
         </Specimen>
       </SubSection>
 
-      <SubSection title="Feedback" hint="state colours: errors, destructive actions, success · always with text or an icon">
+      <SubSection
+        title="Feedback"
+        hint="state colours: errors, destructive actions, success · always with text or an icon"
+      >
         <Specimen className="gap-2">
           <Badge variant="success">Synced</Badge>
           <Badge variant="warning">Token expires soon</Badge>
@@ -173,16 +176,76 @@ export function ColorSection() {
   );
 }
 
-const TYPE_SCALE: ReadonlyArray<{ token: string; px: string; use: string; className: string; sample: string }> = [
-  { token: "text-4xl", px: "44/48", use: "landing display", className: "font-display text-4xl font-semibold tracking-[-0.03em]", sample: "Leave Linear" },
-  { token: "text-3xl", px: "32/38", use: "display", className: "font-display text-3xl font-semibold tracking-[-0.025em]", sample: "Agents work your issues" },
-  { token: "text-2xl", px: "24/32", use: "issue title", className: "font-display text-2xl font-semibold tracking-[-0.02em]", sample: "Sign-up guard rejects stale invites" },
-  { token: "text-xl", px: "20/28", use: "page title", className: "font-display text-xl font-semibold tracking-[-0.015em]", sample: "My issues" },
-  { token: "text-lg", px: "16/24", use: "section title", className: "text-lg font-medium", sample: "Sub-issues" },
-  { token: "text-base", px: "14/22", use: "descriptions, docs", className: "text-base", sample: "Agents read the context doc before they start." },
-  { token: "text-sm", px: "13/20", use: "UI default", className: "text-sm", sample: "Move to In Review and assign to me" },
-  { token: "text-xs", px: "12/16", use: "metadata", className: "text-xs text-muted-foreground", sample: "Updated 3 min ago · via MCP" },
-  { token: "text-2xs", px: "11/16", use: "keycaps, counters", className: "text-2xs text-muted-foreground", sample: "12 open · 3 in review" },
+const TYPE_SCALE: ReadonlyArray<{
+  token: string;
+  px: string;
+  use: string;
+  className: string;
+  sample: string;
+}> = [
+  {
+    token: "text-4xl",
+    px: "44/48",
+    use: "landing display",
+    className: "font-display text-4xl font-semibold tracking-[-0.03em]",
+    sample: "Leave Linear",
+  },
+  {
+    token: "text-3xl",
+    px: "32/38",
+    use: "display",
+    className: "font-display text-3xl font-semibold tracking-[-0.025em]",
+    sample: "Agents work your issues",
+  },
+  {
+    token: "text-2xl",
+    px: "24/32",
+    use: "issue title",
+    className: "font-display text-2xl font-semibold tracking-[-0.02em]",
+    sample: "Sign-up guard rejects stale invites",
+  },
+  {
+    token: "text-xl",
+    px: "20/28",
+    use: "page title",
+    className: "font-display text-xl font-semibold tracking-[-0.015em]",
+    sample: "My issues",
+  },
+  {
+    token: "text-lg",
+    px: "16/24",
+    use: "section title",
+    className: "text-lg font-medium",
+    sample: "Sub-issues",
+  },
+  {
+    token: "text-base",
+    px: "14/22",
+    use: "descriptions, docs",
+    className: "text-base",
+    sample: "Agents read the context doc before they start.",
+  },
+  {
+    token: "text-sm",
+    px: "13/20",
+    use: "UI default",
+    className: "text-sm",
+    sample: "Move to In Review and assign to me",
+  },
+  {
+    token: "text-xs",
+    px: "12/16",
+    use: "metadata",
+    className: "text-xs text-muted-foreground",
+    sample: "Updated 3 min ago · via MCP",
+  },
+  {
+    token: "text-2xs",
+    px: "11/16",
+    use: "keycaps, counters",
+    className: "text-2xs text-muted-foreground",
+    sample: "12 open · 3 in review",
+  },
 ];
 
 export function TypeSection() {
@@ -195,42 +258,66 @@ export function TypeSection() {
     >
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         {[
-          { label: "Display", token: "--font-display", family: "Geist", className: "font-display text-2xl font-semibold tracking-[-0.02em]", sample: "Ship the next issue" },
-          { label: "UI", token: "--font-body", family: "Inter", className: "font-sans text-2xl", sample: "Ship the next issue" },
-          { label: "Mono", token: "--font-mono", family: "Geist Mono", className: "font-mono text-2xl tracking-tight", sample: `${brand.defaultKey}-42 14:03` },
+          {
+            label: "Display",
+            token: "--font-display",
+            family: "Geist",
+            className: "font-display text-2xl font-semibold tracking-[-0.02em]",
+            sample: "Ship the next issue",
+          },
+          {
+            label: "UI",
+            token: "--font-body",
+            family: "Inter",
+            className: "font-sans text-2xl",
+            sample: "Ship the next issue",
+          },
+          {
+            label: "Mono",
+            token: "--font-mono",
+            family: "Geist Mono",
+            className: "font-mono text-2xl tracking-tight",
+            sample: `${brand.defaultKey}-42 14:03`,
+          },
         ].map((face) => (
-          <div key={face.label} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+          <div key={face.label} className="border-border flex flex-col gap-3 rounded-lg border p-4">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-foreground">{face.label}</span>
+              <span className="text-foreground text-xs font-medium">{face.label}</span>
               <TokenName>{face.token}</TokenName>
             </div>
             <span className={cn(face.className, "text-foreground")}>{face.sample}</span>
-            <span className="text-xs text-muted-foreground">{face.family}</span>
+            <span className="text-muted-foreground text-xs">{face.family}</span>
           </div>
         ))}
       </div>
 
       <SubSection title="Scale" hint="size / line-height in px">
-        <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <div className="divide-border border-border flex flex-col divide-y rounded-lg border">
           {TYPE_SCALE.map((row) => (
-            <div key={row.token} className="grid grid-cols-[6.5rem_4rem_1fr] items-center gap-3 px-3 py-2.5 sm:grid-cols-[6.5rem_4rem_8rem_1fr]">
-              <TokenName className="text-xs text-foreground">{row.token}</TokenName>
-              <span className="font-mono text-2xs text-muted-foreground tabular">{row.px}</span>
-              <span className="hidden text-xs text-muted-foreground sm:block">{row.use}</span>
-              <span className={cn("min-w-0 truncate text-foreground", row.className)}>{row.sample}</span>
+            <div
+              key={row.token}
+              className="grid grid-cols-[6.5rem_4rem_1fr] items-center gap-3 px-3 py-2.5 sm:grid-cols-[6.5rem_4rem_8rem_1fr]"
+            >
+              <TokenName className="text-foreground text-xs">{row.token}</TokenName>
+              <span className="text-2xs text-muted-foreground tabular font-mono">{row.px}</span>
+              <span className="text-muted-foreground hidden text-xs sm:block">{row.use}</span>
+              <span className={cn("text-foreground min-w-0 truncate", row.className)}>
+                {row.sample}
+              </span>
             </div>
           ))}
         </div>
       </SubSection>
 
       <SubSection title="Mono in context" hint="keys, timestamps, metadata">
-        <Specimen className="gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <span className="font-mono text-foreground">{brand.defaultKey}-128</span>
-          <span className="font-mono tabular">2026-10-26 14:03</span>
+        <Specimen className="text-muted-foreground gap-x-6 gap-y-2 text-xs">
+          <span className="text-foreground font-mono">{brand.defaultKey}-128</span>
+          <span className="tabular font-mono">2026-10-26 14:03</span>
           <span className="font-mono">{brand.tokenPrefix}x7Kq••••</span>
-          <span className="font-mono tabular">0.42s</span>
+          <span className="tabular font-mono">0.42s</span>
           <span>
-            Created by <span className="text-foreground">Kris</span> <span className="font-mono tabular">3m</span> ago
+            Created by <span className="text-foreground">Kris</span>{" "}
+            <span className="tabular font-mono">3m</span> ago
           </span>
         </Specimen>
       </SubSection>
@@ -258,10 +345,10 @@ export function LayoutSection() {
             ].map(([name, px]) => (
               <div key={name} className="flex flex-col items-center gap-1.5">
                 <span
-                  className="size-10 border border-border-strong bg-muted"
+                  className="border-border-strong bg-muted size-10 border"
                   style={{ borderRadius: `var(--radius-${name})` }}
                 />
-                <span className="font-mono text-2xs text-muted-foreground">
+                <span className="text-2xs text-muted-foreground font-mono">
                   {name} · {px}
                 </span>
               </div>
@@ -269,21 +356,21 @@ export function LayoutSection() {
           </Specimen>
         </SubSection>
         <SubSection title="Elevation" hint="--shadow-raised / --shadow-overlay">
-          <Specimen className="gap-6 bg-muted">
-            <div className="flex h-14 w-28 items-center justify-center rounded-lg bg-background text-xs text-muted-foreground">
+          <Specimen className="bg-muted gap-6">
+            <div className="bg-background text-muted-foreground flex h-14 w-28 items-center justify-center rounded-lg text-xs">
               flat
             </div>
-            <div className="flex h-14 w-28 items-center justify-center rounded-lg bg-background text-xs text-muted-foreground shadow-raised">
+            <div className="bg-background text-muted-foreground shadow-raised flex h-14 w-28 items-center justify-center rounded-lg text-xs">
               raised
             </div>
-            <div className="flex h-14 w-28 items-center justify-center rounded-lg bg-popover text-xs text-muted-foreground shadow-overlay">
+            <div className="bg-popover text-muted-foreground shadow-overlay flex h-14 w-28 items-center justify-center rounded-lg text-xs">
               overlay
             </div>
           </Specimen>
         </SubSection>
       </div>
       <SubSection title="Density" hint="--row-height, --control-height*, --menu-item-height">
-        <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <div className="divide-border border-border flex flex-col divide-y rounded-lg border">
           {[
             { token: "--row-height", px: 32, use: "list rows" },
             { token: "--control-height-lg", px: 32, use: "primary actions in dialogs, sign-in" },
@@ -292,13 +379,13 @@ export function LayoutSection() {
           ].map((row) => (
             <div key={row.token} className="flex items-center gap-4 px-3 py-2">
               <span
-                className="w-24 shrink-0 rounded-sm bg-primary-subtle"
+                className="bg-primary-subtle w-24 shrink-0 rounded-sm"
                 style={{ height: row.px }}
                 aria-hidden
               />
-              <TokenName className="w-40 text-xs text-foreground">{row.token}</TokenName>
-              <span className="font-mono text-2xs text-muted-foreground tabular">{row.px}px</span>
-              <span className="hidden text-xs text-muted-foreground sm:block">{row.use}</span>
+              <TokenName className="text-foreground w-40 text-xs">{row.token}</TokenName>
+              <span className="text-2xs text-muted-foreground tabular font-mono">{row.px}px</span>
+              <span className="text-muted-foreground hidden text-xs sm:block">{row.use}</span>
             </div>
           ))}
         </div>

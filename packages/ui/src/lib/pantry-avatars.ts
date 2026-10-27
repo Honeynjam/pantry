@@ -57,7 +57,8 @@ export const PANTRY_SHAPES = {
   honey: {
     name: "Honey pot",
     d: "M9 5.5h14c1.1 0 2 .9 2 2 0 .9-.6 1.6-1.4 1.9 2.6 1.6 3.9 4.6 3.9 9.1 0 6.5-4.5 10.5-11.5 10.5S4.5 25 4.5 18.5c0-4.5 1.3-7.5 3.9-9.1C7.6 9.1 7 8.4 7 7.5c0-1.1.9-2 2-2z",
-    creases: "M7.4 11.6c1.6.4 1.9 3 3 3s1.3-2.2 2.6-2.2 1.6 3.9 3.1 3.9 1.6-3.6 3-3.6 1.4 1.6 2.5 1.6 1.4-2 2.9-2.7",
+    creases:
+      "M7.4 11.6c1.6.4 1.9 3 3 3s1.3-2.2 2.6-2.2 1.6 3.9 3.1 3.9 1.6-3.6 3-3.6 1.4 1.6 2.5 1.6 1.4-2 2.9-2.7",
     face: { x: 15.4, y: 20 },
   },
   egg: {
@@ -185,7 +186,10 @@ export type PantryExpression = keyof typeof AVATAR_EXPRESSIONS;
 export const PANTRY_EXPRESSION_NAMES = Object.keys(AVATAR_EXPRESSIONS) as PantryExpression[];
 
 /** Colours an avatar can take: the label palette without grey. */
-export const AVATAR_COLORS = LABEL_COLORS.filter((color) => color !== "gray") as Exclude<LabelColor, "gray">[];
+export const AVATAR_COLORS = LABEL_COLORS.filter((color) => color !== "gray") as Exclude<
+  LabelColor,
+  "gray"
+>[];
 export type AvatarColor = (typeof AVATAR_COLORS)[number];
 
 /** How far the edge layer sits behind the face layer, in grid units. */
@@ -232,7 +236,11 @@ export function avatarTones(hue: string): Record<"face" | "edge" | "ink", string
 }
 
 /** The part of an avatar a person chooses; tilt and blink timing always come from the seed. */
-export type PantryAvatarValue = { shape: PantryShape; color: AvatarColor; expression: PantryExpression };
+export type PantryAvatarValue = {
+  shape: PantryShape;
+  color: AvatarColor;
+  expression: PantryExpression;
+};
 
 const pickOne = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]!;
 
@@ -243,5 +251,7 @@ export function randomPantryAvatar(not?: PantryAvatarValue): PantryAvatarValue {
     color: pickOne(AVATAR_COLORS),
     expression: pickOne(PANTRY_EXPRESSION_NAMES),
   };
-  return not && next.shape === not.shape && next.color === not.color ? randomPantryAvatar(not) : next;
+  return not && next.shape === not.shape && next.color === not.color
+    ? randomPantryAvatar(not)
+    : next;
 }

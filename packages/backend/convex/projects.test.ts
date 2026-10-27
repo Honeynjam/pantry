@@ -10,13 +10,21 @@ const outsider = { subject: "user-outsider", name: "Out", email: "out@example.co
 
 async function setUp() {
   const t = setupTest();
-  const created = await t.withIdentity(owner).mutation(api.setup.createWorkspace, { workspaceName: "Home" });
+  const created = await t
+    .withIdentity(owner)
+    .mutation(api.setup.createWorkspace, { workspaceName: "Home" });
   const as = t.withIdentity(owner);
   const web = await as.mutation(api.spaces.create, { name: "Website", key: "WEB" });
   const project = (name: string, spaceId: Id<"spaces"> = created.spaceId, color?: string) =>
     as.mutation(api.projects.create, { spaceId, name, ...(color ? { color } : {}) });
-  const issue = (title: string, extra: { projectId?: Id<"projects"> | null; parentId?: Id<"issues">; spaceId?: Id<"spaces"> } = {}) =>
-    as.mutation(api.issues.create, { spaceId: created.spaceId, title, ...extra });
+  const issue = (
+    title: string,
+    extra: {
+      projectId?: Id<"projects"> | null;
+      parentId?: Id<"issues">;
+      spaceId?: Id<"spaces">;
+    } = {},
+  ) => as.mutation(api.issues.create, { spaceId: created.spaceId, title, ...extra });
   return { t, as, ...created, webId: web.spaceId, project, issue };
 }
 
@@ -30,7 +38,8 @@ async function messageOf(promise: Promise<unknown>): Promise<string> {
   throw new Error("expected an error");
 }
 
-const getIssue = (t: TestConvex, issueId: Id<"issues">) => t.run((ctx) => ctx.db.get("issues", issueId));
+const getIssue = (t: TestConvex, issueId: Id<"issues">) =>
+  t.run((ctx) => ctx.db.get("issues", issueId));
 const activityOf = (t: TestConvex, issueId: Id<"issues">) =>
   t.run((ctx) =>
     ctx.db
@@ -42,11 +51,36 @@ const activityOf = (t: TestConvex, issueId: Id<"issues">) =>
 /** A second workspace with a space, a project and an issue of its own. */
 async function otherWorkspace(t: TestConvex) {
   return t.run(async (ctx) => {
-    const workspaceId = await ctx.db.insert("workspaces", { name: "Other", slug: "other", createdBy: outsider.subject });
-    const memberId = await ctx.db.insert("members", { workspaceId, userId: outsider.subject, displayName: "Out", role: "owner" });
-    const spaceId = await ctx.db.insert("spaces", { workspaceId, name: "Other", key: "OTH", nextIssueNumber: 2 });
-    const projectId = await ctx.db.insert("projects", { workspaceId, spaceId, name: "Secret", sortOrder: 1 });
-    const statusId = await ctx.db.insert("statuses", { workspaceId, name: "Todo", category: "unstarted", order: 0, color: "gray" });
+    const workspaceId = await ctx.db.insert("workspaces", {
+      name: "Other",
+      slug: "other",
+      createdBy: outsider.subject,
+    });
+    const memberId = await ctx.db.insert("members", {
+      workspaceId,
+      userId: outsider.subject,
+      displayName: "Out",
+      role: "owner",
+    });
+    const spaceId = await ctx.db.insert("spaces", {
+      workspaceId,
+      name: "Other",
+      key: "OTH",
+      nextIssueNumber: 2,
+    });
+    const projectId = await ctx.db.insert("projects", {
+      workspaceId,
+      spaceId,
+      name: "Secret",
+      sortOrder: 1,
+    });
+    const statusId = await ctx.db.insert("statuses", {
+      workspaceId,
+      name: "Todo",
+      category: "unstarted",
+      order: 0,
+      color: "gray",
+    });
     const issueId = await ctx.db.insert("issues", {
       workspaceId,
       spaceId,
@@ -75,7 +109,11 @@ describe("projects", () => {
     await expect(project("linkedin")).rejects.toThrow(/already a project called LinkedIn/);
     await project("LinkedIn", webId); // another space: fine
     const current = await as.query(api.workspace.current, {});
-    expect(current.projects.filter((p) => p.spaceId === spaceId).map((p) => [p.name, p.color, p.sortOrder])).toEqual([
+    expect(
+      current.projects
+        .filter((p) => p.spaceId === spaceId)
+        .map((p) => [p.name, p.color, p.sortOrder]),
+    ).toEqual([
       ["LinkedIn", "blue", 1],
       ["Launch plan", undefined, 2],
     ]);
@@ -86,10 +124,14 @@ describe("projects", () => {
     const { as, spaceId, project } = await setUp();
     const a = await project("A", spaceId, "red");
     const b = await project("B");
-    await expect(as.mutation(api.projects.update, { projectId: b, name: "a" })).rejects.toThrow(/already a project/);
+    await expect(as.mutation(api.projects.update, { projectId: b, name: "a" })).rejects.toThrow(
+      /already a project/,
+    );
     await as.mutation(api.projects.update, { projectId: a, name: "Alpha", color: null });
     await as.mutation(api.projects.reorder, { spaceId, projectIds: [b, a] });
-    await expect(as.mutation(api.projects.reorder, { spaceId, projectIds: [b] })).rejects.toThrow(/each of the space's projects once/);
+    await expect(as.mutation(api.projects.reorder, { spaceId, projectIds: [b] })).rejects.toThrow(
+      /each of the space's projects once/,
+    );
     const current = await as.query(api.workspace.current, {});
     expect(current.projects.map((p) => [p.name, p.color])).toEqual([
       ["B", undefined],
@@ -130,13 +172,18 @@ describe("issues in projects", () => {
   it("rejects a project from another space, on create and update", async () => {
     const { as, webId, project, issue } = await setUp();
     const webProject = await project("Homepage", webId);
-    await expect(issue("Wrong space", { projectId: webProject })).rejects.toThrow(/project in another space/);
-    const plain = await issue("Plain");
-    await expect(as.mutation(api.issues.update, { issueId: plain.issueId, projectId: webProject })).rejects.toThrow(
+    await expect(issue("Wrong space", { projectId: webProject })).rejects.toThrow(
       /project in another space/,
     );
+    const plain = await issue("Plain");
     await expect(
-      as.query(api.issues.listBySpace, { spaceId: (await as.query(api.workspace.current, {})).spaces[0]!._id, projectId: webProject }),
+      as.mutation(api.issues.update, { issueId: plain.issueId, projectId: webProject }),
+    ).rejects.toThrow(/project in another space/);
+    await expect(
+      as.query(api.issues.listBySpace, {
+        spaceId: (await as.query(api.workspace.current, {})).spaces[0]!._id,
+        projectId: webProject,
+      }),
     ).rejects.toThrow(/not found/);
   });
 
@@ -155,7 +202,9 @@ describe("issues in projects", () => {
     ]);
     expect((await getIssue(t, issueId))!.projectId).toBeUndefined();
     await as.mutation(api.issues.update, { issueId, projectId: a });
-    expect((await as.query(api.issues.listBySpace, { spaceId, projectId: a })).map((row) => row.title)).toEqual(["Moving"]);
+    expect(
+      (await as.query(api.issues.listBySpace, { spaceId, projectId: a })).map((row) => row.title),
+    ).toEqual(["Moving"]);
     expect(await as.query(api.issues.listBySpace, { spaceId, projectId: b })).toEqual([]);
   });
 
@@ -166,25 +215,39 @@ describe("issues in projects", () => {
     const parent = await issue("Parent", { projectId: launch });
 
     const child = await issue("Child", { parentId: parent.issueId });
-    expect(await getIssue(t, child.issueId)).toMatchObject({ projectId: launch, parentId: parent.issueId });
-    await expect(issue("Wrong project", { parentId: parent.issueId, projectId: other })).rejects.toThrow(/parent's project/);
-    await expect(issue("No project", { parentId: parent.issueId, projectId: null })).rejects.toThrow(/parent's project/);
-    await expect(issue("Wrong space", { parentId: parent.issueId, spaceId: webId })).rejects.toThrow(/parent's space/);
+    expect(await getIssue(t, child.issueId)).toMatchObject({
+      projectId: launch,
+      parentId: parent.issueId,
+    });
+    await expect(
+      issue("Wrong project", { parentId: parent.issueId, projectId: other }),
+    ).rejects.toThrow(/parent's project/);
+    await expect(
+      issue("No project", { parentId: parent.issueId, projectId: null }),
+    ).rejects.toThrow(/parent's project/);
+    await expect(
+      issue("Wrong space", { parentId: parent.issueId, spaceId: webId }),
+    ).rejects.toThrow(/parent's space/);
 
     // A sub-issue can't pick its own project; moving the parent moves its sub-issues.
-    await expect(as.mutation(api.issues.update, { issueId: child.issueId, projectId: other })).rejects.toThrow(
-      /Change PAN-1's project instead/,
-    );
+    await expect(
+      as.mutation(api.issues.update, { issueId: child.issueId, projectId: other }),
+    ).rejects.toThrow(/Change PAN-1's project instead/);
     await as.mutation(api.issues.update, { issueId: parent.issueId, projectId: other });
     expect((await getIssue(t, child.issueId))!.projectId).toBe(other);
-    expect((await activityOf(t, child.issueId)).filter((r) => r.type === "project_changed").map((r) => [r.from, r.to])).toEqual([
-      ["Launch", "Other"],
-    ]);
+    expect(
+      (await activityOf(t, child.issueId))
+        .filter((r) => r.type === "project_changed")
+        .map((r) => [r.from, r.to]),
+    ).toEqual([["Launch", "Other"]]);
 
     // Getting a parent brings its project along.
     const loose = await issue("Loose");
     await as.mutation(api.issues.update, { issueId: loose.issueId, parentId: parent.issueId });
-    expect(await getIssue(t, loose.issueId)).toMatchObject({ parentId: parent.issueId, projectId: other });
+    expect(await getIssue(t, loose.issueId)).toMatchObject({
+      parentId: parent.issueId,
+      projectId: other,
+    });
   });
 
   it("sub-issues inherit the parent's space and project through the shared helper (the MCP path)", async () => {
@@ -195,16 +258,21 @@ describe("issues in projects", () => {
     await t.run(async (ctx) => {
       const member = (await ctx.db.query("members").first())!;
       const actor = { member, via: "mcp" as const };
-      const { issueId } = await createIssue(ctx, actor, { title: "Agent child", parentId: parent.issueId });
+      const { issueId } = await createIssue(ctx, actor, {
+        title: "Agent child",
+        parentId: parent.issueId,
+      });
       const child = (await ctx.db.get("issues", issueId))!;
       expect(child).toMatchObject({ spaceId, projectId: launch });
-      await expect(createIssue(ctx, actor, { title: "x", parentId: parent.issueId, projectId: other })).rejects.toThrow(
+      await expect(
+        createIssue(ctx, actor, { title: "x", parentId: parent.issueId, projectId: other }),
+      ).rejects.toThrow(/parent's project/);
+      await expect(
+        createIssue(ctx, actor, { title: "x", parentId: parent.issueId, spaceId: webId }),
+      ).rejects.toThrow(/parent's space/);
+      await expect(updateIssue(ctx, actor, child, { projectId: other })).rejects.toThrow(
         /parent's project/,
       );
-      await expect(createIssue(ctx, actor, { title: "x", parentId: parent.issueId, spaceId: webId })).rejects.toThrow(
-        /parent's space/,
-      );
-      await expect(updateIssue(ctx, actor, child, { projectId: other })).rejects.toThrow(/parent's project/);
       const rows = await ctx.db
         .query("activity")
         .withIndex("by_issue", (q) => q.eq("issueId", issueId))
@@ -224,7 +292,9 @@ describe("MCP lookups by name", () => {
     await t.run(async (ctx) => {
       const space = await resolveSpaceByKey(ctx, workspaceId, " pan ");
       expect(space._id).toBe(spaceId);
-      expect(await messageOf(resolveSpaceByKey(ctx, workspaceId, "NOPE"))).toBe('No space with the key "NOPE". Spaces: PAN, WEB.');
+      expect(await messageOf(resolveSpaceByKey(ctx, workspaceId, "NOPE"))).toBe(
+        'No space with the key "NOPE". Spaces: PAN, WEB.',
+      );
 
       expect((await resolveProjectByName(ctx, space, "  linkedIN "))?._id).toBe(linkedin);
       expect(await resolveProjectByName(ctx, space, "None")).toBeNull();
@@ -232,7 +302,9 @@ describe("MCP lookups by name", () => {
         'No project "Sales" in PAN. Projects in PAN: LinkedIn, Marketing (or "none").',
       );
       // Archived projects can't be found by name.
-      expect(await messageOf(resolveProjectByName(ctx, space, "Old stuff"))).toContain("Projects in PAN: LinkedIn, Marketing");
+      expect(await messageOf(resolveProjectByName(ctx, space, "Old stuff"))).toContain(
+        "Projects in PAN: LinkedIn, Marketing",
+      );
       const web = await resolveSpaceByKey(ctx, workspaceId, "web");
       expect(await messageOf(resolveProjectByName(ctx, web, "LinkedIn"))).toBe(
         'WEB has no projects yet. Use "none" or leave the project out.',
@@ -247,45 +319,76 @@ describe("workspace isolation for spaces and projects", () => {
     const theirs = await otherWorkspace(t);
     const mine = await issue("Mine");
 
-    await expect(as.mutation(api.projects.create, { spaceId: theirs.spaceId, name: "Sneaky" })).rejects.toThrow(/Space not found/);
-    await expect(as.mutation(api.projects.update, { projectId: theirs.projectId, name: "Mine now" })).rejects.toThrow(
+    await expect(
+      as.mutation(api.projects.create, { spaceId: theirs.spaceId, name: "Sneaky" }),
+    ).rejects.toThrow(/Space not found/);
+    await expect(
+      as.mutation(api.projects.update, { projectId: theirs.projectId, name: "Mine now" }),
+    ).rejects.toThrow(/Project not found/);
+    await expect(
+      as.mutation(api.projects.archive, { projectId: theirs.projectId }),
+    ).rejects.toThrow(/Project not found/);
+    await expect(
+      as.mutation(api.projects.reorder, {
+        spaceId: theirs.spaceId,
+        projectIds: [theirs.projectId],
+      }),
+    ).rejects.toThrow(/Space not found/);
+    await expect(issue("Into theirs", { projectId: theirs.projectId })).rejects.toThrow(
       /Project not found/,
     );
-    await expect(as.mutation(api.projects.archive, { projectId: theirs.projectId })).rejects.toThrow(/Project not found/);
-    await expect(as.mutation(api.projects.reorder, { spaceId: theirs.spaceId, projectIds: [theirs.projectId] })).rejects.toThrow(
-      /Space not found/,
+    await expect(
+      as.mutation(api.issues.update, { issueId: mine.issueId, projectId: theirs.projectId }),
+    ).rejects.toThrow(/Project not found/);
+    await expect(
+      as.mutation(api.issues.create, { spaceId: theirs.spaceId, title: "x" }),
+    ).rejects.toThrow(/Space not found/);
+    await expect(as.query(api.issues.listBySpace, { spaceId: theirs.spaceId })).rejects.toThrow(
+      /not found/,
     );
-    await expect(issue("Into theirs", { projectId: theirs.projectId })).rejects.toThrow(/Project not found/);
-    await expect(as.mutation(api.issues.update, { issueId: mine.issueId, projectId: theirs.projectId })).rejects.toThrow(
-      /Project not found/,
+    await expect(
+      as.query(api.issues.listBySpace, { spaceId, projectId: theirs.projectId }),
+    ).rejects.toThrow(/not found/);
+    await expect(
+      as.mutation(api.spaces.update, { spaceId: theirs.spaceId, name: "x" }),
+    ).rejects.toThrow(/Space not found/);
+    await expect(as.query(api.docs.getContext, { spaceId: theirs.spaceId })).rejects.toThrow(
+      /not found/,
     );
-    await expect(as.mutation(api.issues.create, { spaceId: theirs.spaceId, title: "x" })).rejects.toThrow(/Space not found/);
-    await expect(as.query(api.issues.listBySpace, { spaceId: theirs.spaceId })).rejects.toThrow(/not found/);
-    await expect(as.query(api.issues.listBySpace, { spaceId, projectId: theirs.projectId })).rejects.toThrow(/not found/);
-    await expect(as.mutation(api.spaces.update, { spaceId: theirs.spaceId, name: "x" })).rejects.toThrow(/Space not found/);
-    await expect(as.query(api.docs.getContext, { spaceId: theirs.spaceId })).rejects.toThrow(/not found/);
     expect(await as.query(api.issues.search, { text: "OTH-1" })).toEqual([]);
     expect(await as.query(api.issues.search, { text: "Theirs" })).toEqual([]);
 
     await t.run(async (ctx) => {
-      await expect(resolveSpaceByKey(ctx, workspaceId, "OTH")).rejects.toThrow(/No space with the key/);
+      await expect(resolveSpaceByKey(ctx, workspaceId, "OTH")).rejects.toThrow(
+        /No space with the key/,
+      );
       const member = (await ctx.db.query("members").first())!;
       await expect(
         createIssue(ctx, { member, via: "mcp" }, { spaceId: theirs.spaceId, title: "x" }),
       ).rejects.toThrow(/Space not found/);
       await expect(
-        createIssue(ctx, { member, via: "mcp" }, { spaceId, title: "x", projectId: theirs.projectId }),
+        createIssue(
+          ctx,
+          { member, via: "mcp" },
+          { spaceId, title: "x", projectId: theirs.projectId },
+        ),
       ).rejects.toThrow(/Project not found/);
     });
     // Their data is untouched.
-    expect((await t.run((ctx) => ctx.db.get("issues", theirs.issueId)))?.projectId).toBe(theirs.projectId);
+    expect((await t.run((ctx) => ctx.db.get("issues", theirs.issueId)))?.projectId).toBe(
+      theirs.projectId,
+    );
   });
 });
 
 describe("spaces", () => {
   it("have a kind, product unless set", async () => {
     const { as, spaceId } = await setUp();
-    const client = await as.mutation(api.spaces.create, { name: "Acme Ltd", key: "ACME", kind: "client" });
+    const client = await as.mutation(api.spaces.create, {
+      name: "Acme Ltd",
+      key: "ACME",
+      kind: "client",
+    });
     await as.mutation(api.spaces.update, { spaceId, kind: "product" });
     const { spaces } = await as.query(api.workspace.current, {});
     expect(spaces.map((space) => [space.key, space.kind ?? "product"])).toEqual([

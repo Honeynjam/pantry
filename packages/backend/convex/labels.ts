@@ -15,7 +15,9 @@ async function workspaceLabels(ctx: MutationCtx, workspaceId: Id<"workspaces">) 
 
 /** Label names are unique per workspace, ignoring case: agents pick labels by name over MCP. */
 function assertNameFree(labels: Doc<"labels">[], name: string, except?: Id<"labels">) {
-  const clash = labels.find((label) => label._id !== except && label.name.toLowerCase() === name.toLowerCase());
+  const clash = labels.find(
+    (label) => label._id !== except && label.name.toLowerCase() === name.toLowerCase(),
+  );
   if (clash) fail("NAME_TAKEN", `There's already a label called ${clash.name}.`);
 }
 
@@ -25,7 +27,11 @@ export const create = mutation({
     const me = await requireMember(ctx);
     const name = cleanName(args.name, "Label name", 40);
     assertNameFree(await workspaceLabels(ctx, me.workspaceId), name);
-    return ctx.db.insert("labels", { workspaceId: me.workspaceId, name, color: checkColor(args.color) });
+    return ctx.db.insert("labels", {
+      workspaceId: me.workspaceId,
+      name,
+      color: checkColor(args.color),
+    });
   },
 });
 
@@ -56,7 +62,9 @@ export const remove = mutation({
     const label = await ctx.db.get("labels", args.labelId);
     if (!label || label.workspaceId !== me.workspaceId) return notFound("Label");
 
-    const names = new Map((await workspaceLabels(ctx, me.workspaceId)).map((row) => [row._id, row.name]));
+    const names = new Map(
+      (await workspaceLabels(ctx, me.workspaceId)).map((row) => [row._id, row.name]),
+    );
     const issues = await ctx.db
       .query("issues")
       .withIndex("by_workspace_and_updated", (q) => q.eq("workspaceId", me.workspaceId))
@@ -67,8 +75,14 @@ export const remove = mutation({
       const labelIds = issue.labelIds.filter((id) => id !== label._id);
       await ctx.db.patch("issues", issue._id, { labelIds, updatedAt: now });
       await logActivity(ctx, { member: me, via: "app" }, issue, "labels_changed", {
-        from: issue.labelIds.map((id) => names.get(id) ?? "").filter(Boolean).join(", "),
-        to: labelIds.map((id) => names.get(id) ?? "").filter(Boolean).join(", "),
+        from: issue.labelIds
+          .map((id) => names.get(id) ?? "")
+          .filter(Boolean)
+          .join(", "),
+        to: labelIds
+          .map((id) => names.get(id) ?? "")
+          .filter(Boolean)
+          .join(", "),
       });
     }
     await ctx.db.delete("labels", label._id);

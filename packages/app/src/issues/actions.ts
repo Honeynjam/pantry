@@ -23,8 +23,14 @@ export function useIssueActions() {
   // actions object stays the same between renders and memoised rows don't re-render for it.
   const rawUpdate = useMutation(api.issues.update);
   const rawMove = useMutation(api.issues.move);
-  const update = useMemo(() => rawUpdate.withOptimisticUpdate((store, args) => optimisticUpdate(store, args)), [rawUpdate]);
-  const move = useMemo(() => rawMove.withOptimisticUpdate((store, args) => optimisticMove(store, args)), [rawMove]);
+  const update = useMemo(
+    () => rawUpdate.withOptimisticUpdate((store, args) => optimisticUpdate(store, args)),
+    [rawUpdate],
+  );
+  const move = useMemo(
+    () => rawMove.withOptimisticUpdate((store, args) => optimisticMove(store, args)),
+    [rawMove],
+  );
   return useMemo(
     () => ({
       update: async (issueId: Id<"issues">, patch: IssuePatch) => {

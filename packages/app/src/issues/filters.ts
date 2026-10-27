@@ -33,13 +33,34 @@ export const slug = (name: string) => name.trim().toLowerCase().replace(/\s+/g, 
 
 export type FilterFacet = Exclude<keyof Filters, "q">;
 
-export const EMPTY_FILTERS: Filters = { status: [], assignee: [], label: [], priority: [], project: [], q: "" };
+export const EMPTY_FILTERS: Filters = {
+  status: [],
+  assignee: [],
+  label: [],
+  priority: [],
+  project: [],
+  q: "",
+};
 
 /** Priority names in URLs: readable, and stable if the numbering ever changes. */
-const PRIORITY_PARAM: Record<Priority, string> = { 0: "none", 1: "urgent", 2: "high", 3: "medium", 4: "low" };
-const PRIORITY_FROM_PARAM = new Map(PRIORITIES.map((priority) => [PRIORITY_PARAM[priority], priority]));
+const PRIORITY_PARAM: Record<Priority, string> = {
+  0: "none",
+  1: "urgent",
+  2: "high",
+  3: "medium",
+  4: "low",
+};
+const PRIORITY_FROM_PARAM = new Map(
+  PRIORITIES.map((priority) => [PRIORITY_PARAM[priority], priority]),
+);
 
-const list = (value: string | null) => (value ? value.split(",").map((part) => part.trim()).filter(Boolean) : []);
+const list = (value: string | null) =>
+  value
+    ? value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean)
+    : [];
 const unique = <T>(values: T[]) => [...new Set(values)];
 
 export function parseFilters(search: string): Filters {
@@ -64,11 +85,15 @@ export function parseFilters(search: string): Filters {
  */
 export function serializeFilters(filters: Filters, search = ""): string {
   const params = new URLSearchParams(search);
-  const set = (key: string, values: string[]) => (values.length ? params.set(key, values.join(",")) : params.delete(key));
+  const set = (key: string, values: string[]) =>
+    values.length ? params.set(key, values.join(",")) : params.delete(key);
   set("status", filters.status);
   set("assignee", filters.assignee);
   set("label", filters.label);
-  set("priority", filters.priority.map((priority) => PRIORITY_PARAM[priority]));
+  set(
+    "priority",
+    filters.priority.map((priority) => PRIORITY_PARAM[priority]),
+  );
   set("project", filters.project);
   if (filters.q.trim()) params.set("q", filters.q);
   else params.delete("q");
@@ -79,14 +104,24 @@ export function serializeFilters(filters: Filters, search = ""): string {
 
 export function hasFilters(filters: Filters): boolean {
   return (
-    filters.status.length + filters.assignee.length + filters.label.length + filters.priority.length + filters.project.length > 0 ||
-    filters.q.trim() !== ""
+    filters.status.length +
+      filters.assignee.length +
+      filters.label.length +
+      filters.priority.length +
+      filters.project.length >
+      0 || filters.q.trim() !== ""
   );
 }
 
-export function toggleValue<F extends FilterFacet>(filters: Filters, facet: F, value: Filters[F][number]): Filters {
+export function toggleValue<F extends FilterFacet>(
+  filters: Filters,
+  facet: F,
+  value: Filters[F][number],
+): Filters {
   const current = filters[facet] as Array<Filters[F][number]>;
-  const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+  const next = current.includes(value)
+    ? current.filter((item) => item !== value)
+    : [...current, value];
   return { ...filters, [facet]: next };
 }
 
@@ -99,7 +134,11 @@ export type FilterContext = {
 };
 
 /** The issues that pass every active facet and contain every word of the title text. */
-export function applyFilters<T extends ListIssue>(issues: ReadonlyArray<T>, filters: Filters, context: FilterContext): T[] {
+export function applyFilters<T extends ListIssue>(
+  issues: ReadonlyArray<T>,
+  filters: Filters,
+  context: FilterContext,
+): T[] {
   const words = filters.q.toLowerCase().split(/\s+/).filter(Boolean);
   // Names to ids. A name that matches nothing (renamed, deleted) still filters, to nothing.
   const byName = (rows: ReadonlyArray<{ _id: string; name: string }>, slugs: string[]) =>
@@ -109,13 +148,16 @@ export function applyFilters<T extends ListIssue>(issues: ReadonlyArray<T>, filt
   const project = byName(context.projects ?? [], filters.project);
   const noProject = filters.project.includes("none");
   const priority = new Set(filters.priority);
-  const assignee = new Set<string>(filters.assignee.map((value) => (value === "me" ? context.me : value)));
+  const assignee = new Set<string>(
+    filters.assignee.map((value) => (value === "me" ? context.me : value)),
+  );
   return issues.filter((issue) => {
     if (filters.status.length && !status.has(issue.statusId)) return false;
     if (filters.priority.length && !priority.has(issue.priority)) return false;
     if (filters.label.length && !issue.labelIds.some((id) => label.has(id))) return false;
     if (filters.assignee.length && !assignee.has(issue.assigneeId ?? "none")) return false;
-    if (filters.project.length && !(issue.projectId ? project.has(issue.projectId) : noProject)) return false;
+    if (filters.project.length && !(issue.projectId ? project.has(issue.projectId) : noProject))
+      return false;
     if (words.length) {
       const haystack = `${issue.key} ${issue.title}`.toLowerCase();
       if (!words.every((word) => haystack.includes(word))) return false;

@@ -13,6 +13,10 @@ const subscribe = () => () => {};
  * stayed on "Loading…" until a reload).
  */
 export function ClientRoot({ children }: { children: ReactNode }) {
-  const isClient = useSyncExternalStore(subscribe, () => true, () => false);
+  const isClient = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
   return isClient ? <ClientApp>{children}</ClientApp> : null;
 }

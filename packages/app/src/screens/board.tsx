@@ -130,13 +130,20 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   const lanes = useMemo<Lane[]>(
     () =>
       groupBy === "project"
-        ? [...projects.map((project) => ({ id: project._id as string, project })), { id: "none", project: null }]
+        ? [
+            ...projects.map((project) => ({ id: project._id as string, project })),
+            { id: "none", project: null },
+          ]
         : [{ id: "all", project: undefined }],
     [groupBy, projects],
   );
   const laneOf = useCallback(
     (issue: ListIssue) =>
-      groupBy !== "project" ? "all" : issue.projectId && projects.some((p) => p._id === issue.projectId) ? issue.projectId : "none",
+      groupBy !== "project"
+        ? "all"
+        : issue.projectId && projects.some((p) => p._id === issue.projectId)
+          ? issue.projectId
+          : "none",
     [groupBy, projects],
   );
 
@@ -144,24 +151,33 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   // already has the card in its new place (and Convex puts it back if the server refuses).
   const columns = useMemo(() => {
     const cells = new Map<string, ListIssue[]>();
-    for (const lane of lanes) for (const status of statuses) cells.set(cellKey(lane.id, status._id), []);
+    for (const lane of lanes)
+      for (const status of statuses) cells.set(cellKey(lane.id, status._id), []);
     for (const issue of issues) cells.get(cellKey(laneOf(issue), issue.statusId))?.push(issue);
     return cells;
   }, [issues, statuses, lanes, laneOf]);
-  const cell = (lane: string, statusId: Id<"statuses">) => columns.get(cellKey(lane, statusId)) ?? [];
+  const cell = (lane: string, statusId: Id<"statuses">) =>
+    columns.get(cellKey(lane, statusId)) ?? [];
 
   // J/K walk the board lane by lane, column by column, top to bottom.
   const ordered = useMemo(
-    () => lanes.flatMap((lane) => statuses.flatMap((status) => columns.get(cellKey(lane.id, status._id)) ?? [])),
+    () =>
+      lanes.flatMap((lane) =>
+        statuses.flatMap((status) => columns.get(cellKey(lane.id, status._id)) ?? []),
+      ),
     [lanes, statuses, columns],
   );
   const selection = useIssueSelection({ ordered, lookups, actions, container });
   const { cursor, selected, setCursor, toggle } = selection.value;
 
-  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR), useSensor(KeyboardSensor, KEYBOARD_SENSOR));
+  const sensors = useSensors(
+    useSensor(PointerSensor, POINTER_SENSOR),
+    useSensor(KeyboardSensor, KEYBOARD_SENSOR),
+  );
 
   const issueById = (id: unknown) => issues.find((issue) => issue._id === id);
-  const statusName = (id: Id<"statuses"> | undefined) => statuses.find((status) => status._id === id)?.name ?? "";
+  const statusName = (id: Id<"statuses"> | undefined) =>
+    statuses.find((status) => status._id === id)?.name ?? "";
 
   /** Column + index for the dragged card's current position (its centre against the card under it). */
   function locate(event: DragMoveEvent | DragOverEvent | DragEndEvent): Target | null {
@@ -174,7 +190,8 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
     const { lane, statusId } = overData;
     const column = cell(lane, statusId);
     // Over its own slot: stay put.
-    if (over.id === active.id) return { lane, statusId, index: column.findIndex((issue) => issue._id === active.id) };
+    if (over.id === active.id)
+      return { lane, statusId, index: column.findIndex((issue) => issue._id === active.id) };
     const others = column.filter((issue) => issue._id !== active.id);
     if (String(over.id).startsWith("column:")) return { lane, statusId, index: others.length };
     const index = others.findIndex((issue) => issue._id === over.id);
@@ -192,7 +209,11 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
   function onDragMove(event: DragMoveEvent | DragOverEvent) {
     const next = locate(event);
     setTarget((current) =>
-      current?.lane === next?.lane && current?.statusId === next?.statusId && current?.index === next?.index ? current : next,
+      current?.lane === next?.lane &&
+      current?.statusId === next?.statusId &&
+      current?.index === next?.index
+        ? current
+        : next,
     );
   }
 
@@ -209,10 +230,14 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
     if (drop.lane !== fromLane) {
       // Into another project's lane: the project changes too. Sub-issues follow their parent.
       if (issue.parentId) {
-        toast("Sub-issues are in their parent's project", { description: "Move the parent issue to another project instead." });
+        toast("Sub-issues are in their parent's project", {
+          description: "Move the parent issue to another project instead.",
+        });
         return;
       }
-      void actions.update(issue._id, { projectId: drop.lane === "none" ? null : (drop.lane as Id<"projects">) });
+      void actions.update(issue._id, {
+        projectId: drop.lane === "none" ? null : (drop.lane as Id<"projects">),
+      });
     }
     const others = cell(drop.lane, drop.statusId).filter((row) => row._id !== issue._id);
     const sameColumn = drop.statusId === issue.statusId && drop.lane === fromLane;
@@ -222,19 +247,29 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
 
     const afterId = others[drop.index - 1]?._id;
     const beforeId = others[drop.index]?._id;
-    void actions.move(issue._id, drop.statusId, { ...(afterId ? { afterId } : {}), ...(beforeId ? { beforeId } : {}) });
+    void actions.move(issue._id, drop.statusId, {
+      ...(afterId ? { afterId } : {}),
+      ...(beforeId ? { beforeId } : {}),
+    });
   }
 
   const place = (data: unknown) => {
     const { lane, statusId } = data as DropData;
     const project = lanes.find((row) => row.id === lane)?.project;
-    return project === undefined ? statusName(statusId) : `${statusName(statusId)}, ${project?.name ?? "no project"}`;
+    return project === undefined
+      ? statusName(statusId)
+      : `${statusName(statusId)}, ${project?.name ?? "no project"}`;
   };
   const announcements: Announcements = {
     onDragStart: ({ active }) => `Picked up ${issueById(active.id)?.key ?? "issue"}.`,
-    onDragOver: ({ active, over }) => (over ? `${issueById(active.id)?.key ?? "Issue"} is over ${place(over.data.current)}.` : undefined),
+    onDragOver: ({ active, over }) =>
+      over
+        ? `${issueById(active.id)?.key ?? "Issue"} is over ${place(over.data.current)}.`
+        : undefined,
     onDragEnd: ({ active, over }) =>
-      over ? `Dropped ${issueById(active.id)?.key ?? "issue"} in ${place(over.data.current)}.` : `Dropped ${issueById(active.id)?.key ?? "issue"}.`,
+      over
+        ? `Dropped ${issueById(active.id)?.key ?? "issue"} in ${place(over.data.current)}.`
+        : `Dropped ${issueById(active.id)?.key ?? "issue"}.`,
     onDragCancel: ({ active }) => `Moving ${issueById(active.id)?.key ?? "issue"} was cancelled.`,
   };
 
@@ -271,118 +306,137 @@ function Board({ issues, lookups, space, newIssue, groupBy }: BoardProps) {
 
   return (
     <>
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collision}
-      onDragStart={onDragStart}
-      onDragMove={onDragMove}
-      onDragOver={onDragMove}
-      onDragEnd={onDragEnd}
-      onDragCancel={() => {
-        setActiveId(null);
-        setTarget(null);
-      }}
-      accessibility={{
-        announcements,
-        screenReaderInstructions: {
-          draggable: "Press Space to pick the issue up, the arrow keys to move it and Space to drop it; Escape cancels. Enter opens the issue.",
-        },
-      }}
-    >
-      {groupBy === "project" ? (
-        <div ref={container} className="min-h-0 flex-1 overflow-auto px-2 pb-2">
-          {/* Status headers once, above every lane. */}
-          <div className="sticky top-0 z-20 flex w-max gap-2 bg-background pt-2 pb-1">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collision}
+        onDragStart={onDragStart}
+        onDragMove={onDragMove}
+        onDragOver={onDragMove}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => {
+          setActiveId(null);
+          setTarget(null);
+        }}
+        accessibility={{
+          announcements,
+          screenReaderInstructions: {
+            draggable:
+              "Press Space to pick the issue up, the arrow keys to move it and Space to drop it; Escape cancels. Enter opens the issue.",
+          },
+        }}
+      >
+        {groupBy === "project" ? (
+          <div ref={container} className="min-h-0 flex-1 overflow-auto px-2 pb-2">
+            {/* Status headers once, above every lane. */}
+            <div className="bg-background sticky top-0 z-20 flex w-max gap-2 pt-2 pb-1">
+              {statuses.map((status) => (
+                <ColumnHeader
+                  key={status._id}
+                  status={status}
+                  count={lanes.reduce((sum, lane) => sum + cell(lane.id, status._id).length, 0)}
+                  onNewIssue={() => newIssue({ statusId: status._id })}
+                  className="bg-gray-2 w-68 rounded-lg"
+                />
+              ))}
+            </div>
+            {lanes.map((lane) => {
+              const name = lane.project?.name ?? "No project";
+              const count = statuses.reduce(
+                (sum, status) => sum + cell(lane.id, status._id).length,
+                0,
+              );
+              return (
+                <section key={lane.id} aria-label={name} className="mt-2">
+                  <div className="sticky left-0 flex h-8 w-fit items-center gap-2 px-1">
+                    {lane.project ? (
+                      <span
+                        className="size-2.5 rounded-[3px]"
+                        style={{ background: projectColor(lane.project) }}
+                        aria-hidden
+                      />
+                    ) : (
+                      <LayersIcon className="text-muted-foreground size-3.5" aria-hidden />
+                    )}
+                    <h2 className="text-foreground font-sans text-sm font-medium tracking-normal">
+                      {name}
+                    </h2>
+                    <span className="text-muted-foreground tabular font-mono text-xs">{count}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={`New issue in ${name}`}
+                      onClick={() => newIssue(lane.project ? { projectId: lane.project._id } : {})}
+                    >
+                      <PlusIcon />
+                    </Button>
+                  </div>
+                  <div className="flex w-max gap-2">
+                    {statuses.map((status) => (
+                      <Column
+                        key={status._id}
+                        lane={lane.id}
+                        laneName={name}
+                        status={status}
+                        issues={cell(lane.id, status._id)}
+                        activeId={activeId}
+                        indicator={
+                          target?.lane === lane.id && target.statusId === status._id
+                            ? target.index
+                            : null
+                        }
+                        onNewIssue={() =>
+                          newIssue({
+                            statusId: status._id,
+                            ...(lane.project ? { projectId: lane.project._id } : {}),
+                          })
+                        }
+                        header={false}
+                      >
+                        {renderCard(lane.id)}
+                      </Column>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <div ref={container} className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
             {statuses.map((status) => (
-              <ColumnHeader
+              <Column
                 key={status._id}
+                lane="all"
                 status={status}
-                count={lanes.reduce((sum, lane) => sum + cell(lane.id, status._id).length, 0)}
+                issues={cell("all", status._id)}
+                activeId={activeId}
+                indicator={target?.statusId === status._id ? target.index : null}
                 onNewIssue={() => newIssue({ statusId: status._id })}
-                className="w-68 rounded-lg bg-gray-2"
-              />
+              >
+                {renderCard("all")}
+              </Column>
             ))}
           </div>
-          {lanes.map((lane) => {
-            const name = lane.project?.name ?? "No project";
-            const count = statuses.reduce((sum, status) => sum + cell(lane.id, status._id).length, 0);
-            return (
-              <section key={lane.id} aria-label={name} className="mt-2">
-                <div className="sticky left-0 flex h-8 w-fit items-center gap-2 px-1">
-                  {lane.project ? (
-                    <span className="size-2.5 rounded-[3px]" style={{ background: projectColor(lane.project) }} aria-hidden />
-                  ) : (
-                    <LayersIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                  )}
-                  <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{name}</h2>
-                  <span className="font-mono text-xs text-muted-foreground tabular">{count}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`New issue in ${name}`}
-                    onClick={() => newIssue(lane.project ? { projectId: lane.project._id } : {})}
-                  >
-                    <PlusIcon />
-                  </Button>
-                </div>
-                <div className="flex w-max gap-2">
-                  {statuses.map((status) => (
-                    <Column
-                      key={status._id}
-                      lane={lane.id}
-                      laneName={name}
-                      status={status}
-                      issues={cell(lane.id, status._id)}
-                      activeId={activeId}
-                      indicator={target?.lane === lane.id && target.statusId === status._id ? target.index : null}
-                      onNewIssue={() => newIssue({ statusId: status._id, ...(lane.project ? { projectId: lane.project._id } : {}) })}
-                      header={false}
-                    >
-                      {renderCard(lane.id)}
-                    </Column>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <div ref={container} className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
-          {statuses.map((status) => (
-            <Column
-              key={status._id}
-              lane="all"
-              status={status}
-              issues={cell("all", status._id)}
-              activeId={activeId}
-              indicator={target?.statusId === status._id ? target.index : null}
-              onNewIssue={() => newIssue({ statusId: status._id })}
+        )}
+        <DragOverlay dropAnimation={dropAnimation}>
+          {active ? (
+            <motion.div
+              initial={reduceMotion ? false : { scale: 1, rotate: 0 }}
+              animate={reduceMotion ? undefined : { scale: 1.02, rotate: -1 }}
+              transition={spring.snappy}
+              className="cursor-grabbing"
             >
-              {renderCard("all")}
-            </Column>
-          ))}
-        </div>
-      )}
-      <DragOverlay dropAnimation={dropAnimation}>
-        {active ? (
-          <motion.div
-            initial={reduceMotion ? false : { scale: 1, rotate: 0 }}
-            animate={reduceMotion ? undefined : { scale: 1.02, rotate: -1 }}
-            transition={spring.snappy}
-            className="cursor-grabbing"
-          >
-            <CardBody
-              issue={active}
-              lookups={lookups}
-              parentKey={active.parentId ? family.byId.get(active.parentId)?.key : undefined}
-              subIssues={family.children.get(active._id)}
-              lifted
-            />
-          </motion.div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
-    {selection.element}
+              <CardBody
+                issue={active}
+                lookups={lookups}
+                parentKey={active.parentId ? family.byId.get(active.parentId)?.key : undefined}
+                subIssues={family.children.get(active._id)}
+                lifted
+              />
+            </motion.div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+      {selection.element}
     </>
   );
 }
@@ -401,9 +455,17 @@ function ColumnHeader({
   return (
     <div className={cn("flex h-9 shrink-0 items-center gap-2 px-3", className)}>
       <StatusGlyph category={status.category} color={statusColor(status)} />
-      <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{status.name}</h2>
-      <span className="font-mono text-xs text-muted-foreground tabular">{count}</span>
-      <Button variant="ghost" size="icon-xs" className="ml-auto" aria-label={`New issue in ${status.name}`} onClick={onNewIssue}>
+      <h2 className="text-foreground font-sans text-sm font-medium tracking-normal">
+        {status.name}
+      </h2>
+      <span className="text-muted-foreground tabular font-mono text-xs">{count}</span>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="ml-auto"
+        aria-label={`New issue in ${status.name}`}
+        onClick={onNewIssue}
+      >
         <PlusIcon />
       </Button>
     </div>
@@ -432,7 +494,10 @@ function Column({
   header?: boolean;
   children: (issue: ListIssue) => ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: columnId(lane, status._id), data: { lane, statusId: status._id } });
+  const { setNodeRef, isOver } = useDroppable({
+    id: columnId(lane, status._id),
+    data: { lane, statusId: status._id },
+  });
   // The indicator index counts the other cards, so skip the dragged one when placing it.
   const others = issues.filter((issue) => issue._id !== activeId);
   const indicatorBefore = indicator !== null ? (others[indicator]?._id ?? "end") : null;
@@ -440,14 +505,17 @@ function Column({
     <section
       aria-label={laneName ? `${laneName}, ${status.name}` : status.name}
       className={cn(
-        "flex w-68 shrink-0 flex-col rounded-lg bg-gray-2 transition-colors duration-(--duration-instant)",
+        "bg-gray-2 flex w-68 shrink-0 flex-col rounded-lg transition-colors duration-(--duration-instant)",
         isOver && "bg-gray-3",
       )}
     >
       {header && <ColumnHeader status={status} count={issues.length} onNewIssue={onNewIssue} />}
       <div
         ref={setNodeRef}
-        className={cn("flex flex-col gap-2 px-2 pb-2", header ? "min-h-24 flex-1 overflow-y-auto" : "min-h-16 pt-2")}
+        className={cn(
+          "flex flex-col gap-2 px-2 pb-2",
+          header ? "min-h-24 flex-1 overflow-y-auto" : "min-h-16 pt-2",
+        )}
       >
         {issues.map((issue) => (
           <div key={issue._id} className="relative">
@@ -467,7 +535,12 @@ function Column({
 
 /** Where the card will land: a line in the gap above the card, so nothing shifts while you drag. */
 function DropIndicator() {
-  return <div aria-hidden className="pointer-events-none absolute inset-x-1 -top-[5px] z-10 h-0.5 rounded-full bg-foreground" />;
+  return (
+    <div
+      aria-hidden
+      className="bg-foreground pointer-events-none absolute inset-x-1 -top-[5px] z-10 h-0.5 rounded-full"
+    />
+  );
 }
 
 /** Memoised like list rows: J/K and one changed issue re-render one or two cards, not the board. */
@@ -518,7 +591,7 @@ const Card = memo(function Card({
       className={cn(
         "group/card touch-none rounded-md",
         // The cursor: a ring that follows J/K (and keyboard focus).
-        isCursor ? "outline-2 outline-offset-1 outline-ring outline-solid" : "outline-none",
+        isCursor ? "outline-ring outline-2 outline-offset-1 outline-solid" : "outline-none",
         dimmed && "opacity-40",
       )}
       {...draggable.attributes}
@@ -526,7 +599,8 @@ const Card = memo(function Card({
       onFocus={() => onCursor(issue._id)}
       onKeyDown={(event) => {
         onKeyDown?.(event);
-        if (event.key === "Enter" && !event.defaultPrevented && !draggable.isDragging) navigate(routes.issue(issue.key));
+        if (event.key === "Enter" && !event.defaultPrevented && !draggable.isDragging)
+          navigate(routes.issue(issue.key));
       }}
       aria-roledescription="draggable issue"
       aria-label={`${issue.key} ${issue.title}`}
@@ -594,7 +668,7 @@ function CardBody({
   return (
     <div
       className={cn(
-        "relative flex cursor-default flex-col gap-2 rounded-md bg-background p-2.5 shadow-raised dark:bg-gray-3",
+        "bg-background shadow-raised dark:bg-gray-3 relative flex cursor-default flex-col gap-2 rounded-md p-2.5",
         "transition-[box-shadow] duration-(--duration-instant) hover:shadow-[0_0_0_1px_var(--border-strong),0_1px_2px_oklch(0_0_0/0.06)]",
         lifted && "shadow-overlay hover:shadow-overlay",
         selected && "bg-gray-3 dark:bg-gray-5",
@@ -605,32 +679,47 @@ function CardBody({
         {select}
         <IssueKey value={issue.key} />
         {parentKey && (
-          <span className="flex items-center gap-0.5 text-xs text-muted-foreground" title={`Sub-issue of ${parentKey}`}>
+          <span
+            className="text-muted-foreground flex items-center gap-0.5 text-xs"
+            title={`Sub-issue of ${parentKey}`}
+          >
             <CornerDownRightIcon className="size-3" aria-hidden />
             <span className="font-mono">{parentKey}</span>
           </span>
         )}
         <span className="ml-auto">
           {assignee ? (
-            <PersonAvatar person={{ name: assignee.displayName, avatarUrl: assignee.avatarUrl }} size="xs" />
+            <PersonAvatar
+              person={{ name: assignee.displayName, avatarUrl: assignee.avatarUrl }}
+              size="xs"
+            />
           ) : (
-            <span className="block size-4 rounded-full border border-dashed border-gray-8" aria-label="Unassigned" />
+            <span
+              className="border-gray-8 block size-4 rounded-full border border-dashed"
+              aria-label="Unassigned"
+            />
           )}
         </span>
       </div>
-      <span className="line-clamp-2 text-sm leading-5 text-foreground">{issue.title}</span>
+      <span className="text-foreground line-clamp-2 text-sm leading-5">{issue.title}</span>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="flex h-5 items-center rounded-sm border border-border px-1">
+        <span className="border-border flex h-5 items-center rounded-sm border px-1">
           <PriorityGlyph priority={issue.priority} size={12} />
         </span>
-        {project && <ProjectChip name={project.name} color={project.color} title={`Project: ${project.name}`} />}
+        {project && (
+          <ProjectChip
+            name={project.name}
+            color={project.color}
+            title={`Project: ${project.name}`}
+          />
+        )}
         {labels.map((label) => (
           <LabelChip key={label._id} name={label.name} color={label.color} />
         ))}
         {issue.dueDate && (
           <span
             className={cn(
-              "flex h-5 items-center rounded-sm border border-border px-1.5 font-mono text-2xs tabular",
+              "border-border text-2xs tabular flex h-5 items-center rounded-sm border px-1.5 font-mono",
               overdue ? "text-destructive" : "text-muted-foreground",
             )}
             title={overdue ? "Overdue" : "Due"}

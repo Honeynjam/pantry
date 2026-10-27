@@ -10,15 +10,23 @@ const partner = { subject: "user-partner", name: "Partner", email: "partner@exam
 
 async function setUp() {
   const t = setupTest();
-  const created = await t.withIdentity(owner).mutation(api.setup.createWorkspace, { workspaceName: "Home" });
+  const created = await t
+    .withIdentity(owner)
+    .mutation(api.setup.createWorkspace, { workspaceName: "Home" });
   // A second member, added directly (invites have their own tests).
   await t.run((ctx) =>
-    ctx.db.insert("members", { workspaceId: created.workspaceId, userId: partner.subject, displayName: "Partner", role: "member" }),
+    ctx.db.insert("members", {
+      workspaceId: created.workspaceId,
+      userId: partner.subject,
+      displayName: "Partner",
+      role: "member",
+    }),
   );
   return { t, ...created };
 }
 
-const createToken = (t: TestConvex, name = "Laptop", who = owner) => t.withIdentity(who).action(api.tokens.create, { name });
+const createToken = (t: TestConvex, name = "Laptop", who = owner) =>
+  t.withIdentity(who).action(api.tokens.create, { name });
 
 /** Runs `requireToken` the way every MCP function does; resolves to the member id or the error message. */
 const check = (t: TestConvex, token: string) =>
@@ -41,7 +49,12 @@ describe("tokens", () => {
     expect(created.name).toBe("Claude Code");
 
     const stored = await t.run((ctx) => ctx.db.get("apiTokens", created.tokenId));
-    expect(stored).toMatchObject({ userId: owner.subject, memberId, name: "Claude Code", tokenPrefix: created.tokenPrefix });
+    expect(stored).toMatchObject({
+      userId: owner.subject,
+      memberId,
+      name: "Claude Code",
+      tokenPrefix: created.tokenPrefix,
+    });
     expect(stored!.tokenHash).toBe(await sha256Hex(created.token));
     expect(JSON.stringify(stored)).not.toContain(created.token);
 
@@ -55,7 +68,9 @@ describe("tokens", () => {
   it("needs a member and a name", async () => {
     const { t } = await setUp();
     await expect(t.action(api.tokens.create, { name: "x" })).rejects.toThrow(/Sign in/);
-    await expect(createToken(t, "x", { subject: "stranger", name: "S", email: "s@example.com" })).rejects.toThrow(/not a member/);
+    await expect(
+      createToken(t, "x", { subject: "stranger", name: "S", email: "s@example.com" }),
+    ).rejects.toThrow(/not a member/);
     await expect(createToken(t, "   ")).rejects.toThrow(/can't be empty/);
   });
 
@@ -66,7 +81,9 @@ describe("tokens", () => {
     await createToken(t, "Theirs", partner);
     const mine = await t.withIdentity(owner).query(api.tokens.list, {});
     expect(mine.map((row) => row.name)).toEqual(["Second", "First"]);
-    expect((await t.withIdentity(partner).query(api.tokens.list, {})).map((row) => row.name)).toEqual(["Theirs"]);
+    expect(
+      (await t.withIdentity(partner).query(api.tokens.list, {})).map((row) => row.name),
+    ).toEqual(["Theirs"]);
   });
 
   it("a revoked token is rejected by requireToken", async () => {
@@ -76,7 +93,9 @@ describe("tokens", () => {
 
     await t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId });
     expect(await check(t, token)).toMatch(/isn't valid or was revoked/);
-    expect((await t.withIdentity(owner).query(api.tokens.list, {}))[0]!.revokedAt).toBeTypeOf("number");
+    expect((await t.withIdentity(owner).query(api.tokens.list, {}))[0]!.revokedAt).toBeTypeOf(
+      "number",
+    );
     // Revoking twice is harmless.
     await t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId });
   });
@@ -89,14 +108,18 @@ describe("tokens", () => {
     expect(await check(t, "")).toMatch(/isn't valid/);
     expect(await check(t, `pan_${"a".repeat(200)}`)).toMatch(/isn't valid/);
     // The member behind it is gone: the token stops working.
-    await t.run(async (ctx) => ctx.db.delete("members", (await ctx.db.get("apiTokens", tokenId))!.memberId));
+    await t.run(async (ctx) =>
+      ctx.db.delete("members", (await ctx.db.get("apiTokens", tokenId))!.memberId),
+    );
     expect(await check(t, token)).toMatch(/isn't valid/);
   });
 
   it("only the token's owner can revoke it", async () => {
     const { t } = await setUp();
     const { token, tokenId } = await createToken(t, "Partner's", partner);
-    await expect(t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId })).rejects.toThrow(/Token not found/);
+    await expect(t.withIdentity(owner).mutation(api.tokens.revoke, { tokenId })).rejects.toThrow(
+      /Token not found/,
+    );
     expect(await check(t, token)).not.toMatch(/isn't valid/);
   });
 
@@ -123,7 +146,8 @@ describe("lastUsedAt", () => {
   it("mcp.touchToken writes at most once per 10 minutes", async () => {
     const { t } = await setUp();
     const { token, tokenId } = await createToken(t);
-    const lastUsed = () => t.run(async (ctx) => (await ctx.db.get("apiTokens", tokenId))!.lastUsedAt);
+    const lastUsed = () =>
+      t.run(async (ctx) => (await ctx.db.get("apiTokens", tokenId))!.lastUsedAt);
     const start = Date.now() + 1000;
     vi.useFakeTimers({ now: start });
 
@@ -139,7 +163,9 @@ describe("lastUsedAt", () => {
     expect(await lastUsed()).toBe(start + TOKEN_TOUCH_INTERVAL_MS);
 
     // The list shows it; a bad token touches nothing.
-    expect((await t.withIdentity(owner).query(api.tokens.list, {}))[0]!.lastUsedAt).toBe(start + TOKEN_TOUCH_INTERVAL_MS);
+    expect((await t.withIdentity(owner).query(api.tokens.list, {}))[0]!.lastUsedAt).toBe(
+      start + TOKEN_TOUCH_INTERVAL_MS,
+    );
     expect(await t.mutation(api.mcp.touchToken, { token: "pan_nope" })).toBe(false);
   });
 

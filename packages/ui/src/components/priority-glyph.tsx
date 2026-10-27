@@ -36,7 +36,15 @@ function PriorityGlyph({
       <title>{label}</title>
       {priority === 0 &&
         BARS.map((bar) => (
-          <rect key={bar.x} x={bar.x} y="6.25" width="2.5" height="1.5" rx="0.75" fill="var(--faint-foreground)" />
+          <rect
+            key={bar.x}
+            x={bar.x}
+            y="6.25"
+            width="2.5"
+            height="1.5"
+            rx="0.75"
+            fill="var(--faint-foreground)"
+          />
         ))}
       {priority === 1 && (
         <>

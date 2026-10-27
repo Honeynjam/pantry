@@ -44,7 +44,7 @@ function SegmentedControl<T extends string>({
       data-slot="segmented-control"
       data-size={size}
       className={cn(
-        "relative inline-flex w-fit items-center gap-0.5 rounded-md bg-muted p-0.5",
+        "bg-muted relative inline-flex w-fit items-center gap-0.5 rounded-md p-0.5",
         size === "sm" ? "h-control-sm" : "h-control",
         className,
       )}
@@ -58,7 +58,7 @@ function SegmentedControl<T extends string>({
             aria-label={option.ariaLabel}
             className={cn(
               "relative flex h-full cursor-default items-center justify-center gap-1.5 rounded-sm px-2 font-medium whitespace-nowrap select-none",
-              "text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground data-checked:text-foreground",
+              "text-muted-foreground hover:text-foreground data-checked:text-foreground transition-colors duration-(--duration-instant)",
               "focus-visible:outline-offset-0",
               "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
               size === "sm" ? "text-xs" : "text-sm",
@@ -69,7 +69,7 @@ function SegmentedControl<T extends string>({
                 layoutId={layoutId}
                 transition={transition}
                 aria-hidden
-                className="absolute inset-0 rounded-sm bg-background shadow-raised dark:bg-gray-6"
+                className="bg-background shadow-raised dark:bg-gray-6 absolute inset-0 rounded-sm"
               />
             )}
             <span className="relative z-10 inline-flex items-center gap-1.5">

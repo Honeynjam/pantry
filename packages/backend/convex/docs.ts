@@ -35,7 +35,11 @@ export const saveContext = mutation({
     const me = await requireMember(ctx);
     const space = await ctx.db.get("spaces", spaceId);
     if (!space || space.workspaceId !== me.workspaceId) return notFound("Space");
-    if (body.length > MAX_BODY) fail("TOO_LONG", `The context doc can be at most ${MAX_BODY.toLocaleString("en")} characters.`);
+    if (body.length > MAX_BODY)
+      fail(
+        "TOO_LONG",
+        `The context doc can be at most ${MAX_BODY.toLocaleString("en")} characters.`,
+      );
     const doc = await ctx.db
       .query("docs")
       .withIndex("by_space_and_kind", (q) => q.eq("spaceId", spaceId).eq("kind", "space_context"))

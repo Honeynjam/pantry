@@ -16,5 +16,9 @@ export default function DesignRoute() {
   if (process.env.NODE_ENV === "production" && process.env.PANTRY_DESIGN_PAGE !== "1") {
     notFound();
   }
-  return <DesignPage brand={{ name: brand.name, defaultKey: brand.defaultKey, tokenPrefix: brand.tokenPrefix }} />;
+  return (
+    <DesignPage
+      brand={{ name: brand.name, defaultKey: brand.defaultKey, tokenPrefix: brand.tokenPrefix }}
+    />
+  );
 }

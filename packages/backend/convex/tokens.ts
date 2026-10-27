@@ -17,7 +17,10 @@ export const MAX_ACTIVE_TOKENS = 25;
  */
 export const create = action({
   args: { name: v.string() },
-  handler: async (ctx, { name }): Promise<{ tokenId: Id<"apiTokens">; token: string; name: string; tokenPrefix: string }> => {
+  handler: async (
+    ctx,
+    { name },
+  ): Promise<{ tokenId: Id<"apiTokens">; token: string; name: string; tokenPrefix: string }> => {
     const token = randomToken(brand.tokenPrefix);
     const tokenPrefix = token.slice(0, TOKEN_PREFIX_LENGTH);
     const tokenHash = await sha256Hex(token);
@@ -37,7 +40,10 @@ export const insert = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", me.userId))
       .collect();
     if (mine.filter((row) => row.revokedAt === undefined).length >= MAX_ACTIVE_TOKENS) {
-      fail("TOO_MANY_TOKENS", `You can have up to ${MAX_ACTIVE_TOKENS} tokens. Revoke one you no longer use first.`);
+      fail(
+        "TOO_MANY_TOKENS",
+        `You can have up to ${MAX_ACTIVE_TOKENS} tokens. Revoke one you no longer use first.`,
+      );
     }
     const tokenId = await ctx.db.insert("apiTokens", {
       userId: me.userId,
@@ -58,8 +64,10 @@ export const revoke = mutation({
     const me = await requireMember(ctx);
     const token = await ctx.db.get("apiTokens", tokenId);
     // Someone else's token is "not found": tokens are personal, even to the owner.
-    if (!token || token.userId !== me.userId || token.workspaceId !== me.workspaceId) return notFound("Token");
-    if (token.revokedAt === undefined) await ctx.db.patch("apiTokens", tokenId, { revokedAt: Date.now() });
+    if (!token || token.userId !== me.userId || token.workspaceId !== me.workspaceId)
+      return notFound("Token");
+    if (token.revokedAt === undefined)
+      await ctx.db.patch("apiTokens", tokenId, { revokedAt: Date.now() });
   },
 });
 

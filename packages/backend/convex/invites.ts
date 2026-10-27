@@ -29,10 +29,16 @@ export const invitePath = (token: string) => `/sign-up?invite=${encodeURICompone
  */
 export const create = action({
   args: { email: v.string() },
-  handler: async (ctx, { email }): Promise<{ inviteId: Id<"invites">; token: string; url: string | null; expiresAt: number }> => {
+  handler: async (
+    ctx,
+    { email },
+  ): Promise<{ inviteId: Id<"invites">; token: string; url: string | null; expiresAt: number }> => {
     const token = randomToken(INVITE_TOKEN_PREFIX);
     const tokenHash = await sha256Hex(token);
-    const { inviteId, expiresAt } = await ctx.runMutation(internal.invites.insert, { email, tokenHash });
+    const { inviteId, expiresAt } = await ctx.runMutation(internal.invites.insert, {
+      email,
+      tokenHash,
+    });
     const siteUrl = env.SITE_URL?.replace(/\/+$/, "");
     return { inviteId, token, url: siteUrl ? `${siteUrl}${invitePath(token)}` : null, expiresAt };
   },
@@ -98,9 +104,13 @@ export const revoke = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Invite not found." });
     }
     if (invite.acceptedAt !== undefined) {
-      throw new ConvexError({ code: "ALREADY_ACCEPTED", message: "This invite was already accepted." });
+      throw new ConvexError({
+        code: "ALREADY_ACCEPTED",
+        message: "This invite was already accepted.",
+      });
     }
-    if (invite.revokedAt === undefined) await ctx.db.patch("invites", inviteId, { revokedAt: Date.now() });
+    if (invite.revokedAt === undefined)
+      await ctx.db.patch("invites", inviteId, { revokedAt: Date.now() });
   },
 });
 
@@ -152,7 +162,8 @@ export const peek = query({
   ): Promise<{ status: InvitePeekStatus; email: string | null; workspaceName: string | null }> => {
     const unknown = { status: "unknown" as const, email: null, workspaceName: null };
     const trimmed = token.trim();
-    if (!trimmed.startsWith(INVITE_TOKEN_PREFIX) || trimmed.length > MAX_TOKEN_LENGTH) return unknown;
+    if (!trimmed.startsWith(INVITE_TOKEN_PREFIX) || trimmed.length > MAX_TOKEN_LENGTH)
+      return unknown;
     const hash = await sha256Hex(trimmed);
     const invite = await ctx.db
       .query("invites")
@@ -183,7 +194,8 @@ export const accept = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
     // Already in (e.g. a double submit): nothing to do, and the invite isn't consumed.
-    if (existing) return { memberId: existing._id, workspaceId: existing.workspaceId, alreadyMember: true };
+    if (existing)
+      return { memberId: existing._id, workspaceId: existing.workspaceId, alreadyMember: true };
 
     const hash = await sha256Hex(token.trim());
     const invite = await ctx.db
@@ -191,17 +203,29 @@ export const accept = mutation({
       .withIndex("by_token_hash", (q) => q.eq("tokenHash", hash))
       .first();
     if (!invite) {
-      throw new ConvexError({ code: "INVITE_INVALID", message: "This invite link isn't valid. Ask the owner for a new one." });
+      throw new ConvexError({
+        code: "INVITE_INVALID",
+        message: "This invite link isn't valid. Ask the owner for a new one.",
+      });
     }
     const state = inviteState(invite, Date.now());
     if (state === "accepted") {
-      throw new ConvexError({ code: "INVITE_USED", message: "This invite link has already been used." });
+      throw new ConvexError({
+        code: "INVITE_USED",
+        message: "This invite link has already been used.",
+      });
     }
     if (state === "revoked") {
-      throw new ConvexError({ code: "INVITE_REVOKED", message: "This invite link was revoked. Ask the owner for a new one." });
+      throw new ConvexError({
+        code: "INVITE_REVOKED",
+        message: "This invite link was revoked. Ask the owner for a new one.",
+      });
     }
     if (state === "expired") {
-      throw new ConvexError({ code: "INVITE_EXPIRED", message: "This invite link has expired. Ask the owner for a new one." });
+      throw new ConvexError({
+        code: "INVITE_EXPIRED",
+        message: "This invite link has expired. Ask the owner for a new one.",
+      });
     }
 
     const email = await getAuthEmail(ctx);

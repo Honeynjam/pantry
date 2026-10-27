@@ -22,7 +22,14 @@ vi.mock("convex/browser", async () => {
   };
 });
 
-const owner = { tokenId: "t1", memberId: "m1", workspaceId: "w1", userId: "u1", displayName: "Kris", lastUsedAt: Date.now() };
+const owner = {
+  tokenId: "t1",
+  memberId: "m1",
+  workspaceId: "w1",
+  userId: "u1",
+  displayName: "Kris",
+  lastUsedAt: Date.now(),
+};
 
 function rpc(body: object, token?: string) {
   return new Request("https://pantry.example.com/api/mcp", {
@@ -37,12 +44,20 @@ function rpc(body: object, token?: string) {
   });
 }
 
-const getIssue = { method: "tools/call", params: { name: "get_issue", arguments: { key: "PAN-1" } } };
+const getIssue = {
+  method: "tools/call",
+  params: { name: "get_issue", arguments: { key: "PAN-1" } },
+};
 
 /** The JSON-RPC message in a JSON or single-event SSE response. */
 async function message(res: Response) {
   const text = await res.text();
-  const data = text.startsWith("{") ? text : text.split("\n").find((line) => line.startsWith("data: "))!.slice(6);
+  const data = text.startsWith("{")
+    ? text
+    : text
+        .split("\n")
+        .find((line) => line.startsWith("data: "))!
+        .slice(6);
   return JSON.parse(data) as { result?: { content: { text: string }[]; isError?: boolean } };
 }
 

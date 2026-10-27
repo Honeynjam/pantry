@@ -24,7 +24,11 @@ export function claudeCodeSnippet(url: string, token = TOKEN_PLACEHOLDER) {
 
 export function cursorSnippet(url: string) {
   return JSON.stringify(
-    { mcpServers: { [MCP_SERVER_NAME]: { url, headers: { Authorization: `Bearer \${env:${TOKEN_ENV_VAR}}` } } } },
+    {
+      mcpServers: {
+        [MCP_SERVER_NAME]: { url, headers: { Authorization: `Bearer \${env:${TOKEN_ENV_VAR}}` } },
+      },
+    },
     null,
     2,
   );

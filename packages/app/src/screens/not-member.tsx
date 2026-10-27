@@ -13,8 +13,8 @@ export function NotMemberScreen() {
       title="No access yet"
       description={
         <>
-          {session.data?.user.email ?? "This account"} isn&apos;t a member of this workspace. Ask the owner for an invite
-          link, then sign in again.
+          {session.data?.user.email ?? "This account"} isn&apos;t a member of this workspace. Ask
+          the owner for an invite link, then sign in again.
         </>
       }
     >

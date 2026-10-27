@@ -17,7 +17,12 @@ export function useShortcutScope(scope: ShortcutScope, active = true) {
  * Handle a registered shortcut in `scope`. The handler can change every render; the registration
  * doesn't. Return `false` from it to let the key through.
  */
-export function useShortcut(id: ShortcutId, scope: ShortcutScope, handler: ShortcutHandler, enabled = true) {
+export function useShortcut(
+  id: ShortcutId,
+  scope: ShortcutScope,
+  handler: ShortcutHandler,
+  enabled = true,
+) {
   const latest = useRef(handler);
   useEffect(() => {
     latest.current = handler;
@@ -29,7 +34,11 @@ export function useShortcut(id: ShortcutId, scope: ShortcutScope, handler: Short
 }
 
 /** Several shortcuts in one scope. The set of ids should stay the same between renders. */
-export function useShortcutMap(scope: ShortcutScope, handlers: Partial<Record<ShortcutId, ShortcutHandler>>, enabled = true) {
+export function useShortcutMap(
+  scope: ShortcutScope,
+  handlers: Partial<Record<ShortcutId, ShortcutHandler>>,
+  enabled = true,
+) {
   const latest = useRef(handlers);
   useEffect(() => {
     latest.current = handlers;

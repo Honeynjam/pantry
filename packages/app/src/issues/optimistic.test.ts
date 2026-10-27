@@ -17,31 +17,51 @@ function freeze<T>(value: T): T {
 /** A fake OptimisticLocalStore over a map of frozen query results. */
 function fakeStore() {
   const results = new Map<string, { query: string; args: unknown; value: unknown }>();
-  const key = (query: FunctionReference<"query">, args: unknown) => `${getFunctionName(query)}:${JSON.stringify(args)}`;
+  const key = (query: FunctionReference<"query">, args: unknown) =>
+    `${getFunctionName(query)}:${JSON.stringify(args)}`;
   const store = {
-    getQuery: (query: FunctionReference<"query">, args: unknown = {}) => results.get(key(query, args))?.value,
+    getQuery: (query: FunctionReference<"query">, args: unknown = {}) =>
+      results.get(key(query, args))?.value,
     getAllQueries: (query: FunctionReference<"query">) =>
-      [...results.values()].filter((entry) => entry.query === getFunctionName(query)).map(({ args, value }) => ({ args, value })),
+      [...results.values()]
+        .filter((entry) => entry.query === getFunctionName(query))
+        .map(({ args, value }) => ({ args, value })),
     setQuery: (query: FunctionReference<"query">, args: unknown, value: unknown) =>
       results.set(key(query, args), { query: getFunctionName(query), args, value: freeze(value) }),
   };
-  return store as unknown as OptimisticLocalStore & { setQuery: (q: unknown, a: unknown, v: unknown) => void };
+  return store as unknown as OptimisticLocalStore & {
+    setQuery: (q: unknown, a: unknown, v: unknown) => void;
+  };
 }
 
 const id = <T extends TableNames>(value: string) => value as Id<T>;
-const statuses = (["backlog", "unstarted", "started", "review", "done", "canceled"] as const).map((category, order) => ({
-  _id: id<"statuses">(`s-${category}`),
+const statuses = (["backlog", "unstarted", "started", "review", "done", "canceled"] as const).map(
+  (category, order) => ({
+    _id: id<"statuses">(`s-${category}`),
+    _creationTime: 0,
+    workspaceId: id<"workspaces">("w"),
+    name: category,
+    category,
+    order,
+    color: "gray",
+  }),
+);
+const me = {
+  _id: id<"members">("m-me"),
   _creationTime: 0,
   workspaceId: id<"workspaces">("w"),
-  name: category,
-  category,
-  order,
-  color: "gray",
-}));
-const me = { _id: id<"members">("m-me"), _creationTime: 0, workspaceId: id<"workspaces">("w"), userId: "u", displayName: "Me", role: "owner" as const };
+  userId: "u",
+  displayName: "Me",
+  role: "owner" as const,
+};
 const other = { ...me, _id: id<"members">("m-other"), displayName: "Other" };
 
-function issue(n: number, category: (typeof statuses)[number]["category"], sortOrder: number, extra: Partial<Doc<"issues">> = {}): Doc<"issues"> {
+function issue(
+  n: number,
+  category: (typeof statuses)[number]["category"],
+  sortOrder: number,
+  extra: Partial<Doc<"issues">> = {},
+): Doc<"issues"> {
   return {
     _id: id<"issues">(`i-${n}`),
     _creationTime: n,
@@ -64,19 +84,31 @@ function issue(n: number, category: (typeof statuses)[number]["category"], sortO
 
 function setUp() {
   const store = fakeStore();
-  const list = [issue(1, "unstarted", 1, { assigneeId: me._id }), issue(2, "unstarted", 2), issue(3, "started", 1, { assigneeId: me._id })];
-  store.setQuery(api.workspace.current, {}, { me, statuses, members: [me, other], labels: [], spaces: [], projects: [] });
+  const list = [
+    issue(1, "unstarted", 1, { assigneeId: me._id }),
+    issue(2, "unstarted", 2),
+    issue(3, "started", 1, { assigneeId: me._id }),
+  ];
+  store.setQuery(
+    api.workspace.current,
+    {},
+    { me, statuses, members: [me, other], labels: [], spaces: [], projects: [] },
+  );
   store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, list);
   store.setQuery(api.issues.listMine, {}, [list[2], list[0]]);
-  store.setQuery(api.issues.get, { key: "PAN-1" }, {
-    issue: list[0],
-    space: null,
-    project: null,
-    parent: null,
-    subIssues: [],
-    comments: [],
-    activity: [],
-  });
+  store.setQuery(
+    api.issues.get,
+    { key: "PAN-1" },
+    {
+      issue: list[0],
+      space: null,
+      project: null,
+      parent: null,
+      subIssues: [],
+      comments: [],
+      activity: [],
+    },
+  );
   const before = {
     list: store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }),
     mine: store.getQuery(api.issues.listMine, {}),
@@ -92,7 +124,13 @@ describe("optimistic updates", () => {
     optimisticMove(store, { issueId: id("i-1"), statusId: id("s-done") }, 500);
     const list = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(keys(list)).toEqual(["PAN-2", "PAN-3", "PAN-1"]);
-    expect(list[2]).toMatchObject({ statusId: "s-done", statusCategory: "done", completedAt: 500, updatedAt: 500, sortOrder: 1 });
+    expect(list[2]).toMatchObject({
+      statusId: "s-done",
+      statusCategory: "done",
+      completedAt: 500,
+      updatedAt: 500,
+      sortOrder: 1,
+    });
     // My issues drops it (done isn't open); the issue page shows the new status.
     expect(keys(store.getQuery(api.issues.listMine, {}))).toEqual(["PAN-3"]);
     expect(store.getQuery(api.issues.get, { key: "PAN-1" })?.issue.statusCategory).toBe("done");
@@ -103,7 +141,11 @@ describe("optimistic updates", () => {
 
   it("places a drop between neighbours, and reorders without bumping updatedAt", () => {
     const { store } = setUp();
-    optimisticMove(store, { issueId: id("i-2"), statusId: id("s-unstarted"), beforeId: id("i-1") }, 500);
+    optimisticMove(
+      store,
+      { issueId: id("i-2"), statusId: id("s-unstarted"), beforeId: id("i-1") },
+      500,
+    );
     const list = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(keys(list)).toEqual(["PAN-2", "PAN-1", "PAN-3"]);
     expect(list[0]).toMatchObject({ sortOrder: 0, updatedAt: 100 });
@@ -128,31 +170,72 @@ describe("optimistic updates", () => {
   it("moves an issue and its sub-issues to another project", () => {
     const store = fakeStore();
     const parent = issue(1, "unstarted", 1, { projectId: id<"projects">("p-a") });
-    const child = issue(2, "unstarted", 2, { projectId: id<"projects">("p-a"), parentId: parent._id });
-    store.setQuery(api.workspace.current, {}, { me, statuses, members: [me], labels: [], spaces: [], projects: [] });
+    const child = issue(2, "unstarted", 2, {
+      projectId: id<"projects">("p-a"),
+      parentId: parent._id,
+    });
+    store.setQuery(
+      api.workspace.current,
+      {},
+      { me, statuses, members: [me], labels: [], spaces: [], projects: [] },
+    );
     store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, [parent, child]);
-    store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp"), projectId: id<"projects">("p-a") }, [parent, child]);
+    store.setQuery(
+      api.issues.listBySpace,
+      { spaceId: id<"spaces">("sp"), projectId: id<"projects">("p-a") },
+      [parent, child],
+    );
     optimisticUpdate(store, { issueId: parent._id, projectId: id("p-b") }, 900);
     const all = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!;
     expect(all.map((row) => row.projectId)).toEqual(["p-b", "p-b"]);
     // The list narrowed to the old project drops both.
-    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp"), projectId: id<"projects">("p-a") })).toEqual([]);
+    expect(
+      store.getQuery(api.issues.listBySpace, {
+        spaceId: id<"spaces">("sp"),
+        projectId: id<"projects">("p-a"),
+      }),
+    ).toEqual([]);
     optimisticUpdate(store, { issueId: parent._id, projectId: null }, 901);
-    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!.map((row) => row.projectId)).toEqual([undefined, undefined]);
+    expect(
+      store
+        .getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })!
+        .map((row) => row.projectId),
+    ).toEqual([undefined, undefined]);
     // A sub-issue can't take its own project: left for the server to refuse.
     optimisticUpdate(store, { issueId: child._id, projectId: id("p-c") }, 902);
-    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![1]!.projectId).toBeUndefined();
+    expect(
+      store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![1]!.projectId,
+    ).toBeUndefined();
   });
 
   it("edits the description on the issue page's copy only: list rows don't carry one", () => {
     const store = fakeStore();
     const full = issue(1, "unstarted", 1, { description: "Old" });
     const { description: _description, ...row } = full;
-    store.setQuery(api.workspace.current, {}, { me, statuses, members: [me], labels: [], spaces: [], projects: [] });
+    store.setQuery(
+      api.workspace.current,
+      {},
+      { me, statuses, members: [me], labels: [], spaces: [], projects: [] },
+    );
     store.setQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") }, [row]);
-    store.setQuery(api.issues.get, { key: "PAN-1" }, { issue: full, space: null, project: null, parent: null, subIssues: [], comments: [], activity: [] });
+    store.setQuery(
+      api.issues.get,
+      { key: "PAN-1" },
+      {
+        issue: full,
+        space: null,
+        project: null,
+        parent: null,
+        subIssues: [],
+        comments: [],
+        activity: [],
+      },
+    );
     optimisticUpdate(store, { issueId: full._id, description: "New", title: "Renamed" }, 950);
-    expect(store.getQuery(api.issues.get, { key: "PAN-1" })!.issue).toMatchObject({ description: "New", title: "Renamed" });
+    expect(store.getQuery(api.issues.get, { key: "PAN-1" })!.issue).toMatchObject({
+      description: "New",
+      title: "Renamed",
+    });
     const listed = store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })![0]!;
     expect(listed).toMatchObject({ title: "Renamed", updatedAt: 950 });
     expect(listed).not.toHaveProperty("description");
@@ -163,7 +246,14 @@ describe("optimistic updates", () => {
     optimisticComment(store, { issueId: id("i-1"), body: "On it" }, 800, "optimistic-1");
     const page = store.getQuery(api.issues.get, { key: "PAN-1" })!;
     expect(page.comments).toEqual([
-      { _id: "optimistic-1", _creationTime: 800, issueId: "i-1", authorId: "m-me", body: "On it", via: "app" },
+      {
+        _id: "optimistic-1",
+        _creationTime: 800,
+        issueId: "i-1",
+        authorId: "m-me",
+        body: "On it",
+        via: "app",
+      },
     ]);
     expect(page.issue.updatedAt).toBe(800);
   });
@@ -172,6 +262,8 @@ describe("optimistic updates", () => {
     const { store, before } = setUp();
     optimisticMove(store, { issueId: id("i-99"), statusId: id("s-done") });
     optimisticUpdate(store, { issueId: id("i-99"), priority: 2 });
-    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })).toBe(before.list);
+    expect(store.getQuery(api.issues.listBySpace, { spaceId: id<"spaces">("sp") })).toBe(
+      before.list,
+    );
   });
 });

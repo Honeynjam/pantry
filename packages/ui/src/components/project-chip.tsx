@@ -16,7 +16,7 @@ function ProjectChip({
     <span
       data-slot="project-chip"
       className={cn(
-        "inline-flex h-5 max-w-36 shrink-0 items-center gap-1.5 rounded-sm bg-gray-3 px-1.5 text-xs text-muted-foreground",
+        "bg-gray-3 text-muted-foreground inline-flex h-5 max-w-36 shrink-0 items-center gap-1.5 rounded-sm px-1.5 text-xs",
         className,
       )}
       {...props}

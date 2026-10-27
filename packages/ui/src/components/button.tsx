@@ -44,7 +44,8 @@ const buttonVariants = cva(
         link: "h-auto! px-0! text-primary-text underline decoration-gray-8 underline-offset-4 hover:decoration-current active:scale-100",
       },
       size: {
-        default: "h-control px-2.5 text-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        default:
+          "h-control px-2.5 text-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
         xs: "h-5 gap-1 rounded-sm px-1.5 text-xs [&_svg:not([class*='size-'])]:size-3",
         sm: "h-control-sm gap-1 rounded-sm px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-control-lg px-3 text-sm has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-4",

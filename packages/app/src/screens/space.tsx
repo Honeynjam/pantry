@@ -21,7 +21,15 @@ import { useMemo, useRef, useState } from "react";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";
 import { FilterBar, useIssueFilters } from "../issues/filter-bar";
-import { applyFilters, EMPTY_FILTERS, hasFilters, parseGroup, serializeGroup, slug, type GroupBy } from "../issues/filters";
+import {
+  applyFilters,
+  EMPTY_FILTERS,
+  hasFilters,
+  parseGroup,
+  serializeGroup,
+  slug,
+  type GroupBy,
+} from "../issues/filters";
 import { IssueRow } from "../issues/issue-row";
 import { RowPickers } from "../issues/pickers";
 import { useIssueSelection } from "../issues/selection";
@@ -83,27 +91,40 @@ export function SpaceIssues({
     () =>
       issues === undefined
         ? undefined
-        : applyFilters(issues, filters, { me: data.me._id, statuses: data.statuses, labels: data.labels, projects }),
+        : applyFilters(issues, filters, {
+            me: data.me._id,
+            statuses: data.statuses,
+            labels: data.labels,
+            projects,
+          }),
     [issues, filters, data.me._id, data.statuses, data.labels, projects],
   );
   // Filtered to exactly one project: new issues start in it.
   const onlyProject =
-    filters.project.length === 1 ? projects.find((project) => slug(project.name) === filters.project[0]) : undefined;
+    filters.project.length === 1
+      ? projects.find((project) => slug(project.name) === filters.project[0])
+      : undefined;
   const newIssue = (defaults: NewIssueDefaults = {}) =>
-    commands.newIssue({ ...(onlyProject ? { projectId: onlyProject._id } : {}), ...defaults, space });
+    commands.newIssue({
+      ...(onlyProject ? { projectId: onlyProject._id } : {}),
+      ...defaults,
+      space,
+    });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-1.5">
+      <div className="border-border flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5">
         <FilterBar
           filters={filters}
           setFilters={setFilters}
           setTitle={setTitle}
           lookups={lookups}
-          facets={projects.length > 0 ? ["status", "assignee", "label", "priority", "project"] : undefined}
+          facets={
+            projects.length > 0 ? ["status", "assignee", "label", "priority", "project"] : undefined
+          }
           projects={projects}
         />
-        <span className="ml-auto text-xs text-muted-foreground tabular" aria-live="polite">
+        <span className="text-muted-foreground tabular ml-auto text-xs" aria-live="polite">
           {issueCount(issues, visible)}
         </span>
         <GroupMenu
@@ -125,14 +146,21 @@ export function SpaceIssues({
           New issue
         </Button>
       </div>
-      {issues === undefined || visible === undefined ? null : issues.length === 0 && !includeDone ? (
+      {issues === undefined || visible === undefined ? null : issues.length === 0 &&
+        !includeDone ? (
         <EmptySpace space={space} onCreate={() => newIssue()} />
       ) : visible.length === 0 && filtering ? (
         <NoMatches onClear={() => setFilters(EMPTY_FILTERS)} />
       ) : view === "board" && renderBoard ? (
         renderBoard({ issues: visible, lookups, space, newIssue, groupBy })
       ) : (
-        <IssueList issues={visible} lookups={lookups} newIssue={newIssue} groupBy={groupBy} projects={projects} />
+        <IssueList
+          issues={visible}
+          lookups={lookups}
+          newIssue={newIssue}
+          groupBy={groupBy}
+          projects={projects}
+        />
       )}
     </div>
   );
@@ -143,7 +171,14 @@ function GroupMenu({ value, onChange }: { value: GroupBy; onChange: (group: Grou
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button size="sm" variant="ghost" className="text-muted-foreground" data-icon="inline-end" />}
+        render={
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            data-icon="inline-end"
+          />
+        }
         aria-label={`Group by ${value}. Change grouping`}
       >
         Group: {value === "project" ? "Project" : "Status"}
@@ -167,17 +202,22 @@ function GroupMenu({ value, onChange }: { value: GroupBy; onChange: (group: Grou
 }
 
 /** "12 issues", or "3 of 12 issues" while filtering. */
-export function issueCount(all: ReadonlyArray<unknown> | undefined, shown: ReadonlyArray<unknown> | undefined): string {
+export function issueCount(
+  all: ReadonlyArray<unknown> | undefined,
+  shown: ReadonlyArray<unknown> | undefined,
+): string {
   if (all === undefined || shown === undefined) return "Loading…";
   const noun = all.length === 1 ? "issue" : "issues";
-  return shown.length === all.length ? `${all.length} ${noun}` : `${shown.length} of ${all.length} ${noun}`;
+  return shown.length === all.length
+    ? `${all.length} ${noun}`
+    : `${shown.length} of ${all.length} ${noun}`;
 }
 
 export function NoMatches({ onClear }: { onClear: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <SearchXIcon className="size-5 text-muted-foreground" aria-hidden />
-      <p className="text-sm font-medium text-foreground">No issues match these filters</p>
+      <SearchXIcon className="text-muted-foreground size-5" aria-hidden />
+      <p className="text-foreground text-sm font-medium">No issues match these filters</p>
       <Button className="mt-1" variant="secondary" onClick={onClear}>
         Clear filters
       </Button>
@@ -210,12 +250,20 @@ export function groupIssues(
 ): Group[] {
   if (groupBy === "status") {
     return statuses
-      .map((status) => ({ kind: "status" as const, id: status._id, status, issues: issues.filter((issue) => issue.statusId === status._id) }))
+      .map((status) => ({
+        kind: "status" as const,
+        id: status._id,
+        status,
+        issues: issues.filter((issue) => issue.statusId === status._id),
+      }))
       .filter((group) => group.issues.length > 0);
   }
   const order = new Map(statuses.map((status, index) => [status._id, index]));
   const byStatus = (rows: ListIssue[]) =>
-    [...rows].sort((a, b) => (order.get(a.statusId) ?? 0) - (order.get(b.statusId) ?? 0) || a.sortOrder - b.sortOrder);
+    [...rows].sort(
+      (a, b) =>
+        (order.get(a.statusId) ?? 0) - (order.get(b.statusId) ?? 0) || a.sortOrder - b.sortOrder,
+    );
   const known = new Set(projects.map((project) => project._id));
   return [
     ...projects.map((project) => ({
@@ -278,66 +326,79 @@ export function IssueList({
   const { cursor, selected, setCursor, toggle } = selection.value;
 
   return (
-    <RowPickers statuses={lookups.data.statuses} members={lookups.data.members} me={lookups.data.me}>
-    {/* layoutScroll: the cursor highlight measures rows correctly while the list is scrolled. */}
-    <motion.div
-      ref={container}
-      layoutScroll
-      data-any-selected={selected.size > 0 || undefined}
-      className="group/list min-h-0 flex-1 overflow-y-auto"
+    <RowPickers
+      statuses={lookups.data.statuses}
+      members={lookups.data.members}
+      me={lookups.data.me}
     >
-      {groups.map((group) => {
-        const name = group.kind === "status" ? group.status.name : (group.project?.name ?? "No project");
-        const rows = group.issues;
-        return (
-        <section key={group.id} aria-label={name}>
-          <div className="sticky top-0 z-20 flex h-8 items-center gap-2 border-b border-border bg-gray-2 px-3">
-            {group.kind === "status" ? (
-              <StatusGlyph category={group.status.category} color={statusColor(group.status)} />
-            ) : group.project ? (
-              <span className="size-2.5 rounded-[3px]" style={{ background: projectColor(group.project) }} aria-hidden />
-            ) : (
-              <LayersIcon className="size-3.5 text-muted-foreground" aria-hidden />
-            )}
-            <h2 className="font-sans text-sm font-medium tracking-normal text-foreground">{name}</h2>
-            <span className="font-mono text-xs text-muted-foreground tabular">{rows.length}</span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="ml-auto"
-              aria-label={`New issue in ${name}`}
-              onClick={() =>
-                newIssue(
-                  group.kind === "status"
-                    ? { statusId: group.status._id }
-                    : group.project
-                      ? { projectId: group.project._id }
-                      : {},
-                )
-              }
-            >
-              <PlusIcon />
-            </Button>
-          </div>
-          {rows.map((issue) => (
-            <IssueRow
-              key={issue._id}
-              issue={issue}
-              lookups={lookups}
-              actions={actions}
-              parentKey={issue.parentId ? family.byId.get(issue.parentId)?.key : undefined}
-              subIssues={family.children.get(issue._id)}
-              isCursor={cursor === issue._id}
-              isSelected={selected.has(issue._id)}
-              onCursor={setCursor}
-              onToggle={toggle}
-            />
-          ))}
-        </section>
-        );
-      })}
-    </motion.div>
-    {selection.element}
+      {/* layoutScroll: the cursor highlight measures rows correctly while the list is scrolled. */}
+      <motion.div
+        ref={container}
+        layoutScroll
+        data-any-selected={selected.size > 0 || undefined}
+        className="group/list min-h-0 flex-1 overflow-y-auto"
+      >
+        {groups.map((group) => {
+          const name =
+            group.kind === "status" ? group.status.name : (group.project?.name ?? "No project");
+          const rows = group.issues;
+          return (
+            <section key={group.id} aria-label={name}>
+              <div className="border-border bg-gray-2 sticky top-0 z-20 flex h-8 items-center gap-2 border-b px-3">
+                {group.kind === "status" ? (
+                  <StatusGlyph category={group.status.category} color={statusColor(group.status)} />
+                ) : group.project ? (
+                  <span
+                    className="size-2.5 rounded-[3px]"
+                    style={{ background: projectColor(group.project) }}
+                    aria-hidden
+                  />
+                ) : (
+                  <LayersIcon className="text-muted-foreground size-3.5" aria-hidden />
+                )}
+                <h2 className="text-foreground font-sans text-sm font-medium tracking-normal">
+                  {name}
+                </h2>
+                <span className="text-muted-foreground tabular font-mono text-xs">
+                  {rows.length}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-auto"
+                  aria-label={`New issue in ${name}`}
+                  onClick={() =>
+                    newIssue(
+                      group.kind === "status"
+                        ? { statusId: group.status._id }
+                        : group.project
+                          ? { projectId: group.project._id }
+                          : {},
+                    )
+                  }
+                >
+                  <PlusIcon />
+                </Button>
+              </div>
+              {rows.map((issue) => (
+                <IssueRow
+                  key={issue._id}
+                  issue={issue}
+                  lookups={lookups}
+                  actions={actions}
+                  parentKey={issue.parentId ? family.byId.get(issue.parentId)?.key : undefined}
+                  subIssues={family.children.get(issue._id)}
+                  isCursor={cursor === issue._id}
+                  isSelected={selected.has(issue._id)}
+                  onCursor={setCursor}
+                  onToggle={toggle}
+                />
+              ))}
+            </section>
+          );
+        })}
+      </motion.div>
+      {selection.element}
     </RowPickers>
   );
 }
@@ -345,9 +406,9 @@ export function IssueList({
 function EmptySpace({ space, onCreate }: { space: Doc<"spaces">; onCreate: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <InboxIcon className="size-5 text-muted-foreground" aria-hidden />
-      <p className="text-sm font-medium text-foreground">No issues in {space.name} yet</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
+      <InboxIcon className="text-muted-foreground size-5" aria-hidden />
+      <p className="text-foreground text-sm font-medium">No issues in {space.name} yet</p>
+      <p className="text-muted-foreground max-w-sm text-sm">
         Issues you create here, or that your agents create over MCP, show up grouped by status.
       </p>
       <Button className="mt-2" onClick={onCreate} data-icon="inline-start">

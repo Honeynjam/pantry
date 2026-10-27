@@ -2,7 +2,14 @@
 
 import { cn } from "@pantry/ui/lib/utils";
 import { motion, spring, useMotionTransition } from "@pantry/ui/lib/motion";
-import { CircleDashedIcon, FolderIcon, KeyRoundIcon, TagIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import {
+  CircleDashedIcon,
+  FolderIcon,
+  KeyRoundIcon,
+  TagIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { EntryGate } from "../../entry";
 import { routes, useNavigation, type SettingsSection } from "../../navigation";
@@ -23,11 +30,41 @@ type SectionDef = {
 };
 
 const SECTIONS: SectionDef[] = [
-  { id: "members", label: "Members", icon: UsersIcon, group: "Workspace", render: (data) => <MembersSettings data={data} /> },
-  { id: "spaces", label: "Spaces", icon: FolderIcon, group: "Workspace", render: (data) => <SpacesSettings data={data} /> },
-  { id: "labels", label: "Labels", icon: TagIcon, group: "Workspace", render: (data) => <LabelsSettings data={data} /> },
-  { id: "statuses", label: "Statuses", icon: CircleDashedIcon, group: "Workspace", render: (data) => <StatusesSettings data={data} /> },
-  { id: "tokens", label: "API tokens", icon: KeyRoundIcon, group: "Account", render: () => <TokensSettings /> },
+  {
+    id: "members",
+    label: "Members",
+    icon: UsersIcon,
+    group: "Workspace",
+    render: (data) => <MembersSettings data={data} />,
+  },
+  {
+    id: "spaces",
+    label: "Spaces",
+    icon: FolderIcon,
+    group: "Workspace",
+    render: (data) => <SpacesSettings data={data} />,
+  },
+  {
+    id: "labels",
+    label: "Labels",
+    icon: TagIcon,
+    group: "Workspace",
+    render: (data) => <LabelsSettings data={data} />,
+  },
+  {
+    id: "statuses",
+    label: "Statuses",
+    icon: CircleDashedIcon,
+    group: "Workspace",
+    render: (data) => <StatusesSettings data={data} />,
+  },
+  {
+    id: "tokens",
+    label: "API tokens",
+    icon: KeyRoundIcon,
+    group: "Account",
+    render: () => <TokensSettings />,
+  },
 ];
 
 const GROUPS = ["Workspace", "Account"] as const;
@@ -48,7 +85,7 @@ export function SettingsPage({ section }: { section: string }) {
                 <span className="text-faint-foreground" aria-hidden>
                   /
                 </span>
-                <span className="font-medium text-foreground">{current?.label ?? "Not found"}</span>
+                <span className="text-foreground font-medium">{current?.label ?? "Not found"}</span>
               </>
             )}
           >
@@ -59,7 +96,9 @@ export function SettingsPage({ section }: { section: string }) {
                   {current ? (
                     current.render(data)
                   ) : (
-                    <p className="text-sm text-muted-foreground">There&apos;s no settings page called “{section}”.</p>
+                    <p className="text-muted-foreground text-sm">
+                      There&apos;s no settings page called “{section}”.
+                    </p>
                   )}
                 </div>
               </div>
@@ -73,7 +112,10 @@ export function SettingsPage({ section }: { section: string }) {
 
 function SettingsNav({ active }: { active: SettingsSection | undefined }) {
   return (
-    <nav aria-label="Settings" className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-border p-2 md:w-48 md:flex-col md:border-r md:border-b-0">
+    <nav
+      aria-label="Settings"
+      className="border-border flex shrink-0 gap-0.5 overflow-x-auto border-b p-2 md:w-48 md:flex-col md:border-r md:border-b-0"
+    >
       {GROUPS.map((group, index) => (
         <SettingsNavGroup
           key={group}
@@ -102,7 +144,12 @@ function SettingsNavGroup({
   const transition = useMotionTransition(spring.morph);
   return (
     <>
-      <span className={cn("hidden px-2 pb-1.5 text-xs font-medium text-muted-foreground md:block", first ? "pt-1" : "pt-4")}>
+      <span
+        className={cn(
+          "text-muted-foreground hidden px-2 pb-1.5 text-xs font-medium md:block",
+          first ? "pt-1" : "pt-4",
+        )}
+      >
         {title}
       </span>
       {items.map((item) => {
@@ -115,7 +162,9 @@ function SettingsNavGroup({
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "relative flex h-7 shrink-0 items-center gap-2 rounded-md px-2 text-sm transition-colors duration-(--duration-instant)",
-              isActive ? "font-medium text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              isActive
+                ? "text-foreground font-medium"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
             {isActive && (
@@ -123,7 +172,7 @@ function SettingsNavGroup({
                 layoutId="settings-nav-active"
                 transition={transition}
                 aria-hidden
-                className="absolute inset-0 rounded-md bg-selected"
+                className="bg-selected absolute inset-0 rounded-md"
               />
             )}
             <Icon className="relative size-3.5" aria-hidden />

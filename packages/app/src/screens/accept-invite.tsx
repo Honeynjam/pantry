@@ -25,7 +25,8 @@ export function AcceptInvite({ token }: { token: string }) {
   useEffect(() => {
     let cancelled = false;
     accept({ token }).catch((err: unknown) => {
-      if (!cancelled) setError(describeError(err, "Couldn't accept the invite. Ask the owner for a new link."));
+      if (!cancelled)
+        setError(describeError(err, "Couldn't accept the invite. Ask the owner for a new link."));
     });
     return () => {
       cancelled = true;
@@ -35,7 +36,7 @@ export function AcceptInvite({ token }: { token: string }) {
   if (!error) {
     return (
       <AuthLayout title="Joining the workspace…">
-        <p className="text-center text-sm text-muted-foreground" aria-busy="true">
+        <p className="text-muted-foreground text-center text-sm" aria-busy="true">
           Setting up your access. One moment.
         </p>
       </AuthLayout>

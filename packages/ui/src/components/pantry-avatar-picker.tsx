@@ -26,7 +26,15 @@ const option = cn(
 );
 
 /** The avatar, popping in when it changes (a fade under reduced motion). */
-function Preview({ value, seed, size }: { value: PantryAvatarValue; seed: string; size: "lg" | "xl" }) {
+function Preview({
+  value,
+  seed,
+  size,
+}: {
+  value: PantryAvatarValue;
+  seed: string;
+  size: "lg" | "xl";
+}) {
   const transition = useMotionTransition(spring.snappy);
   return (
     <motion.span
@@ -78,7 +86,9 @@ function PantryAvatarPicker({
           <Preview value={value} seed={seed} size="xl" />
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="text-foreground font-medium">{PANTRY_SHAPES[value.shape].name}</span>
-            <span className="text-muted-foreground text-xs">{AVATAR_EXPRESSIONS[value.expression].name}</span>
+            <span className="text-muted-foreground text-xs">
+              {AVATAR_EXPRESSIONS[value.expression].name}
+            </span>
           </div>
           <Button
             type="button"
@@ -128,7 +138,9 @@ function PantryAvatarPicker({
                   className="flex size-4.5 items-center justify-center rounded-full"
                   style={{ background: labelColorVar(color) }}
                 >
-                  {color === value.color && <CheckIcon className="size-3 text-white" strokeWidth={3} aria-hidden />}
+                  {color === value.color && (
+                    <CheckIcon className="size-3 text-white" strokeWidth={3} aria-hidden />
+                  )}
                 </span>
               </button>
             ))}

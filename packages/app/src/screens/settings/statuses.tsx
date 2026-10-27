@@ -66,13 +66,13 @@ export function StatusesSettings({ data }: { data: WorkspaceData }) {
       description="Six statuses, one per category. Rename, recolour and reorder them; the order is the order of list groups and board columns."
     >
       <SettingsGroup title="Workflow">
-        <ol className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
+        <ol className="divide-border border-border flex flex-col divide-y overflow-hidden rounded-lg border">
           {statuses.map((status, index) => (
             <motion.li
               key={status._id}
               layout="position"
               transition={transition}
-              className="flex min-h-row items-center gap-1.5 bg-background py-1 pr-1.5 pl-1.5 text-sm"
+              className="min-h-row bg-background flex items-center gap-1.5 py-1 pr-1.5 pl-1.5 text-sm"
             >
               <ColorPicker
                 label={`Colour of ${status.name}`}
@@ -87,8 +87,15 @@ export function StatusesSettings({ data }: { data: WorkspaceData }) {
                 onSave={(name) => save(status, { name })}
                 className="h-7 flex-1"
               />
-              <span className="flex w-24 shrink-0 items-center gap-1.5 text-xs text-muted-foreground" title="Category (fixed)">
-                <StatusGlyph category={status.category} color={resolveLabelColor(status.color)} size={12} />
+              <span
+                className="text-muted-foreground flex w-24 shrink-0 items-center gap-1.5 text-xs"
+                title="Category (fixed)"
+              >
+                <StatusGlyph
+                  category={status.category}
+                  color={resolveLabelColor(status.color)}
+                  size={12}
+                />
                 {CATEGORY_NAME[status.category]}
               </span>
               <Button

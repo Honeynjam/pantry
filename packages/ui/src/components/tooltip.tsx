@@ -6,8 +6,19 @@ import { usePortalContainer } from "@pantry/ui/lib/portal";
 import { popupMotion } from "@pantry/ui/lib/styles";
 
 /** Wrap the app once. A short delay, then instant hand-off between neighbouring triggers. */
-function TooltipProvider({ delay = 400, closeDelay = 0, ...props }: TooltipPrimitive.Provider.Props) {
-  return <TooltipPrimitive.Provider data-slot="tooltip-provider" delay={delay} closeDelay={closeDelay} {...props} />;
+function TooltipProvider({
+  delay = 400,
+  closeDelay = 0,
+  ...props
+}: TooltipPrimitive.Provider.Props) {
+  return (
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delay={delay}
+      closeDelay={closeDelay}
+      {...props}
+    />
+  );
 }
 
 function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
@@ -42,7 +53,7 @@ function TooltipContent({
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
           className={cn(
-            "z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-sm bg-gray-12 px-1.5 py-1 text-xs leading-4 text-gray-1 has-data-[slot=kbd]:pr-1",
+            "bg-gray-12 text-gray-1 z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-sm px-1.5 py-1 text-xs leading-4 has-data-[slot=kbd]:pr-1",
             "data-instant:transition-none",
             popupMotion,
             className,

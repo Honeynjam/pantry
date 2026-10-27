@@ -29,7 +29,8 @@ export function deriveEntryState(
   // setup.status re-runs on the server after sign-in/out; for a moment the result can describe the
   // previous identity. Wait for it rather than acting on a stale answer (the loading screen's
   // safety net covers the case where it never catches up).
-  if (status.signedIn !== auth.isAuthenticated) return { kind: "loading", reason: "auth-status-mismatch" };
+  if (status.signedIn !== auth.isAuthenticated)
+    return { kind: "loading", reason: "auth-status-mismatch" };
   if (status.needsSetup) return { kind: "needs-setup", signedIn: auth.isAuthenticated };
   if (!auth.isAuthenticated) return { kind: "signed-out" };
   if (!status.isMember) return { kind: "not-member" };

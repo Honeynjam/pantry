@@ -14,7 +14,12 @@ import { checkColor, cleanName } from "./lib/validate";
  * space among active projects, ignoring case (MCP looks them up by name).
  */
 
-async function checkNameFree(ctx: MutationCtx, spaceId: Id<"spaces">, name: string, except?: Id<"projects">) {
+async function checkNameFree(
+  ctx: MutationCtx,
+  spaceId: Id<"spaces">,
+  name: string,
+  except?: Id<"projects">,
+) {
   const taken = (await activeProjects(ctx, spaceId)).find(
     (project) => project._id !== except && nameKey(project.name) === nameKey(name),
   );
@@ -53,10 +58,12 @@ export const update = mutation({
     const patch: Partial<Project> = {};
     if (args.name !== undefined) {
       const name = cleanName(args.name, "Project name", 60);
-      if (project.archivedAt === undefined) await checkNameFree(ctx, project.spaceId, name, project._id);
+      if (project.archivedAt === undefined)
+        await checkNameFree(ctx, project.spaceId, name, project._id);
       patch.name = name;
     }
-    if (args.color !== undefined) patch.color = args.color === null ? undefined : checkColor(args.color);
+    if (args.color !== undefined)
+      patch.color = args.color === null ? undefined : checkColor(args.color);
     await ctx.db.patch("projects", project._id, patch);
   },
 });
@@ -79,7 +86,8 @@ export const archive = mutation({
     for (const issue of issues) {
       // Sub-issues are cleared along with their parent; re-read so none is written twice.
       const current = await ctx.db.get("issues", issue._id);
-      if (current?.projectId === project._id) await setIssueProject(ctx, { member: me, via: "app" }, current, null, now);
+      if (current?.projectId === project._id)
+        await setIssueProject(ctx, { member: me, via: "app" }, current, null, now);
     }
     await ctx.db.patch("projects", project._id, { archivedAt: now });
   },
@@ -97,7 +105,8 @@ export const reorder = mutation({
       args.projectIds.length === current.length &&
       new Set(args.projectIds).size === args.projectIds.length &&
       args.projectIds.every((id) => ids.has(id));
-    if (!same) fail("INVALID_ORDER", "The new order has to list each of the space's projects once.");
+    if (!same)
+      fail("INVALID_ORDER", "The new order has to list each of the space's projects once.");
     for (const [index, projectId] of args.projectIds.entries()) {
       await ctx.db.patch("projects", projectId, { sortOrder: index + 1 });
     }

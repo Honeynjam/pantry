@@ -4,11 +4,21 @@ import { avatarValidator } from "./lib/avatar";
 
 export const via = v.union(v.literal("app"), v.literal("mcp"));
 export const category = v.union(
-  v.literal("backlog"), v.literal("unstarted"), v.literal("started"),
-  v.literal("review"), v.literal("done"), v.literal("canceled"),
+  v.literal("backlog"),
+  v.literal("unstarted"),
+  v.literal("started"),
+  v.literal("review"),
+  v.literal("done"),
+  v.literal("canceled"),
 );
 // 0 none, 1 urgent, 2 high, 3 medium, 4 low (Linear's order)
-export const priority = v.union(v.literal(0), v.literal(1), v.literal(2), v.literal(3), v.literal(4));
+export const priority = v.union(
+  v.literal(0),
+  v.literal(1),
+  v.literal(2),
+  v.literal(3),
+  v.literal(4),
+);
 export const spaceKind = v.union(v.literal("product"), v.literal("client"));
 
 /*
@@ -41,8 +51,10 @@ export const projectFields = {
 };
 
 export default defineSchema({
-  workspaces: defineTable({ name: v.string(), slug: v.string(), createdBy: v.string() })
-    .index("by_slug", ["slug"]),
+  workspaces: defineTable({ name: v.string(), slug: v.string(), createdBy: v.string() }).index(
+    "by_slug",
+    ["slug"],
+  ),
 
   members: defineTable({
     workspaceId: v.id("workspaces"),
@@ -102,8 +114,11 @@ export default defineSchema({
     color: v.string(),
   }).index("by_workspace_and_order", ["workspaceId", "order"]),
 
-  labels: defineTable({ workspaceId: v.id("workspaces"), name: v.string(), color: v.string() })
-    .index("by_workspace", ["workspaceId"]),
+  labels: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    color: v.string(),
+  }).index("by_workspace", ["workspaceId"]),
 
   issues: defineTable({
     workspaceId: v.id("workspaces"),
@@ -138,7 +153,10 @@ export default defineSchema({
     // MCP list_issues: newest first inside one space, or one assignee's.
     .index("by_space_and_updated", ["spaceId", "updatedAt"])
     .index("by_assignee_and_updated", ["assigneeId", "updatedAt"])
-    .searchIndex("search_title", { searchField: "title", filterFields: ["workspaceId", "spaceId", "projectId"] }),
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["workspaceId", "spaceId", "projectId"],
+    }),
 
   comments: defineTable({
     issueId: v.id("issues"),
@@ -153,10 +171,17 @@ export default defineSchema({
     issueId: v.id("issues"),
     actorId: v.optional(v.id("members")),
     type: v.union(
-      v.literal("created"), v.literal("status_changed"), v.literal("priority_changed"),
-      v.literal("assigned"), v.literal("labels_changed"), v.literal("commented"),
-      v.literal("title_changed"), v.literal("description_changed"), v.literal("parent_changed"),
-      v.literal("due_date_changed"), v.literal("project_changed"),
+      v.literal("created"),
+      v.literal("status_changed"),
+      v.literal("priority_changed"),
+      v.literal("assigned"),
+      v.literal("labels_changed"),
+      v.literal("commented"),
+      v.literal("title_changed"),
+      v.literal("description_changed"),
+      v.literal("parent_changed"),
+      v.literal("due_date_changed"),
+      v.literal("project_changed"),
     ),
     from: v.optional(v.string()),
     to: v.optional(v.string()),

@@ -24,7 +24,7 @@ export function MyIssuesPage() {
         state.kind === "not-member" ? (
           <NotMemberScreen />
         ) : (
-          <AppShell title={() => <span className="font-medium text-foreground">My issues</span>}>
+          <AppShell title={() => <span className="text-foreground font-medium">My issues</span>}>
             {(data) => <MyIssues data={data} />}
           </AppShell>
         )
@@ -42,15 +42,20 @@ function MyIssues({ data }: { data: WorkspaceData }) {
     () =>
       issues === undefined
         ? undefined
-        : applyFilters(issues, filters, { me: data.me._id, statuses: data.statuses, labels: data.labels }),
+        : applyFilters(issues, filters, {
+            me: data.me._id,
+            statuses: data.statuses,
+            labels: data.labels,
+          }),
     [issues, filters, data.me._id, data.statuses, data.labels],
   );
   // New issues from here are mine, in the project I was last in.
-  const newIssue = (defaults: NewIssueDefaults = {}) => commands.newIssue({ ...defaults, assigneeId: data.me._id });
+  const newIssue = (defaults: NewIssueDefaults = {}) =>
+    commands.newIssue({ ...defaults, assigneeId: data.me._id });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-1.5">
+      <div className="border-border flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5">
         <FilterBar
           filters={filters}
           setFilters={setFilters}
@@ -58,7 +63,7 @@ function MyIssues({ data }: { data: WorkspaceData }) {
           lookups={lookups}
           facets={["status", "label", "priority"]}
         />
-        <span className="ml-auto text-xs text-muted-foreground tabular" aria-live="polite">
+        <span className="text-muted-foreground tabular ml-auto text-xs" aria-live="polite">
           {issueCount(issues, visible)}
         </span>
         <Button size="sm" onClick={() => newIssue()} data-icon="inline-start">
@@ -68,10 +73,11 @@ function MyIssues({ data }: { data: WorkspaceData }) {
       </div>
       {issues === undefined || visible === undefined ? null : issues.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-          <CircleUserRoundIcon className="size-5 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-medium text-foreground">Nothing assigned to you</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Open issues assigned to you show up here, across projects. Press I on an issue to take it.
+          <CircleUserRoundIcon className="text-muted-foreground size-5" aria-hidden />
+          <p className="text-foreground text-sm font-medium">Nothing assigned to you</p>
+          <p className="text-muted-foreground max-w-sm text-sm">
+            Open issues assigned to you show up here, across projects. Press I on an issue to take
+            it.
           </p>
         </div>
       ) : visible.length === 0 && hasFilters(filters) ? (

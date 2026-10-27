@@ -44,4 +44,5 @@ export function useLookups({ statuses, labels, members, me, projects }: Workspac
 }
 
 /** A status's stored colour (palette name or hex) as CSS. */
-export const statusColor = (status: Pick<Doc<"statuses">, "color">) => resolveLabelColor(status.color);
+export const statusColor = (status: Pick<Doc<"statuses">, "color">) =>
+  resolveLabelColor(status.color);

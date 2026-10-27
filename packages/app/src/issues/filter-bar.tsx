@@ -110,14 +110,15 @@ export function FilterBar({
     input.current?.select();
   });
   const { data } = lookups;
-  const toggle = <F extends FilterFacet>(facet: F, value: Filters[F][number]) => setFilters(toggleValue(filters, facet, value));
+  const toggle = <F extends FilterFacet>(facet: F, value: Filters[F][number]) =>
+    setFilters(toggleValue(filters, facet, value));
   const clearFacet = (facet: FilterFacet) => setFilters({ ...filters, [facet]: [] });
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1" role="group" aria-label="Filters">
       <label
         className={cn(
-          "flex h-control-sm w-44 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors duration-(--duration-instant)",
+          "h-control-sm flex w-44 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors duration-(--duration-instant)",
           "text-muted-foreground hover:bg-accent focus-within:bg-accent",
           filters.q.trim() && "bg-accent text-foreground",
         )}
@@ -140,14 +141,17 @@ export function FilterBar({
           placeholder="Filter by title"
           aria-label="Filter by title"
           aria-keyshortcuts="/"
-          className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+          className="text-foreground placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent outline-none"
         />
         {filters.q ? (
           <button
             type="button"
             aria-label="Clear the title filter"
             onClick={() => setTitle("")}
-            className={cn("flex size-4 items-center justify-center rounded-sm hover:text-foreground", focusRing)}
+            className={cn(
+              "hover:text-foreground flex size-4 items-center justify-center rounded-sm",
+              focusRing,
+            )}
           >
             <XIcon className="size-3" />
           </button>
@@ -160,7 +164,11 @@ export function FilterBar({
         <Facet
           label="Status"
           active={filters.status.length}
-          summary={summary(filters.status.map((value) => data.statuses.find((row) => slug(row.name) === value)?.name))}
+          summary={summary(
+            filters.status.map(
+              (value) => data.statuses.find((row) => slug(row.name) === value)?.name,
+            ),
+          )}
           onClear={() => clearFacet("status")}
         >
           {data.statuses.map((status) => (
@@ -183,21 +191,39 @@ export function FilterBar({
           active={filters.assignee.length}
           summary={summary(
             filters.assignee.map((value) =>
-              value === "me" ? "Me" : value === "none" ? "No assignee" : data.members.find((row) => row._id === value)?.displayName,
+              value === "me"
+                ? "Me"
+                : value === "none"
+                  ? "No assignee"
+                  : data.members.find((row) => row._id === value)?.displayName,
             ),
           )}
           onClear={() => clearFacet("assignee")}
         >
           {(
             [
-              { value: "me", name: "Me", icon: <PersonAvatar person={{ name: data.me.displayName, avatarUrl: data.me.avatarUrl }} size="xs" /> },
+              {
+                value: "me",
+                name: "Me",
+                icon: (
+                  <PersonAvatar
+                    person={{ name: data.me.displayName, avatarUrl: data.me.avatarUrl }}
+                    size="xs"
+                  />
+                ),
+              },
               { value: "none", name: "No assignee", icon: <UserRoundIcon /> },
               ...data.members
                 .filter((member) => member._id !== data.me._id)
                 .map((member) => ({
                   value: member._id as AssigneeFilter,
                   name: member.displayName,
-                  icon: <PersonAvatar person={{ name: member.displayName, avatarUrl: member.avatarUrl }} size="xs" />,
+                  icon: (
+                    <PersonAvatar
+                      person={{ name: member.displayName, avatarUrl: member.avatarUrl }}
+                      size="xs"
+                    />
+                  ),
                 })),
             ] satisfies { value: AssigneeFilter; name: string; icon: ReactNode }[]
           ).map((option) => (
@@ -218,10 +244,14 @@ export function FilterBar({
         <Facet
           label="Label"
           active={filters.label.length}
-          summary={summary(filters.label.map((value) => data.labels.find((row) => slug(row.name) === value)?.name))}
+          summary={summary(
+            filters.label.map((value) => data.labels.find((row) => slug(row.name) === value)?.name),
+          )}
           onClear={() => clearFacet("label")}
         >
-          {data.labels.length === 0 && <div className="px-2 py-1.5 text-sm text-muted-foreground">No labels yet.</div>}
+          {data.labels.length === 0 && (
+            <div className="text-muted-foreground px-2 py-1.5 text-sm">No labels yet.</div>
+          )}
           {[...data.labels]
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((label) => (
@@ -231,7 +261,11 @@ export function FilterBar({
                 onCheckedChange={() => toggle("label", slug(label.name))}
                 closeOnClick={false}
               >
-                <span className="size-2 shrink-0 rounded-full" style={{ background: resolveLabelColor(label.color) }} aria-hidden />
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: resolveLabelColor(label.color) }}
+                  aria-hidden
+                />
                 <span className="truncate">{label.name}</span>
               </DropdownMenuCheckboxItem>
             ))}
@@ -266,33 +300,49 @@ export function FilterBar({
           active={filters.project.length}
           summary={summary(
             filters.project.map((value) =>
-              value === "none" ? "No project" : projects.find((row) => slug(row.name) === value)?.name,
+              value === "none"
+                ? "No project"
+                : projects.find((row) => slug(row.name) === value)?.name,
             ),
           )}
           onClear={() => clearFacet("project")}
         >
-          {[...projects.map((project) => ({ value: slug(project.name), name: project.name, project })), { value: "none", name: "No project", project: null }].map(
-            (option) => (
-              <DropdownMenuCheckboxItem
-                key={option.value}
-                checked={filters.project.includes(option.value)}
-                onCheckedChange={() => toggle("project", option.value)}
-                closeOnClick={false}
-              >
-                {option.project ? (
-                  <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(option.project) }} aria-hidden />
-                ) : (
-                  <LayersIcon />
-                )}
-                <span className="truncate">{option.name}</span>
-              </DropdownMenuCheckboxItem>
-            ),
-          )}
+          {[
+            ...projects.map((project) => ({
+              value: slug(project.name),
+              name: project.name,
+              project,
+            })),
+            { value: "none", name: "No project", project: null },
+          ].map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value}
+              checked={filters.project.includes(option.value)}
+              onCheckedChange={() => toggle("project", option.value)}
+              closeOnClick={false}
+            >
+              {option.project ? (
+                <span
+                  className="size-2 shrink-0 rounded-[2px]"
+                  style={{ background: projectColor(option.project) }}
+                  aria-hidden
+                />
+              ) : (
+                <LayersIcon />
+              )}
+              <span className="truncate">{option.name}</span>
+            </DropdownMenuCheckboxItem>
+          ))}
         </Facet>
       )}
 
       {hasFilters(filters) && (
-        <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setFilters(EMPTY_FILTERS)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-muted-foreground"
+          onClick={() => setFilters(EMPTY_FILTERS)}
+        >
           Clear filters
         </Button>
       )}
@@ -322,16 +372,25 @@ function Facet({
 }) {
   const on = active > 0;
   return (
-    <span className={cn("flex h-control-sm items-center rounded-sm", on && "border border-border bg-background")}>
+    <span
+      className={cn(
+        "h-control-sm flex items-center rounded-sm",
+        on && "border-border bg-background border",
+      )}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
-            "flex h-full max-w-56 cursor-default items-center gap-1 rounded-sm px-2 text-xs outline-none transition-colors duration-(--duration-instant)",
+            "flex h-full max-w-56 cursor-default items-center gap-1 rounded-sm px-2 text-xs transition-colors duration-(--duration-instant) outline-none",
             "hover:bg-accent aria-expanded:bg-accent",
             on ? "text-foreground" : "text-muted-foreground",
             focusRing,
           )}
-          aria-label={on ? `${label}: ${text}. Change the ${label.toLowerCase()} filter` : `Filter by ${label.toLowerCase()}`}
+          aria-label={
+            on
+              ? `${label}: ${text}. Change the ${label.toLowerCase()} filter`
+              : `Filter by ${label.toLowerCase()}`
+          }
         >
           {on ? (
             <span className="truncate">
@@ -357,7 +416,7 @@ function Facet({
           onClick={onClear}
           aria-label={`Clear the ${label.toLowerCase()} filter`}
           className={cn(
-            "flex h-full w-5 items-center justify-center rounded-r-sm border-l border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+            "border-border text-muted-foreground hover:bg-accent hover:text-foreground flex h-full w-5 items-center justify-center rounded-r-sm border-l",
             focusRing,
           )}
         >

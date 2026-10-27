@@ -9,7 +9,9 @@
 export type CrossDomainAuthActions = {
   crossDomain: {
     oneTimeToken: {
-      verify: (args: { token: string }) => Promise<{ data?: { session?: { token: string } } | null } | null>;
+      verify: (args: {
+        token: string;
+      }) => Promise<{ data?: { session?: { token: string } } | null } | null>;
     };
   };
   getSession: (args: { fetchOptions: { headers: Record<string, string> } }) => Promise<unknown>;
@@ -17,7 +19,10 @@ export type CrossDomainAuthActions = {
 };
 
 type LocationLike = { href: string };
-type HistoryLike = { state: unknown; replaceState: (data: unknown, unused: string, url: string) => void };
+type HistoryLike = {
+  state: unknown;
+  replaceState: (data: unknown, unused: string, url: string) => void;
+};
 
 /** Returns true when a one-time token was found and turned into a session. */
 export async function verifyOneTimeTokenFromUrl(
@@ -35,7 +40,9 @@ export async function verifyOneTimeTokenFromUrl(
   const result = await client.crossDomain.oneTimeToken.verify({ token }).catch(() => null);
   const session = result?.data?.session;
   if (!session) return false;
-  await client.getSession({ fetchOptions: { headers: { Authorization: `Bearer ${session.token}` } } });
+  await client.getSession({
+    fetchOptions: { headers: { Authorization: `Bearer ${session.token}` } },
+  });
   client.updateSession();
   return true;
 }

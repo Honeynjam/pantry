@@ -21,7 +21,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       className={cn(
         fieldChrome,
         "h-control px-2",
-        "file:mr-2 file:inline-flex file:h-5 file:border-0 file:bg-transparent file:text-xs file:font-medium file:text-foreground",
+        "file:text-foreground file:mr-2 file:inline-flex file:h-5 file:border-0 file:bg-transparent file:text-xs file:font-medium",
         className,
       )}
       {...props}

@@ -2,7 +2,15 @@
 
 import type { Doc } from "@pantry/backend/dataModel";
 import { useSidebar } from "@pantry/ui/components/sidebar";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { NewSpaceDialog } from "../components/new-space-dialog";
 import { NewIssueDialog, type NewIssueDefaults } from "../issues/new-issue-dialog";
@@ -38,7 +46,13 @@ export function useAppCommands(): AppCommands {
  * The shell's keyboard layer: binds the shortcut registry to the window, owns the dialogs any
  * screen can open (palette, `?` help, new issue) and handles the global shortcuts.
  */
-export function AppCommandsProvider({ data, children }: { data: WorkspaceData; children: ReactNode }) {
+export function AppCommandsProvider({
+  data,
+  children,
+}: {
+  data: WorkspaceData;
+  children: ReactNode;
+}) {
   useShortcutListener();
   const { pathname, search, navigate } = useNavigation();
   const { toggleSidebar } = useSidebar();
@@ -57,7 +71,9 @@ export function AppCommandsProvider({ data, children }: { data: WorkspaceData; c
   const newIssue = useCallback(
     (request: NewIssueRequest = {}) => {
       if (!request.space && !currentSpace) {
-        toast("Create a space first", { description: "Issues live in spaces. Add one from the sidebar." });
+        toast("Create a space first", {
+          description: "Issues live in spaces. Add one from the sidebar.",
+        });
         return;
       }
       setCreating(request);

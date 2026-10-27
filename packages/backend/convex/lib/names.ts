@@ -32,11 +32,18 @@ export async function workspaceMembers(ctx: QueryCtx, workspaceId: Id<"workspace
     .collect();
 }
 
-export async function resolveStatusByName(ctx: QueryCtx, workspaceId: Id<"workspaces">, name: string) {
+export async function resolveStatusByName(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  name: string,
+) {
   const statuses = await workspaceStatuses(ctx, workspaceId);
   const match = statuses.find((status) => nameKey(status.name) === nameKey(name));
   if (match) return match;
-  return fail("UNKNOWN_STATUS", `No status "${name.trim()}". Statuses: ${list(statuses.map((status) => status.name))}.`);
+  return fail(
+    "UNKNOWN_STATUS",
+    `No status "${name.trim()}". Statuses: ${list(statuses.map((status) => status.name))}.`,
+  );
 }
 
 /** Labels by name, in the order given (duplicates dropped). Labels are never created on the fly. */
@@ -81,7 +88,10 @@ export async function resolveAssignee(
   if (matches.length === 1) return matches[0]!;
   const valid = list(["me", "none", ...members.map((member) => member.displayName)]);
   if (matches.length > 1) {
-    return fail("AMBIGUOUS_ASSIGNEE", `More than one member is called "${name.trim()}". Use "me" or ask a person to assign it. Members: ${valid}.`);
+    return fail(
+      "AMBIGUOUS_ASSIGNEE",
+      `More than one member is called "${name.trim()}". Use "me" or ask a person to assign it. Members: ${valid}.`,
+    );
   }
   return fail("UNKNOWN_ASSIGNEE", `No member called "${name.trim()}". Use one of ${valid}.`);
 }

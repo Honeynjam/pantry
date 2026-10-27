@@ -10,8 +10,18 @@ import { cn } from "@pantry/ui/lib/utils";
 import { Section, Specimen, SubSection, TokenName } from "./section";
 
 const SPRINGS = [
-  { name: "smooth", css: "smooth", spec: "0.4s · bounce 0", use: "panels, heights, drawers, sidebar width" },
-  { name: "snappy", css: "snappy", spec: "0.26s · bounce 0.15", use: "presses, small indicators, icon swaps" },
+  {
+    name: "smooth",
+    css: "smooth",
+    spec: "0.4s · bounce 0",
+    use: "panels, heights, drawers, sidebar width",
+  },
+  {
+    name: "snappy",
+    css: "snappy",
+    spec: "0.26s · bounce 0.15",
+    use: "presses, small indicators, icon swaps",
+  },
   { name: "morph", css: "morph", spec: "0.42s · bounce 0.15", use: "shared highlights (layoutId)" },
 ] as const;
 
@@ -39,7 +49,7 @@ function Track({
 }) {
   const reduce = usePrefersReducedMotion();
   return (
-    <div className="relative h-6 flex-1 rounded-full bg-muted">
+    <div className="bg-muted relative h-6 flex-1 rounded-full">
       <div className="absolute inset-y-0 right-6 left-0">
         {springName && (
           <motion.div
@@ -48,12 +58,12 @@ function Track({
             animate={{ x: on ? "100%" : "0%" }}
             transition={reduce ? { duration: 0 } : spring[springName]}
           >
-            <span className="absolute top-1 left-1 size-4 rounded-full bg-primary" />
+            <span className="bg-primary absolute top-1 left-1 size-4 rounded-full" />
           </motion.div>
         )}
         <div
           className={cn(
-            "absolute inset-0 transition-transform motion-reduce:transition-none in-[.reduce-motion]:transition-none",
+            "absolute inset-0 transition-transform in-[.reduce-motion]:transition-none motion-reduce:transition-none",
             on ? "translate-x-full" : "translate-x-0",
           )}
           style={{ transitionDuration: cssDuration, transitionTimingFunction: cssEase }}
@@ -61,7 +71,7 @@ function Track({
           <span
             className={cn(
               "absolute top-1 left-1 size-4 rounded-full",
-              springName ? "border-[1.5px] border-foreground/60" : "bg-foreground",
+              springName ? "border-foreground/60 border-[1.5px]" : "bg-foreground",
             )}
           />
         </div>
@@ -82,11 +92,11 @@ export function MotionSection() {
       description="Quiet and quick. Animate transform and opacity only; one continuous movement per state change; springs for anything you can reverse, so it can be interrupted mid-flight; exits faster than entrances; no scroll reveals or decorative loops. Every animation has a reduced-motion branch that keeps the end state and drops the travel."
     >
       <SubSection title="Springs" hint="src/lib/motion.ts · spring.* ↔ --ease-spring-*">
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
           {SPRINGS.map((item) => (
             <div key={item.name} className="flex items-center gap-4">
               <div className="flex w-44 shrink-0 flex-col">
-                <TokenName className="text-xs text-foreground">spring.{item.name}</TokenName>
+                <TokenName className="text-foreground text-xs">spring.{item.name}</TokenName>
                 <span className="text-2xs text-muted-foreground">{item.spec}</span>
               </div>
               <Track
@@ -95,40 +105,62 @@ export function MotionSection() {
                 cssDuration={`var(--spring-${item.css}-duration)`}
                 cssEase={`var(--ease-spring-${item.css})`}
               />
-              <span className="hidden w-52 shrink-0 text-xs text-muted-foreground lg:block">{item.use}</span>
+              <span className="text-muted-foreground hidden w-52 shrink-0 text-xs lg:block">
+                {item.use}
+              </span>
             </div>
           ))}
           <div className="flex items-center gap-3 pt-1">
-            <Button size="sm" variant="secondary" onClick={() => setSpringsOn((on) => !on)} data-icon="inline-start">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSpringsOn((on) => !on)}
+              data-icon="inline-start"
+            >
               <PlayIcon />
               Play springs
             </Button>
-            <span className="text-xs text-muted-foreground">
-              Filled dot: motion spring. Ring: its CSS <code className="font-mono">linear()</code> mirror. They land together.
+            <span className="text-muted-foreground text-xs">
+              Filled dot: motion spring. Ring: its CSS <code className="font-mono">linear()</code>{" "}
+              mirror. They land together.
             </span>
           </div>
         </div>
       </SubSection>
 
       <SubSection title="Tweens" hint="duration.* ↔ --duration-* with --ease-out">
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+        <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
           {TWEENS.map((item) => (
             <div key={item.name} className="flex items-center gap-4">
               <div className="flex w-44 shrink-0 flex-col">
-                <TokenName className="text-xs text-foreground">duration.{item.name}</TokenName>
-                <span className="font-mono text-2xs text-muted-foreground tabular">{item.value * 1000}ms</span>
+                <TokenName className="text-foreground text-xs">duration.{item.name}</TokenName>
+                <span className="text-2xs text-muted-foreground tabular font-mono">
+                  {item.value * 1000}ms
+                </span>
               </div>
-              <Track on={tweensOn} cssDuration={`var(--duration-${item.name})`} cssEase="var(--ease-out)" />
-              <span className="hidden w-52 shrink-0 text-xs text-muted-foreground lg:block">{item.use}</span>
+              <Track
+                on={tweensOn}
+                cssDuration={`var(--duration-${item.name})`}
+                cssEase="var(--ease-out)"
+              />
+              <span className="text-muted-foreground hidden w-52 shrink-0 text-xs lg:block">
+                {item.use}
+              </span>
             </div>
           ))}
           <div className="flex items-center gap-3 pt-1">
-            <Button size="sm" variant="secondary" onClick={() => setTweensOn((on) => !on)} data-icon="inline-start">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setTweensOn((on) => !on)}
+              data-icon="inline-start"
+            >
               <PlayIcon />
               Play tweens
             </Button>
-            <span className="text-xs text-muted-foreground">
-              Eases: <code className="font-mono">--ease-out</code> enter, <code className="font-mono">--ease-in</code> exit,{" "}
+            <span className="text-muted-foreground text-xs">
+              Eases: <code className="font-mono">--ease-out</code> enter,{" "}
+              <code className="font-mono">--ease-in</code> exit,{" "}
               <code className="font-mono">--ease-in-out</code> on-screen moves.
             </span>
           </div>
@@ -148,14 +180,14 @@ export function MotionSection() {
                 { value: "timeline", label: "Timeline" },
               ]}
             />
-            <span className="text-xs text-muted-foreground">Click, or arrow keys.</span>
+            <span className="text-muted-foreground text-xs">Click, or arrow keys.</span>
           </Specimen>
         </SubSection>
         <SubSection title="Press" hint="--press-scale 0.97 · duration.instant">
           <Specimen>
             <Button>Create issue</Button>
             <Button variant="secondary">Cancel</Button>
-            <span className="text-xs text-muted-foreground">Menu triggers don&apos;t scale.</span>
+            <span className="text-muted-foreground text-xs">Menu triggers don&apos;t scale.</span>
           </Specimen>
         </SubSection>
       </div>

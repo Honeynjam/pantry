@@ -11,8 +11,15 @@ describe("space avatars", () => {
     const as = t.withIdentity(owner);
     await as.mutation(api.setup.createWorkspace, { workspaceName: "Home" });
     const avatar = { shape: "jam", color: "red", expression: "happy" } as const;
-    const { spaceId } = await as.mutation(api.spaces.create, { name: "Website", key: "WEB", avatar });
-    const { spaceId: plainId } = await as.mutation(api.spaces.create, { name: "Infra", key: "OPS" });
+    const { spaceId } = await as.mutation(api.spaces.create, {
+      name: "Website",
+      key: "WEB",
+      avatar,
+    });
+    const { spaceId: plainId } = await as.mutation(api.spaces.create, {
+      name: "Infra",
+      key: "OPS",
+    });
     expect((await t.run((ctx) => ctx.db.get("spaces", spaceId)))?.avatar).toEqual(avatar);
     expect((await t.run((ctx) => ctx.db.get("spaces", plainId)))?.avatar).toBeUndefined();
   });
@@ -36,7 +43,12 @@ describe("space avatars", () => {
         slug: "elsewhere",
         createdBy: stranger.subject,
       });
-      await ctx.db.insert("members", { workspaceId, userId: stranger.subject, displayName: "Stranger", role: "owner" });
+      await ctx.db.insert("members", {
+        workspaceId,
+        userId: stranger.subject,
+        displayName: "Stranger",
+        role: "owner",
+      });
     });
     const avatar = { shape: "toast", color: "blue", expression: "dots" } as const;
     await expect(
@@ -45,8 +57,8 @@ describe("space avatars", () => {
         avatar: { ...avatar, shape: "pizza" as "toast" },
       }),
     ).rejects.toThrow();
-    await expect(t.withIdentity(stranger).mutation(api.spaces.setAvatar, { spaceId, avatar })).rejects.toThrow(
-      /not found/i,
-    );
+    await expect(
+      t.withIdentity(stranger).mutation(api.spaces.setAvatar, { spaceId, avatar }),
+    ).rejects.toThrow(/not found/i);
   });
 });

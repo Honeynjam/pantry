@@ -44,11 +44,13 @@ export function SpikeStatus({ source }: { source: string }) {
   return (
     <aside
       aria-label="Spike status"
-      className="pointer-events-none fixed right-3 bottom-3 z-50 flex max-w-md flex-col gap-0.5 rounded-md border border-border bg-background/90 px-3 py-2 font-mono text-[11px] leading-4 text-muted-foreground shadow-sm"
+      className="border-border bg-background/90 text-muted-foreground pointer-events-none fixed right-3 bottom-3 z-50 flex max-w-md flex-col gap-0.5 rounded-md border px-3 py-2 font-mono text-[11px] leading-4 shadow-sm"
     >
       <span>origin {window.location.origin}</span>
       <span>server {source}</span>
-      <span>session {email ?? "signed out"} · convex auth {String(isAuthenticated)}</span>
+      <span>
+        session {email ?? "signed out"} · convex auth {String(isAuthenticated)}
+      </span>
       <span className="text-foreground">workspace.current {workspace ?? "–"}</span>
     </aside>
   );

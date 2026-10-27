@@ -42,7 +42,10 @@ export function LabelsSettings({ data }: { data: WorkspaceData }) {
       description="Shared by every project. Agents add and remove labels by name over MCP; they never create new ones."
     >
       <NewLabel labels={data.labels} />
-      <SettingsGroup title="Labels" hint={<span className="font-mono tabular">{data.labels.length}</span>}>
+      <SettingsGroup
+        title="Labels"
+        hint={<span className="tabular font-mono">{data.labels.length}</span>}
+      >
         {sorted.length === 0 ? (
           <SettingsEmpty>No labels yet.</SettingsEmpty>
         ) : (

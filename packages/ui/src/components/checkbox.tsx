@@ -12,7 +12,7 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer relative flex size-3.5 shrink-0 cursor-default items-center justify-center rounded-[4px] border border-gray-8 bg-background outline-none",
+        "peer border-gray-8 bg-background relative flex size-3.5 shrink-0 cursor-default items-center justify-center rounded-[4px] border outline-none",
         "transition-[background-color,border-color] duration-(--duration-instant)",
         "data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground",
         "data-indeterminate:border-primary data-indeterminate:bg-primary data-indeterminate:text-primary-foreground",
@@ -28,7 +28,9 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
         data-slot="checkbox-indicator"
         className="flex items-center justify-center text-current [&>svg]:size-3"
         render={(indicatorProps, state) => (
-          <span {...indicatorProps}>{state.indeterminate ? <MinusIcon strokeWidth={3} /> : <CheckIcon strokeWidth={3} />}</span>
+          <span {...indicatorProps}>
+            {state.indeterminate ? <MinusIcon strokeWidth={3} /> : <CheckIcon strokeWidth={3} />}
+          </span>
         )}
       />
     </CheckboxPrimitive.Root>

@@ -31,7 +31,10 @@ async function handle(req: Request): Promise<Response> {
   const convexUrl = getConvexUrl();
   if (!convexUrl) {
     return Response.json(
-      { error: "This server was built without NEXT_PUBLIC_CONVEX_URL; see the README troubleshooting list." },
+      {
+        error:
+          "This server was built without NEXT_PUBLIC_CONVEX_URL; see the README troubleshooting list.",
+      },
       { status: 503 },
     );
   }

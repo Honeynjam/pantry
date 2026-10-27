@@ -22,19 +22,26 @@ export function LoadingScreen({ diagnostics }: { diagnostics?: () => unknown }) 
   useEffect(() => {
     const timer = setTimeout(() => {
       setStalled(true);
-      console.warn(`[${brand.name.toLowerCase()}] still loading after ${STALL_AFTER_MS / 1000}s`, diagnosticsRef.current?.());
+      console.warn(
+        `[${brand.name.toLowerCase()}] still loading after ${STALL_AFTER_MS / 1000}s`,
+        diagnosticsRef.current?.(),
+      );
     }, STALL_AFTER_MS);
     return () => clearTimeout(timer);
   }, []);
 
   if (stalled) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background p-6" role="status" aria-live="polite">
-        <div className="flex max-w-xs animate-in flex-col items-center gap-3 text-center duration-(--duration-standard) fade-in motion-reduce:animate-none">
+      <div
+        className="bg-background flex min-h-svh items-center justify-center p-6"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="animate-in fade-in flex max-w-xs flex-col items-center gap-3 text-center duration-(--duration-standard) motion-reduce:animate-none">
           <LogoMark name={brand.name} />
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium text-foreground">This is taking longer than usual</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-foreground text-sm font-medium">This is taking longer than usual</p>
+            <p className="text-muted-foreground text-sm">
               {brand.name} is still waiting for the server. Reloading usually sorts it out.
             </p>
           </div>
@@ -47,8 +54,8 @@ export function LoadingScreen({ diagnostics }: { diagnostics?: () => unknown }) 
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background" aria-busy="true">
-      <span className="animate-in text-sm text-muted-foreground delay-400 duration-(--duration-standard) fill-mode-both fade-in motion-reduce:animate-none">
+    <div className="bg-background flex min-h-svh items-center justify-center" aria-busy="true">
+      <span className="animate-in text-muted-foreground fill-mode-both fade-in text-sm delay-400 duration-(--duration-standard) motion-reduce:animate-none">
         Loading…
       </span>
     </div>

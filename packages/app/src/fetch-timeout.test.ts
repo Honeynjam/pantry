@@ -25,7 +25,9 @@ describe("fetchWithTimeout", () => {
 
   it("still aborts when the caller passed its own signal (better-fetch skips its timeout then)", async () => {
     const caller = new AbortController();
-    const request = fetchWithTimeout(1000, hangingFetch)("/api/auth/get-session", { signal: caller.signal });
+    const request = fetchWithTimeout(1000, hangingFetch)("/api/auth/get-session", {
+      signal: caller.signal,
+    });
     const settled = expect(request).rejects.toMatchObject({ name: "TimeoutError" });
     await vi.advanceTimersByTimeAsync(1000);
     await settled;

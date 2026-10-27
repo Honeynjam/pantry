@@ -17,7 +17,9 @@ const [file, topArg] = process.argv.slice(2);
 const top = Number(topArg ?? 25);
 const code = readFileSync(file, "utf8");
 const mapName = code.match(/sourceMappingURL=(\S+)\s*$/)?.[1];
-const map = JSON.parse(readFileSync(mapName ? join(dirname(file), mapName) : `${file}.map`, "utf8"));
+const map = JSON.parse(
+  readFileSync(mapName ? join(dirname(file), mapName) : `${file}.map`, "utf8"),
+);
 const sections = map.sections ?? [{ offset: { line: 0, column: 0 }, map }];
 const lines = code.split("\n");
 const bytes = new Map();

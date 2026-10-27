@@ -30,8 +30,8 @@ describe("workspace.current", () => {
     const t = setupTest();
     await t.withIdentity(owner).mutation(api.setup.createWorkspace, {});
     await expect(t.query(api.workspace.current, {})).rejects.toThrow(/Sign in first/);
-    await expect(t.withIdentity({ subject: "stranger" }).query(api.workspace.current, {})).rejects.toThrow(
-      /not a member/,
-    );
+    await expect(
+      t.withIdentity({ subject: "stranger" }).query(api.workspace.current, {}),
+    ).rejects.toThrow(/not a member/);
   });
 });

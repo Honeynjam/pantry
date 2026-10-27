@@ -19,7 +19,11 @@ export function timeAgo(timestamp: number, now = Date.now()): string {
 }
 
 const dateFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
-const dateYearFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" });
+const dateYearFormat = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
 const fullFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
 /** A full timestamp for tooltips and `title` attributes. */
@@ -30,7 +34,9 @@ export function formatDay(day: string): string {
   const [year, month, date] = day.split("-").map(Number);
   if (!year || !month || !date) return day;
   const value = new Date(year, month - 1, date);
-  return value.getFullYear() === new Date().getFullYear() ? dateFormat.format(value) : dateYearFormat.format(value);
+  return value.getFullYear() === new Date().getFullYear()
+    ? dateFormat.format(value)
+    : dateYearFormat.format(value);
 }
 
 /** Today as "YYYY-MM-DD" in local time. */

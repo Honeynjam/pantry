@@ -18,7 +18,13 @@ function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
 
 function DialogPortal({ container, ...props }: DialogPrimitive.Portal.Props) {
   const fallback = usePortalContainer();
-  return <DialogPrimitive.Portal data-slot="dialog-portal" container={container ?? fallback} {...props} />;
+  return (
+    <DialogPrimitive.Portal
+      data-slot="dialog-portal"
+      container={container ?? fallback}
+      {...props}
+    />
+  );
 }
 
 function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
@@ -29,7 +35,11 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
-      className={cn("fixed inset-0 isolate z-50 bg-(--overlay-backdrop)", backdropMotion, className)}
+      className={cn(
+        "fixed inset-0 isolate z-50 bg-(--overlay-backdrop)",
+        backdropMotion,
+        className,
+      )}
       {...props}
     />
   );
@@ -51,7 +61,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[min(18vh,10rem)] left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 gap-4 rounded-2xl bg-popover p-5 text-sm text-popover-foreground shadow-overlay outline-none sm:max-w-md",
+          "bg-popover text-popover-foreground shadow-overlay fixed top-[min(18vh,10rem)] left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 gap-4 rounded-2xl p-5 text-sm outline-none sm:max-w-md",
           dialogMotion,
           className,
         )}
@@ -73,7 +83,13 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="dialog-header" className={cn("flex flex-col gap-1 pr-6", className)} {...props} />;
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn("flex flex-col gap-1 pr-6", className)}
+      {...props}
+    />
+  );
 }
 
 function DialogFooter({
@@ -85,7 +101,10 @@ function DialogFooter({
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end", className)}
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -111,7 +130,7 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
     <DialogPrimitive.Description
       data-slot="dialog-description"
       className={cn(
-        "text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        "text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3",
         className,
       )}
       {...props}

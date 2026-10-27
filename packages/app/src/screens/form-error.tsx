@@ -6,7 +6,7 @@ export function FormError({ message }: { message: string | null }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-md border border-[color-mix(in_oklch,var(--destructive)_35%,transparent)] bg-[color-mix(in_oklch,var(--destructive)_8%,transparent)] px-2.5 py-2 text-sm text-destructive"
+      className="text-destructive flex items-start gap-2 rounded-md border border-[color-mix(in_oklch,var(--destructive)_35%,transparent)] bg-[color-mix(in_oklch,var(--destructive)_8%,transparent)] px-2.5 py-2 text-sm"
     >
       <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" />
       <span>{message}</span>
@@ -18,7 +18,8 @@ export function FormError({ message }: { message: string | null }) {
 export function describeError(error: unknown, fallback: string): string {
   if (error && typeof error === "object") {
     const data = (error as { data?: unknown }).data;
-    if (data && typeof data === "object" && "message" in data && typeof data.message === "string") return data.message;
+    if (data && typeof data === "object" && "message" in data && typeof data.message === "string")
+      return data.message;
     if ("message" in error && typeof (error as { message?: unknown }).message === "string") {
       const message = (error as { message: string }).message;
       // Unexpected server errors ("[CONVEX M(issues:move)] [Request ID: …] Server Error …") mean

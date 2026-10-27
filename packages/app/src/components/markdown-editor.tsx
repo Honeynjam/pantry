@@ -52,7 +52,10 @@ export function useMarkdownEditorReady(): boolean {
 }
 
 /** The markdown editor once it has loaded, `fallback` until then (nothing by default). */
-export function MarkdownEditor({ fallback = null, ...props }: ComponentProps<typeof Editor> & { fallback?: ReactNode }) {
+export function MarkdownEditor({
+  fallback = null,
+  ...props
+}: ComponentProps<typeof Editor> & { fallback?: ReactNode }) {
   const ready = useMarkdownEditorReady();
   const Loaded = ready ? loaded : null;
   return Loaded ? <Loaded {...props} /> : <>{fallback}</>;

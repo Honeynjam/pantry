@@ -30,7 +30,8 @@ function backendWith(verify: unknown, touch: () => unknown = () => true) {
 }
 
 const req = new Request("https://pantry.example.com/api/mcp", { method: "POST" });
-const verifier = (backend: Backend) => createVerifyToken(backend, { appUrl: () => "https://pantry.example.com/", now: () => NOW });
+const verifier = (backend: Backend) =>
+  createVerifyToken(backend, { appUrl: () => "https://pantry.example.com/", now: () => NOW });
 
 describe("createVerifyToken", () => {
   afterEach(() => vi.restoreAllMocks());

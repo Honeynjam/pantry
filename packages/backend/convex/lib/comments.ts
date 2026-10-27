@@ -7,7 +7,8 @@ export const MAX_COMMENT = 20_000;
 
 export function cleanBody(body: string): string {
   if (!body.trim()) fail("EMPTY", "Write something first.");
-  if (body.length > MAX_COMMENT) fail("TOO_LONG", `Comments can be at most ${MAX_COMMENT.toLocaleString("en")} characters.`);
+  if (body.length > MAX_COMMENT)
+    fail("TOO_LONG", `Comments can be at most ${MAX_COMMENT.toLocaleString("en")} characters.`);
   return body;
 }
 
@@ -15,7 +16,12 @@ export function cleanBody(body: string): string {
  * A new comment, shared by `comments.add` (via "app") and MCP `add_comment` (via "mcp"). Adding a
  * comment is an issue write: `updatedAt` moves and a `commented` activity row is added.
  */
-export async function addComment(ctx: MutationCtx, actor: Actor, issue: Doc<"issues">, body: string) {
+export async function addComment(
+  ctx: MutationCtx,
+  actor: Actor,
+  issue: Doc<"issues">,
+  body: string,
+) {
   const commentId = await ctx.db.insert("comments", {
     issueId: issue._id,
     authorId: actor.member._id,

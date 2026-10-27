@@ -17,7 +17,11 @@ export async function fetchTokenWithRetry(
     attempts = TOKEN_ATTEMPTS,
     delaysMs = TOKEN_RETRY_DELAYS_MS,
     sleep = wait,
-  }: { attempts?: number; delaysMs?: ReadonlyArray<number>; sleep?: (ms: number) => Promise<void> } = {},
+  }: {
+    attempts?: number;
+    delaysMs?: ReadonlyArray<number>;
+    sleep?: (ms: number) => Promise<void>;
+  } = {},
 ): Promise<string | null> {
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {

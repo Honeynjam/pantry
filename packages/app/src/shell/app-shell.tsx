@@ -29,7 +29,15 @@ import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
 import { RollingNumber } from "@pantry/ui/components/rolling-number";
-import { ChevronRightIcon, CircleUserRoundIcon, HouseIcon, LoaderCircleIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  CircleUserRoundIcon,
+  HouseIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  SearchIcon,
+  SettingsIcon,
+} from "lucide-react";
 import type { Doc } from "@pantry/backend/dataModel";
 import type { Project } from "@pantry/backend/model";
 import { cn } from "@pantry/ui/lib/utils";
@@ -82,13 +90,15 @@ function NavItem({
           layoutId={reduceMotion ? undefined : "sidebar-active"}
           transition={spring.morph}
           aria-hidden
-          className="absolute inset-0 rounded-md bg-selected"
+          className="bg-selected absolute inset-0 rounded-md"
         />
       )}
       <SidebarMenuButton
         render={<Link href={href} aria-current={active ? "page" : undefined} />}
         tooltip={tooltip}
-        className={active ? "relative font-medium text-foreground hover:bg-transparent" : "relative"}
+        className={
+          active ? "text-foreground relative font-medium hover:bg-transparent" : "relative"
+        }
       >
         {children}
       </SidebarMenuButton>
@@ -119,7 +129,10 @@ function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Pro
       <NavItem
         href={list}
         tooltip={space.name}
-        active={onSpace && !(activeProject && projects.some((project) => slug(project.name) === activeProject))}
+        active={
+          onSpace &&
+          !(activeProject && projects.some((project) => slug(project.name) === activeProject))
+        }
         badge={<span className={cn(projects.length > 0 && "mr-5")}>{space.key}</span>}
         action={
           projects.length > 0 ? (
@@ -155,7 +168,7 @@ function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Pro
                     layoutId={reduceMotion ? undefined : "sidebar-active"}
                     transition={spring.morph}
                     aria-hidden
-                    className="absolute inset-0 -translate-x-px rounded-md bg-selected"
+                    className="bg-selected absolute inset-0 -translate-x-px rounded-md"
                   />
                 )}
                 <SidebarMenuSubButton
@@ -165,9 +178,16 @@ function SpaceNavItem({ space, projects }: { space: Doc<"spaces">; projects: Pro
                       aria-current={active ? "page" : undefined}
                     />
                   }
-                  className={cn("relative", active && "font-medium text-foreground hover:bg-transparent")}
+                  className={cn(
+                    "relative",
+                    active && "text-foreground font-medium hover:bg-transparent",
+                  )}
                 >
-                  <span className="size-2 shrink-0 rounded-[2px]" style={{ background: projectColor(project) }} aria-hidden />
+                  <span
+                    className="size-2 shrink-0 rounded-[2px]"
+                    style={{ background: projectColor(project) }}
+                    aria-hidden
+                  />
                   <span>{project.name}</span>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
@@ -188,11 +208,18 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton render={<div />} size="lg" tooltip={data.workspace.name} className="hover:bg-transparent">
+            <SidebarMenuButton
+              render={<div />}
+              size="lg"
+              tooltip={data.workspace.name}
+              className="hover:bg-transparent"
+            >
               <LogoMark name={data.workspace.name} />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-semibold text-foreground">{data.workspace.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="text-foreground truncate text-sm font-semibold">
+                  {data.workspace.name}
+                </span>
+                <span className="text-muted-foreground truncate text-xs">
                   {data.members.length} {data.members.length === 1 ? "member" : "members"}
                 </span>
               </span>
@@ -204,7 +231,11 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Search" onClick={openPalette} aria-keyshortcuts="Meta+K Control+K">
+              <SidebarMenuButton
+                tooltip="Search"
+                onClick={openPalette}
+                aria-keyshortcuts="Meta+K Control+K"
+              >
                 <SearchIcon />
                 <span>Search</span>
               </SidebarMenuButton>
@@ -247,7 +278,11 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <NavItem href={routes.settings()} tooltip="Settings" active={pathname.startsWith("/settings")}>
+          <NavItem
+            href={routes.settings()}
+            tooltip="Settings"
+            active={pathname.startsWith("/settings")}
+          >
             <SettingsIcon />
             <span>Settings</span>
           </NavItem>
@@ -267,11 +302,18 @@ function AppSidebar({ data }: { data: WorkspaceData }) {
  */
 function Upgrading() {
   return (
-    <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <LoaderCircleIcon className="size-5 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden />
-      <p className="text-sm font-medium text-foreground">Finishing an upgrade</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        Your issues are being moved to the new spaces layout. This page comes back by itself in a moment.
+    <div
+      role="status"
+      className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center"
+    >
+      <LoaderCircleIcon
+        className="text-muted-foreground size-5 animate-spin motion-reduce:animate-none"
+        aria-hidden
+      />
+      <p className="text-foreground text-sm font-medium">Finishing an upgrade</p>
+      <p className="text-muted-foreground max-w-sm text-sm">
+        Your issues are being moved to the new spaces layout. This page comes back by itself in a
+        moment.
       </p>
     </div>
   );
@@ -290,7 +332,8 @@ export function AppShell({
   const [open, setOpen] = useState(readSidebarOpen);
   // C opens the new-issue dialog from anywhere: have its editor ready by then.
   useEffect(() => whenIdle(preloadMarkdownEditor), []);
-  if (data === undefined) return <LoadingScreen diagnostics={() => ({ waitingFor: "workspace.current" })} />;
+  if (data === undefined)
+    return <LoadingScreen diagnostics={() => ({ waitingFor: "workspace.current" })} />;
   return (
     <SidebarProvider
       open={open}
@@ -306,11 +349,13 @@ export function AppShell({
       <AppCommandsProvider data={data}>
         <AppSidebar data={data} />
         <SidebarInset className="min-w-0">
-          <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+          <header className="border-border flex h-11 shrink-0 items-center gap-2 border-b px-3">
             <SidebarTrigger title="Fold the sidebar ( [ )" aria-keyshortcuts="[" />
             <div className="flex min-w-0 items-center gap-2 text-sm">{title(data)}</div>
           </header>
-          <main className="flex min-h-0 flex-1 flex-col">{data.upgrading ? <Upgrading /> : children(data)}</main>
+          <main className="flex min-h-0 flex-1 flex-col">
+            {data.upgrading ? <Upgrading /> : children(data)}
+          </main>
         </SidebarInset>
       </AppCommandsProvider>
     </SidebarProvider>

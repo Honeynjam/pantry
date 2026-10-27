@@ -16,7 +16,13 @@ import { ConfirmDialog } from "../../components/confirm-dialog";
 import { CopyButton } from "../../components/copy-button";
 import { fullDate, timeAgo } from "../../lib/format";
 import { describeError, FormError } from "../form-error";
-import { claudeCodeSnippet, cursorEnvSnippet, cursorSnippet, mcpUrl, TOKEN_ENV_VAR } from "./mcp-snippets";
+import {
+  claudeCodeSnippet,
+  cursorEnvSnippet,
+  cursorSnippet,
+  mcpUrl,
+  TOKEN_ENV_VAR,
+} from "./mcp-snippets";
 import { SettingsEmpty, SettingsGroup, SettingsList, SettingsPanel, SettingsRow } from "./parts";
 
 type CreatedToken = { name: string; token: string };
@@ -31,8 +37,8 @@ export function TokensSettings() {
       title="API tokens"
       description={
         <>
-          Personal tokens for AI agents working over MCP. An agent with your token acts as you: its comments and changes
-          show under your name, tagged “via MCP”.
+          Personal tokens for AI agents working over MCP. An agent with your token acts as you: its
+          comments and changes show under your name, tagged “via MCP”.
         </>
       }
     >
@@ -43,7 +49,13 @@ export function TokensSettings() {
   );
 }
 
-function CreateToken({ created, onCreated }: { created: CreatedToken | null; onCreated: (token: CreatedToken) => void }) {
+function CreateToken({
+  created,
+  onCreated,
+}: {
+  created: CreatedToken | null;
+  onCreated: (token: CreatedToken) => void;
+}) {
   const createToken = useAction(api.tokens.create);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +80,11 @@ function CreateToken({ created, onCreated }: { created: CreatedToken | null; onC
 
   return (
     <SettingsGroup title="New token">
-      <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+      <div className="border-border flex flex-col gap-3 rounded-lg border p-3">
         <form onSubmit={onSubmit} className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <KeyRoundIcon
-              className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint-foreground"
+              className="text-faint-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
               aria-hidden
             />
             <Input
@@ -92,22 +104,25 @@ function CreateToken({ created, onCreated }: { created: CreatedToken | null; onC
         </form>
         <FormError message={error} />
         {created ? (
-          <div className="flex flex-col gap-2 rounded-md bg-gray-2 p-2.5" role="status">
-            <div className="flex items-center gap-1 rounded-md border border-border bg-background py-0.5 pr-0.5 pl-2.5">
-              <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground" title={created.token}>
+          <div className="bg-gray-2 flex flex-col gap-2 rounded-md p-2.5" role="status">
+            <div className="border-border bg-background flex items-center gap-1 rounded-md border py-0.5 pr-0.5 pl-2.5">
+              <code
+                className="text-foreground min-w-0 flex-1 truncate font-mono text-xs"
+                title={created.token}
+              >
                 {created.token}
               </code>
               <CopyButton text={created.token} label="Copy token" variant="secondary">
                 Copy token
               </CopyButton>
             </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-foreground">{created.name}</span> is ready. Copy it now: you won&apos;t see it again.
-              The snippets below already include it.
+            <p className="text-muted-foreground text-xs">
+              <span className="text-foreground">{created.name}</span> is ready. Copy it now: you
+              won&apos;t see it again. The snippets below already include it.
             </p>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Name it after where it lives, so you know which one to revoke. You see the token once.
           </p>
         )}
@@ -118,8 +133,8 @@ function CreateToken({ created, onCreated }: { created: CreatedToken | null; onC
 
 function Snippet({ text, label }: { text: string; label: string }) {
   return (
-    <div className="flex items-start gap-1 rounded-md border border-border bg-gray-2 p-1 pl-2.5">
-      <pre className="min-w-0 flex-1 py-1 font-mono text-xs leading-5 break-all whitespace-pre-wrap text-foreground">
+    <div className="border-border bg-gray-2 flex items-start gap-1 rounded-md border p-1 pl-2.5">
+      <pre className="text-foreground min-w-0 flex-1 py-1 font-mono text-xs leading-5 break-all whitespace-pre-wrap">
         <code>{text}</code>
       </pre>
       <CopyButton text={text} label={label} />
@@ -130,28 +145,31 @@ function Snippet({ text, label }: { text: string; label: string }) {
 function ClientSnippets({ url, token }: { url: string; token: string | undefined }) {
   return (
     <SettingsGroup title="Connect an agent">
-      <Tabs defaultValue="claude-code" className="rounded-lg border border-border p-3">
+      <Tabs defaultValue="claude-code" className="border-border rounded-lg border p-3">
         <TabsList>
           <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
           <TabsTrigger value="cursor">Cursor</TabsTrigger>
         </TabsList>
         <TabsContent value="claude-code" className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">Run this in a terminal{token ? "" : ", with your token in place of the placeholder"}:</p>
+          <p className="text-muted-foreground text-xs">
+            Run this in a terminal{token ? "" : ", with your token in place of the placeholder"}:
+          </p>
           <Snippet text={claudeCodeSnippet(url, token)} label="Copy Claude Code command" />
-          <p className="text-xs text-muted-foreground">
-            Then ask it to work on an issue, for example “work on {brand.defaultKey}-12”. It reads the issue and the
-            space&apos;s context doc first.
+          <p className="text-muted-foreground text-xs">
+            Then ask it to work on an issue, for example “work on {brand.defaultKey}-12”. It reads
+            the issue and the space&apos;s context doc first.
           </p>
         </TabsContent>
         <TabsContent value="cursor" className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">
-            Add this to <code className="font-mono text-foreground">~/.cursor/mcp.json</code> (or the project&apos;s{" "}
-            <code className="font-mono text-foreground">.cursor/mcp.json</code>):
+          <p className="text-muted-foreground text-xs">
+            Add this to <code className="text-foreground font-mono">~/.cursor/mcp.json</code> (or
+            the project&apos;s <code className="text-foreground font-mono">.cursor/mcp.json</code>):
           </p>
           <Snippet text={cursorSnippet(url)} label="Copy Cursor config" />
-          <p className="text-xs text-muted-foreground">
-            It reads the token from <code className="font-mono text-foreground">{TOKEN_ENV_VAR}</code>, so the file holds
-            no secret. Set it where Cursor starts, for example in your shell profile:
+          <p className="text-muted-foreground text-xs">
+            It reads the token from{" "}
+            <code className="text-foreground font-mono">{TOKEN_ENV_VAR}</code>, so the file holds no
+            secret. Set it where Cursor starts, for example in your shell profile:
           </p>
           <Snippet text={cursorEnvSnippet(token)} label="Copy environment line" />
         </TabsContent>
@@ -182,25 +200,35 @@ function TokenList() {
 
   return (
     <>
-      <SettingsGroup title="Your tokens" hint={<span className="font-mono tabular">{active.length}</span>}>
+      <SettingsGroup
+        title="Your tokens"
+        hint={<span className="tabular font-mono">{active.length}</span>}
+      >
         {active.length === 0 ? (
           <SettingsEmpty>No tokens yet. Create one above to connect an agent.</SettingsEmpty>
         ) : (
           <SettingsList>
             {active.map((token) => (
               <SettingsRow key={token._id}>
-                <KeyRoundIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-foreground">{token.name}</span>
-                <code className="font-mono text-xs text-muted-foreground" title="The start of the token">
+                <KeyRoundIcon className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
+                <span className="text-foreground min-w-0 flex-1 truncate">{token.name}</span>
+                <code
+                  className="text-muted-foreground font-mono text-xs"
+                  title="The start of the token"
+                >
                   {token.tokenPrefix}…
                 </code>
                 <Tooltip>
-                  <TooltipTrigger render={<span className="w-28 text-right text-xs text-muted-foreground" />}>
+                  <TooltipTrigger
+                    render={<span className="text-muted-foreground w-28 text-right text-xs" />}
+                  >
                     {token.lastUsedAt ? `Used ${timeAgo(token.lastUsedAt)}` : "Never used"}
                   </TooltipTrigger>
                   <TooltipContent>
                     Created {fullDate(token._creationTime)}.
-                    {token.lastUsedAt ? ` Last used ${fullDate(token.lastUsedAt)} (updated every 10 minutes at most).` : ""}
+                    {token.lastUsedAt
+                      ? ` Last used ${fullDate(token.lastUsedAt)} (updated every 10 minutes at most).`
+                      : ""}
                   </TooltipContent>
                 </Tooltip>
                 <Button

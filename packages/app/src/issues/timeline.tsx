@@ -31,13 +31,19 @@ type Comment = Doc<"comments">;
 /** Agent writes show as the token's owner plus this tag (spec §6). */
 export function ViaMcp() {
   return (
-    <Badge variant="outline" className="h-4 px-1.5 text-2xs" title="Made by an agent through MCP, acting as this person">
+    <Badge
+      variant="outline"
+      className="text-2xs h-4 px-1.5"
+      title="Made by an agent through MCP, acting as this person"
+    >
       via MCP
     </Badge>
   );
 }
 
-const Value = ({ children }: { children: ReactNode }) => <span className="font-medium text-foreground">{children}</span>;
+const Value = ({ children }: { children: ReactNode }) => (
+  <span className="text-foreground font-medium">{children}</span>
+);
 
 const names = (list: string | undefined) => (list ? list.split(", ").filter(Boolean) : []);
 
@@ -49,7 +55,14 @@ export function describeActivity(row: Activity): ReactNode {
     case "status_changed":
       return (
         <>
-          changed status{row.from ? <> from <Value>{row.from}</Value></> : null} to <Value>{row.to}</Value>
+          changed status
+          {row.from ? (
+            <>
+              {" "}
+              from <Value>{row.from}</Value>
+            </>
+          ) : null}{" "}
+          to <Value>{row.to}</Value>
         </>
       );
     case "priority_changed":
@@ -59,7 +72,12 @@ export function describeActivity(row: Activity): ReactNode {
         </>
       );
     case "assigned":
-      if (!row.to) return <>removed the assignee <Value>{row.from}</Value></>;
+      if (!row.to)
+        return (
+          <>
+            removed the assignee <Value>{row.from}</Value>
+          </>
+        );
       return row.from ? (
         <>
           reassigned from <Value>{row.from}</Value> to <Value>{row.to}</Value>
@@ -75,9 +93,25 @@ export function describeActivity(row: Activity): ReactNode {
       const added = after.filter((name) => !before.includes(name));
       const removed = before.filter((name) => !after.includes(name));
       const parts: ReactNode[] = [];
-      if (added.length) parts.push(<span key="a">added {added.length > 1 ? "labels" : "label"} <Value>{added.join(", ")}</Value></span>);
-      if (removed.length) parts.push(<span key="r">removed {removed.length > 1 ? "labels" : "label"} <Value>{removed.join(", ")}</Value></span>);
-      return parts.length === 2 ? <>{parts[0]} and {parts[1]}</> : (parts[0] ?? "changed the labels");
+      if (added.length)
+        parts.push(
+          <span key="a">
+            added {added.length > 1 ? "labels" : "label"} <Value>{added.join(", ")}</Value>
+          </span>,
+        );
+      if (removed.length)
+        parts.push(
+          <span key="r">
+            removed {removed.length > 1 ? "labels" : "label"} <Value>{removed.join(", ")}</Value>
+          </span>,
+        );
+      return parts.length === 2 ? (
+        <>
+          {parts[0]} and {parts[1]}
+        </>
+      ) : (
+        (parts[0] ?? "changed the labels")
+      );
     }
     case "title_changed":
       return (
@@ -88,7 +122,12 @@ export function describeActivity(row: Activity): ReactNode {
     case "description_changed":
       return "updated the description";
     case "parent_changed":
-      if (!row.to) return <>removed it from <Value>{row.from}</Value></>;
+      if (!row.to)
+        return (
+          <>
+            removed it from <Value>{row.from}</Value>
+          </>
+        );
       return (
         <>
           made it a sub-issue of <Value>{row.to}</Value>
@@ -103,7 +142,12 @@ export function describeActivity(row: Activity): ReactNode {
         "removed the due date"
       );
     case "project_changed":
-      if (!row.to) return <>removed it from the project <Value>{row.from}</Value></>;
+      if (!row.to)
+        return (
+          <>
+            removed it from the project <Value>{row.from}</Value>
+          </>
+        );
       return row.from ? (
         <>
           moved it from <Value>{row.from}</Value> to the project <Value>{row.to}</Value>
@@ -132,7 +176,9 @@ export function Timeline({
   lookups: Lookups;
 }) {
   const items = [
-    ...activity.filter((row) => row.type !== "commented").map((row) => ({ kind: "activity" as const, row })),
+    ...activity
+      .filter((row) => row.type !== "commented")
+      .map((row) => ({ kind: "activity" as const, row })),
     ...comments.map((row) => ({ kind: "comment" as const, row })),
   ].sort((a, b) => a.row._creationTime - b.row._creationTime);
 
@@ -152,14 +198,22 @@ export function Timeline({
 function ActivityItem({ row, lookups }: { row: Activity; lookups: Lookups }) {
   const actor = lookups.member(row.actorId);
   return (
-    <li className="flex min-h-7 items-center gap-2 py-0.5 pl-1 text-xs text-muted-foreground">
-      <PersonAvatar person={{ name: actor?.displayName ?? "?", avatarUrl: actor?.avatarUrl }} size="xs" />
+    <li className="text-muted-foreground flex min-h-7 items-center gap-2 py-0.5 pl-1 text-xs">
+      <PersonAvatar
+        person={{ name: actor?.displayName ?? "?", avatarUrl: actor?.avatarUrl }}
+        size="xs"
+      />
       <span className="min-w-0">
-        <span className="font-medium text-foreground">{actor?.displayName ?? "Someone"}</span> {describeActivity(row)}
+        <span className="text-foreground font-medium">{actor?.displayName ?? "Someone"}</span>{" "}
+        {describeActivity(row)}
       </span>
       {row.via === "mcp" && <ViaMcp />}
       <span aria-hidden>·</span>
-      <time dateTime={new Date(row._creationTime).toISOString()} title={fullDate(row._creationTime)} className="shrink-0">
+      <time
+        dateTime={new Date(row._creationTime).toISOString()}
+        title={fullDate(row._creationTime)}
+        className="shrink-0"
+      >
         {timeAgo(row._creationTime)}
       </time>
     </li>
@@ -198,14 +252,17 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
       id={anchor}
       ref={item}
       className={cn(
-        "my-1.5 scroll-mt-16 rounded-lg border border-border bg-background transition-opacity duration-(--duration-fast)",
+        "border-border bg-background my-1.5 scroll-mt-16 rounded-lg border transition-opacity duration-(--duration-fast)",
         sending && "opacity-70",
       )}
       aria-busy={sending || undefined}
     >
       <div className="flex h-9 items-center gap-2 px-3 text-xs">
-        <PersonAvatar person={{ name: author?.displayName ?? "?", avatarUrl: author?.avatarUrl }} size="xs" />
-        <span className="font-medium text-foreground">{author?.displayName ?? "Someone"}</span>
+        <PersonAvatar
+          person={{ name: author?.displayName ?? "?", avatarUrl: author?.avatarUrl }}
+          size="xs"
+        />
+        <span className="text-foreground font-medium">{author?.displayName ?? "Someone"}</span>
         {comment.via === "mcp" && <ViaMcp />}
         <time
           dateTime={new Date(comment._creationTime).toISOString()}
@@ -223,7 +280,14 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
         {mine && !editing && !sending && (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-xs" className="ml-auto" aria-label="Comment actions" />}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-auto"
+                  aria-label="Comment actions"
+                />
+              }
             >
               <MoreHorizontalIcon />
             </DropdownMenuTrigger>
@@ -249,14 +313,17 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
             aria-label="Edit comment"
             onSubmit={(body) => void saveEdit(body)}
             onEscape={() => setEditing(false)}
-            className="rounded-md border border-border"
+            className="border-border rounded-md border"
             contentClassName="min-h-16 px-3 py-2"
           />
           <div className="flex items-center justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={() => void saveEdit(editor.current?.getMarkdown() ?? comment.body)}>
+            <Button
+              size="sm"
+              onClick={() => void saveEdit(editor.current?.getMarkdown() ?? comment.body)}
+            >
               Save
             </Button>
           </div>
@@ -289,7 +356,9 @@ function CommentItem({ comment, lookups }: { comment: Comment; lookups: Lookups 
  * back into the editor.
  */
 export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) {
-  const add = useMutation(api.comments.add).withOptimisticUpdate((store, args) => optimisticComment(store, args));
+  const add = useMutation(api.comments.add).withOptimisticUpdate((store, args) =>
+    optimisticComment(store, args),
+  );
   const editor = useRef<MarkdownEditorHandle>(null);
 
   async function post(body: string) {
@@ -304,7 +373,7 @@ export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) 
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-border bg-background transition-colors duration-(--duration-instant) focus-within:border-border-strong">
+    <div className="border-border bg-background focus-within:border-border-strong mt-2 rounded-lg border transition-colors duration-(--duration-instant)">
       <MarkdownEditor
         ref={editor}
         value=""
@@ -314,10 +383,14 @@ export function CommentComposer({ issueId }: { issueId: Doc<"issues">["_id"] }) 
         contentClassName="min-h-16 px-3 pt-2.5 pb-1"
       />
       <div className="flex items-center justify-end gap-2 px-2 pb-2">
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
           <Keycap keys="mod+enter" />
         </span>
-        <Button size="sm" variant="secondary" onClick={() => void post(editor.current?.getMarkdown() ?? "")}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void post(editor.current?.getMarkdown() ?? "")}
+        >
           Comment
         </Button>
       </div>

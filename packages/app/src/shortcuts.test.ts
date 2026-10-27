@@ -1,20 +1,54 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { helpSections, SHORTCUT_IDS, SHORTCUTS, ShortcutRegistry, type ShortcutId } from "./shortcuts";
+import {
+  helpSections,
+  SHORTCUT_IDS,
+  SHORTCUTS,
+  ShortcutRegistry,
+  type ShortcutId,
+} from "./shortcuts";
 
 /** The shortcuts spec §4 lists, in Keycap notation. */
 const SPEC_SHORTCUTS = [
-  "mod+k", "c", "shift+c", "/",
-  "j", "k", "enter", "esc", "x",
-  "s", "a", "i", "l", "p", "d",
-  "mod+enter", "g i", "g s", "g b", "?",
+  "mod+k",
+  "c",
+  "shift+c",
+  "/",
+  "j",
+  "k",
+  "enter",
+  "esc",
+  "x",
+  "s",
+  "a",
+  "i",
+  "l",
+  "p",
+  "d",
+  "mod+enter",
+  "g i",
+  "g s",
+  "g b",
+  "?",
 ];
 
-const CODES: Record<string, string> = { "/": "Slash", "?": "Slash", "[": "BracketLeft", Enter: "Enter", Escape: "Escape" };
+const CODES: Record<string, string> = {
+  "/": "Slash",
+  "?": "Slash",
+  "[": "BracketLeft",
+  Enter: "Enter",
+  Escape: "Escape",
+};
 
 function press(key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) {
   const code = CODES[key] ?? `Key${key.toUpperCase()}`;
-  const event = new KeyboardEvent("keydown", { key, code, bubbles: true, cancelable: true, ...init });
+  const event = new KeyboardEvent("keydown", {
+    key,
+    code,
+    bubbles: true,
+    cancelable: true,
+    ...init,
+  });
   target.dispatchEvent(event);
   return event;
 }
@@ -55,8 +89,11 @@ describe("dispatch", () => {
   let registry: ShortcutRegistry;
   let unbind: () => void;
   const fired: string[] = [];
-  const on = (id: ShortcutId, scope: Parameters<ShortcutRegistry["register"]>[1], name = `${scope}:${id}`) =>
-    registry.register(id, scope, () => void fired.push(name));
+  const on = (
+    id: ShortcutId,
+    scope: Parameters<ShortcutRegistry["register"]>[1],
+    name = `${scope}:${id}`,
+  ) => registry.register(id, scope, () => void fired.push(name));
 
   beforeEach(() => {
     vi.useFakeTimers();

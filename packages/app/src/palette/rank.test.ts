@@ -58,6 +58,11 @@ describe("palette ranking", () => {
     const mixed = rankGroups(items, "p", ["Issues", "Projects", "Navigation", "Actions"]);
     expect(mixed[0]?.group).toBe("Projects"); // "Pantry" starts with p
     const empty = rankGroups(items, "", ["Issues", "Projects", "Navigation", "Actions"]);
-    expect(empty.map((group) => group.group)).toEqual(["Issues", "Projects", "Navigation", "Actions"]);
+    expect(empty.map((group) => group.group)).toEqual([
+      "Issues",
+      "Projects",
+      "Navigation",
+      "Actions",
+    ]);
   });
 });

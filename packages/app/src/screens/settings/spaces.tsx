@@ -29,7 +29,10 @@ export function SpacesSettings({ data }: { data: WorkspaceData }) {
         </Button>
       }
     >
-      <SettingsGroup title="Active spaces" hint={<span className="font-mono tabular">{data.spaces.length}</span>}>
+      <SettingsGroup
+        title="Active spaces"
+        hint={<span className="tabular font-mono">{data.spaces.length}</span>}
+      >
         {data.spaces.length === 0 ? (
           <SettingsEmpty>No active spaces.</SettingsEmpty>
         ) : (
@@ -38,19 +41,27 @@ export function SpacesSettings({ data }: { data: WorkspaceData }) {
               <li key={space._id}>
                 <Link
                   href={routes.spaceSettings(space.key)}
-                  className="group flex h-row items-center gap-3 px-3 text-sm transition-colors duration-(--duration-instant) hover:bg-accent"
+                  className="group h-row hover:bg-accent flex items-center gap-3 px-3 text-sm transition-colors duration-(--duration-instant)"
                 >
                   <SpaceAvatar space={space} size="sm" />
-                  <span className="min-w-0 flex-1 truncate text-foreground">{space.name}</span>
-                  <span className="text-xs text-muted-foreground">{space.kind === "client" ? "Client" : "Product"}</span>
-                  <span className="text-xs text-muted-foreground tabular">
+                  <span className="text-foreground min-w-0 flex-1 truncate">{space.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {space.kind === "client" ? "Client" : "Product"}
+                  </span>
+                  <span className="text-muted-foreground tabular text-xs">
                     {projectCount(data, space._id)}
                   </span>
                   <IssueKey value={space.key} />
-                  <span className="font-mono text-xs text-muted-foreground tabular" title="Issues created so far">
+                  <span
+                    className="text-muted-foreground tabular font-mono text-xs"
+                    title="Issues created so far"
+                  >
                     {space.nextIssueNumber - 1} issues
                   </span>
-                  <ChevronRightIcon className="size-3.5 text-faint-foreground group-hover:text-muted-foreground" aria-hidden />
+                  <ChevronRightIcon
+                    className="text-faint-foreground group-hover:text-muted-foreground size-3.5"
+                    aria-hidden
+                  />
                 </Link>
               </li>
             ))}

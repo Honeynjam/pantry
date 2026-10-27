@@ -30,15 +30,15 @@ function Showcase({ idPrefix = "" }: { idPrefix?: string }) {
   // The nav targets the unprefixed (first) pane.
   return (
     <SectionIdPrefix value={idPrefix}>
-    <div className="flex flex-col">
-      <ColorSection />
-      <TypeSection />
-      <LayoutSection />
-      <MotionSection />
-      <ComponentsSection />
-      <PartsSection />
-      <CompositionSection />
-    </div>
+      <div className="flex flex-col">
+        <ColorSection />
+        <TypeSection />
+        <LayoutSection />
+        <MotionSection />
+        <ComponentsSection />
+        <PartsSection />
+        <CompositionSection />
+      </div>
     </SectionIdPrefix>
   );
 }
@@ -47,10 +47,17 @@ function Showcase({ idPrefix = "" }: { idPrefix?: string }) {
 function ThemePane({ theme, children }: { theme: "light" | "dark"; children: React.ReactNode }) {
   const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
   return (
-    <div className={cn(theme, "min-w-0 bg-background px-6 py-8 text-foreground")} data-theme-pane={theme}>
+    <div
+      className={cn(theme, "bg-background text-foreground min-w-0 px-6 py-8")}
+      data-theme-pane={theme}
+    >
       <div className="mb-6 flex items-center gap-2">
-        {theme === "light" ? <SunIcon className="size-3.5 text-muted-foreground" /> : <MoonIcon className="size-3.5 text-muted-foreground" />}
-        <span className="text-xs font-medium text-muted-foreground capitalize">{theme}</span>
+        {theme === "light" ? (
+          <SunIcon className="text-muted-foreground size-3.5" />
+        ) : (
+          <MoonIcon className="text-muted-foreground size-3.5" />
+        )}
+        <span className="text-muted-foreground text-xs font-medium capitalize">{theme}</span>
       </div>
       <PortalContainerProvider container={container}>{children}</PortalContainerProvider>
       <div ref={setContainer} className={theme} />
@@ -70,15 +77,19 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
   return (
     <DesignBrandProvider value={brand}>
       <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>
-        <div className={cn("min-h-svh bg-background text-foreground", reduceMotion && "reduce-motion")}>
-          <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+        <div
+          className={cn("bg-background text-foreground min-h-svh", reduceMotion && "reduce-motion")}
+        >
+          <header className="border-border bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
             <div className="flex h-12 items-center gap-3 px-4">
-              <span className="flex size-6 items-center justify-center rounded-md bg-primary font-display text-xs font-semibold text-primary-foreground">
+              <span className="bg-primary font-display text-primary-foreground flex size-6 items-center justify-center rounded-md text-xs font-semibold">
                 {brand.name[0]}
               </span>
-              <span className="font-display text-sm font-semibold tracking-[-0.01em]">{brand.name}</span>
-              <span className="text-sm text-faint-foreground">/</span>
-              <span className="text-sm text-muted-foreground">Design system</span>
+              <span className="font-display text-sm font-semibold tracking-[-0.01em]">
+                {brand.name}
+              </span>
+              <span className="text-faint-foreground text-sm">/</span>
+              <span className="text-muted-foreground text-sm">Design system</span>
               <Badge variant="outline" className="hidden sm:inline-flex">
                 dev only · M1 review
               </Badge>
@@ -108,7 +119,12 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
                   value={theme}
                   onValueChange={setTheme}
                   options={[
-                    { value: "system", label: "", icon: <MonitorIcon />, ariaLabel: "System theme" },
+                    {
+                      value: "system",
+                      label: "",
+                      icon: <MonitorIcon />,
+                      ariaLabel: "System theme",
+                    },
                     { value: "light", label: "", icon: <SunIcon />, ariaLabel: "Light theme" },
                     { value: "dark", label: "", icon: <MoonIcon />, ariaLabel: "Dark theme" },
                   ]}
@@ -120,18 +136,18 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
           <div className="flex">
             <nav
               aria-label="Sections"
-              className="sticky top-12 hidden h-[calc(100svh-3rem)] w-52 shrink-0 flex-col gap-0.5 border-r border-border p-3 lg:flex"
+              className="border-border sticky top-12 hidden h-[calc(100svh-3rem)] w-52 shrink-0 flex-col gap-0.5 border-r p-3 lg:flex"
             >
               {NAV.map((item) => (
                 <a
                   key={item.id}
                   href={`#${item.id}`}
-                  className="flex h-7 items-center rounded-md px-2 text-sm text-muted-foreground transition-colors duration-(--duration-instant) hover:bg-accent hover:text-foreground"
+                  className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-7 items-center rounded-md px-2 text-sm transition-colors duration-(--duration-instant)"
                 >
                   {item.label}
                 </a>
               ))}
-              <p className="mt-auto px-2 text-2xs leading-4 text-muted-foreground">
+              <p className="text-2xs text-muted-foreground mt-auto px-2 leading-4">
                 Tokens: packages/ui/src/styles/globals.css. Motion: packages/ui/src/lib/motion.ts.
               </p>
             </nav>
@@ -144,10 +160,10 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
                 </div>
               ) : (
                 <>
-                  <div className="border-b border-border px-6 py-6">
+                  <div className="border-border border-b px-6 py-6">
                     <Intro compact />
                   </div>
-                  <div className="grid grid-cols-1 divide-border xl:grid-cols-2 xl:divide-x">
+                  <div className="divide-border grid grid-cols-1 xl:grid-cols-2 xl:divide-x">
                     <ThemePane theme="light">
                       <Showcase />
                     </ThemePane>
@@ -168,13 +184,19 @@ export function DesignPage({ brand }: { brand: DesignBrand }) {
 function Intro({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn("flex max-w-[65ch] flex-col gap-2", !compact && "mb-12")}>
-      <h1 className={cn("font-display font-semibold tracking-[-0.025em] text-foreground", compact ? "text-xl" : "text-3xl")}>
+      <h1
+        className={cn(
+          "font-display text-foreground font-semibold tracking-[-0.025em]",
+          compact ? "text-xl" : "text-3xl",
+        )}
+      >
         Dense, quiet, keyboard-first
       </h1>
-      <p className="text-base text-muted-foreground">
-        Plane&apos;s three-zone density, MonoCode&apos;s monochrome and Linear&apos;s restraint. Greys do the structure,
-        the primary action is simply the highest-contrast thing on screen, and colour only appears where it means
-        something: status, priority and the label colours you pick.
+      <p className="text-muted-foreground text-base">
+        Plane&apos;s three-zone density, MonoCode&apos;s monochrome and Linear&apos;s restraint.
+        Greys do the structure, the primary action is simply the highest-contrast thing on screen,
+        and colour only appears where it means something: status, priority and the label colours you
+        pick.
       </p>
     </div>
   );

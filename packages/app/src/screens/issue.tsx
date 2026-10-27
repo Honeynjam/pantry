@@ -37,7 +37,14 @@ import { SpaceAvatar } from "../components/space-avatar";
 import { EntryGate } from "../entry";
 import { useIssueActions, type IssueActions } from "../issues/actions";
 import { statusColor, useLookups, type ListIssue, type Lookups } from "../issues/lookups";
-import { AssigneePicker, DueDatePicker, LabelsPicker, PriorityPicker, ProjectPicker, StatusPicker } from "../issues/pickers";
+import {
+  AssigneePicker,
+  DueDatePicker,
+  LabelsPicker,
+  PriorityPicker,
+  ProjectPicker,
+  StatusPicker,
+} from "../issues/pickers";
 import { useIssueQuickEdit } from "../issues/selection";
 import { SubIssueProgress } from "../issues/sub-issue-progress";
 import { CommentComposer, Timeline } from "../issues/timeline";
@@ -80,12 +87,12 @@ function IssueTitle({ data, issueKey }: { data: WorkspaceData; issueKey: string 
         <>
           <Link
             href={routes.space(space.key)}
-            className="flex min-w-0 items-center gap-2 rounded-sm text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground flex min-w-0 items-center gap-2 rounded-sm transition-colors duration-(--duration-instant)"
           >
             <SpaceAvatar space={space} size="xs" />
             <span className="truncate">{space.name}</span>
           </Link>
-          <ChevronRightIcon className="size-3.5 shrink-0 text-faint-foreground" aria-hidden />
+          <ChevronRightIcon className="text-faint-foreground size-3.5 shrink-0" aria-hidden />
         </>
       )}
       <IssueKey value={issueKey.toUpperCase()} className="text-foreground" />
@@ -109,8 +116,12 @@ function IssueScreen({ data, issueKey }: { data: WorkspaceData; issueKey: string
   if (result === null) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-        <p className="text-sm font-medium text-foreground">There&apos;s no issue {issueKey.toUpperCase()}</p>
-        <p className="max-w-sm text-sm text-muted-foreground">It may have been deleted, or the key is mistyped.</p>
+        <p className="text-foreground text-sm font-medium">
+          There&apos;s no issue {issueKey.toUpperCase()}
+        </p>
+        <p className="text-muted-foreground max-w-sm text-sm">
+          It may have been deleted, or the key is mistyped.
+        </p>
       </div>
     );
   }
@@ -167,7 +178,6 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
     },
   ]);
 
-
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
@@ -179,7 +189,7 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
               value={issue.description}
               placeholder="Add a description…"
               aria-label="Description"
-              className="-mx-2 rounded-md transition-colors duration-(--duration-instant) hover:bg-gray-2 focus-within:bg-transparent"
+              className="hover:bg-gray-2 -mx-2 rounded-md transition-colors duration-(--duration-instant) focus-within:bg-transparent"
               contentClassName="min-h-12 px-2 py-1.5"
               onSave={(description) => void actions.update(issue._id, { description })}
             />
@@ -188,7 +198,10 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
           {(subIssues.length > 0 || canHaveSubIssues) && (
             <section aria-labelledby="sub-issues" className="flex flex-col gap-1.5">
               <div className="flex h-7 items-center gap-2">
-                <h2 id="sub-issues" className="font-sans text-xs font-medium tracking-normal text-muted-foreground">
+                <h2
+                  id="sub-issues"
+                  className="text-muted-foreground font-sans text-xs font-medium tracking-normal"
+                >
                   Sub-issues
                 </h2>
                 {subIssues.length > 0 && <SubIssueProgress subIssues={subIssues} />}
@@ -205,12 +218,17 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
                   </Button>
                 )}
               </div>
-              {subIssues.length > 0 && <SubIssueList subIssues={subIssues} lookups={lookups} actions={actions} />}
+              {subIssues.length > 0 && (
+                <SubIssueList subIssues={subIssues} lookups={lookups} actions={actions} />
+              )}
             </section>
           )}
 
           <section aria-labelledby="activity" className="flex flex-col gap-1">
-            <h2 id="activity" className="mb-1 font-sans text-xs font-medium tracking-normal text-muted-foreground">
+            <h2
+              id="activity"
+              className="text-muted-foreground mb-1 font-sans text-xs font-medium tracking-normal"
+            >
               Activity
             </h2>
             <Timeline activity={activity} comments={comments} lookups={lookups} />
@@ -218,19 +236,32 @@ function IssueDetail({ result, lookups }: { result: IssueData; lookups: Lookups 
           </section>
         </article>
       </div>
-      <PropertiesPanel issue={issue} space={space} parent={parent} lookups={lookups} actions={actions} subIssueCount={subIssues.length} />
+      <PropertiesPanel
+        issue={issue}
+        space={space}
+        parent={parent}
+        lookups={lookups}
+        actions={actions}
+        subIssueCount={subIssues.length}
+      />
       {quickEdit}
     </div>
   );
 }
 
-function ParentLink({ parent, lookups }: { parent: NonNullable<IssueData["parent"]>; lookups: Lookups }) {
+function ParentLink({
+  parent,
+  lookups,
+}: {
+  parent: NonNullable<IssueData["parent"]>;
+  lookups: Lookups;
+}) {
   const { Link } = useNavigation();
   const status = lookups.status(parent.statusId);
   return (
     <Link
       href={routes.issue(parent.key)}
-      className="flex w-fit max-w-full items-center gap-1.5 rounded-sm text-xs text-muted-foreground transition-colors duration-(--duration-instant) hover:text-foreground"
+      className="text-muted-foreground hover:text-foreground flex w-fit max-w-full items-center gap-1.5 rounded-sm text-xs transition-colors duration-(--duration-instant)"
     >
       <CornerLeftUpIcon className="size-3" aria-hidden />
       <span>Sub-issue of</span>
@@ -285,7 +316,7 @@ function TitleField({ issue, actions }: { issue: Doc<"issues">; actions: IssueAc
           requestAnimationFrame(() => ref.current?.blur());
         }
       }}
-      className="-mx-2 resize-none overflow-hidden rounded-md bg-transparent px-2 py-1 font-display text-2xl font-semibold tracking-[-0.012em] text-foreground outline-none transition-colors duration-(--duration-instant) hover:bg-gray-2 focus:bg-transparent"
+      className="font-display text-foreground hover:bg-gray-2 -mx-2 resize-none overflow-hidden rounded-md bg-transparent px-2 py-1 text-2xl font-semibold tracking-[-0.012em] transition-colors duration-(--duration-instant) outline-none focus:bg-transparent"
     />
   );
 }
@@ -301,11 +332,11 @@ function SubIssueList({
 }) {
   const { Link } = useNavigation();
   return (
-    <ul className="flex flex-col overflow-hidden rounded-lg border border-border">
+    <ul className="border-border flex flex-col overflow-hidden rounded-lg border">
       {subIssues.map((sub) => (
         <li
           key={sub._id}
-          className="relative flex h-row items-center gap-2 border-b border-border px-2 text-sm transition-colors duration-(--duration-instant) last:border-b-0 hover:bg-accent"
+          className="h-row border-border hover:bg-accent relative flex items-center gap-2 border-b px-2 text-sm transition-colors duration-(--duration-instant) last:border-b-0"
         >
           <StatusPicker
             statuses={lookups.data.statuses}
@@ -315,7 +346,7 @@ function SubIssueList({
           <IssueKey value={sub.key} className="w-14" />
           <Link
             href={routes.issue(sub.key)}
-            className="min-w-0 flex-1 truncate text-foreground outline-none after:absolute after:inset-0 focus-visible:underline"
+            className="text-foreground min-w-0 flex-1 truncate outline-none after:absolute after:inset-0 focus-visible:underline"
           >
             {sub.title}
           </Link>
@@ -334,7 +365,9 @@ function SubIssueList({
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-8 items-start gap-2">
-      <span className="flex h-7 w-20 shrink-0 items-center text-xs text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground flex h-7 w-20 shrink-0 items-center text-xs">
+        {label}
+      </span>
       <div className="flex min-w-0 flex-1 items-center">{children}</div>
     </div>
   );
@@ -360,7 +393,7 @@ function PropertiesPanel({
   return (
     <aside
       aria-label="Properties"
-      className="flex shrink-0 flex-col gap-4 overflow-y-auto border-t border-border bg-gray-2 p-4 lg:w-76 lg:border-t-0 lg:border-l"
+      className="border-border bg-gray-2 flex shrink-0 flex-col gap-4 overflow-y-auto border-t p-4 lg:w-76 lg:border-t-0 lg:border-l"
     >
       <div className="flex items-center gap-1">
         <IssueKey value={issue.key} className="text-foreground" />
@@ -414,16 +447,21 @@ function PropertiesPanel({
           />
         </PropertyRow>
         <PropertyRow label="Space">
-          <span className="flex h-7 min-w-0 items-center gap-2 px-2 text-sm text-foreground">
-            <FolderIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          <span className="text-foreground flex h-7 min-w-0 items-center gap-2 px-2 text-sm">
+            <FolderIcon className="text-muted-foreground size-3.5" aria-hidden />
             <span className="truncate">{space?.name ?? "—"}</span>
           </span>
         </PropertyRow>
         <PropertyRow label="Parent">
-          <ParentPicker issue={issue} parent={parent} subIssueCount={subIssueCount} actions={actions} />
+          <ParentPicker
+            issue={issue}
+            parent={parent}
+            subIssueCount={subIssueCount}
+            actions={actions}
+          />
         </PropertyRow>
       </div>
-      <div className="mt-auto flex flex-col gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
+      <div className="border-border text-muted-foreground mt-auto flex flex-col gap-1.5 border-t pt-3 text-xs">
         <span className="flex items-center gap-1.5">
           <PersonAvatar person={{ name: creator?.displayName ?? "?" }} size="xs" />
           Created by {creator?.displayName ?? "someone"}{" "}
@@ -453,10 +491,17 @@ function ParentPicker({
   const { Link } = useNavigation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const candidates = useQuery(api.issues.listBySpace, open && issue.spaceId ? { spaceId: issue.spaceId } : "skip");
+  const candidates = useQuery(
+    api.issues.listBySpace,
+    open && issue.spaceId ? { spaceId: issue.spaceId } : "skip",
+  );
 
   if (subIssueCount > 0) {
-    return <span className="flex h-7 items-center px-2 text-sm text-muted-foreground">Has sub-issues</span>;
+    return (
+      <span className="text-muted-foreground flex h-7 items-center px-2 text-sm">
+        Has sub-issues
+      </span>
+    );
   }
   const options = (candidates ?? [])
     .filter((row) => row._id !== issue._id && row.parentId === undefined)
@@ -477,15 +522,15 @@ function ParentPicker({
       >
         <PopoverTrigger
           className={cn(
-            "flex h-7 min-w-0 flex-1 cursor-default items-center gap-2 rounded-md px-2 text-left text-sm outline-none transition-colors duration-(--duration-instant) hover:bg-accent aria-expanded:bg-accent focus-visible:outline-2 focus-visible:outline-ring",
+            "hover:bg-accent aria-expanded:bg-accent focus-visible:outline-ring flex h-7 min-w-0 flex-1 cursor-default items-center gap-2 rounded-md px-2 text-left text-sm transition-colors duration-(--duration-instant) outline-none focus-visible:outline-2",
           )}
           aria-label="Parent issue. Change parent"
         >
-          <CornerLeftUpIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <CornerLeftUpIcon className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
           {parent ? (
             <span className="flex min-w-0 items-center gap-1.5">
               <IssueKey value={parent.key} className="text-foreground" />
-              <span className="truncate text-foreground">{parent.title}</span>
+              <span className="text-foreground truncate">{parent.title}</span>
             </span>
           ) : (
             <span className="text-muted-foreground">None</span>
@@ -498,13 +543,13 @@ function ParentPicker({
             placeholder="Find a parent by key or title…"
             aria-label="Find a parent issue"
             autoFocus
-            className="h-8 rounded-md bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-faint-foreground"
+            className="text-foreground placeholder:text-faint-foreground h-8 rounded-md bg-transparent px-2 text-sm outline-none"
           />
-          <div className="flex max-h-64 flex-col overflow-y-auto border-t border-border pt-1">
+          <div className="border-border flex max-h-64 flex-col overflow-y-auto border-t pt-1">
             {candidates === undefined ? (
-              <span className="px-2 py-1.5 text-sm text-muted-foreground">Loading…</span>
+              <span className="text-muted-foreground px-2 py-1.5 text-sm">Loading…</span>
             ) : options.length === 0 ? (
-              <span className="px-2 py-1.5 text-sm text-muted-foreground">No matching issues.</span>
+              <span className="text-muted-foreground px-2 py-1.5 text-sm">No matching issues.</span>
             ) : (
               options.map((row) => (
                 <button
@@ -512,9 +557,10 @@ function ParentPicker({
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    if (row._id !== issue.parentId) void actions.update(issue._id, { parentId: row._id });
+                    if (row._id !== issue.parentId)
+                      void actions.update(issue._id, { parentId: row._id });
                   }}
-                  className="flex h-7 shrink-0 items-center gap-2 rounded-sm px-2 text-left text-sm text-foreground outline-none hover:bg-accent focus-visible:bg-accent"
+                  className="text-foreground hover:bg-accent focus-visible:bg-accent flex h-7 shrink-0 items-center gap-2 rounded-sm px-2 text-left text-sm outline-none"
                 >
                   <IssueKey value={row.key} className="w-14" />
                   <span className="truncate">{row.title}</span>
@@ -529,7 +575,7 @@ function ParentPicker({
           <Link
             href={routes.issue(parent.key)}
             aria-label={`Open ${parent.key}`}
-            className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded-sm"
           >
             <ChevronRightIcon className="size-3" />
           </Link>
@@ -565,7 +611,11 @@ function IssueMenu({ issue, subIssueCount }: { issue: Doc<"issues">; subIssueCou
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="Issue actions" />}>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="Issue actions" />
+          }
+        >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
@@ -573,7 +623,9 @@ function IssueMenu({ issue, subIssueCount }: { issue: Doc<"issues">; subIssueCou
             <CopyIcon />
             Copy key
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void copy(`${window.location.origin}${routes.issue(issue.key)}`, "link")}>
+          <DropdownMenuItem
+            onClick={() => void copy(`${window.location.origin}${routes.issue(issue.key)}`, "link")}
+          >
             <LinkIcon />
             Copy link
           </DropdownMenuItem>

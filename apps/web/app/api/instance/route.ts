@@ -30,7 +30,10 @@ export async function GET() {
   const convexSiteUrl = getConvexSiteUrl();
   if (!convexUrl || !convexSiteUrl) {
     return Response.json(
-      { error: "This server was built without NEXT_PUBLIC_CONVEX_URL; see the README troubleshooting list." },
+      {
+        error:
+          "This server was built without NEXT_PUBLIC_CONVEX_URL; see the README troubleshooting list.",
+      },
       { status: 503, headers },
     );
   }
@@ -39,7 +42,10 @@ export async function GET() {
     const status = await new ConvexHttpClient(convexUrl).query(api.setup.status, {});
     needsSecret = status.needsSecret;
   } catch {
-    return Response.json({ error: "Can't reach this server's Convex deployment." }, { status: 503, headers });
+    return Response.json(
+      { error: "Can't reach this server's Convex deployment." },
+      { status: 503, headers },
+    );
   }
   const body: InstanceInfo = {
     name: brand.name,

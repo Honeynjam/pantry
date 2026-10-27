@@ -31,7 +31,8 @@ export const edit = mutation({
     const me = await requireMember(ctx);
     const comment = await ownComment(ctx, me, commentId);
     const clean = cleanBody(body);
-    if (clean !== comment.body) await ctx.db.patch("comments", comment._id, { body: clean, editedAt: Date.now() });
+    if (clean !== comment.body)
+      await ctx.db.patch("comments", comment._id, { body: clean, editedAt: Date.now() });
   },
 });
 

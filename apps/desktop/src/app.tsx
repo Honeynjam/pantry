@@ -22,7 +22,11 @@ export function App() {
       <TooltipProvider>
         {server ? (
           // crossDomain: the webview (tauri://localhost) calls the .convex.site auth routes directly.
-          <PantryProviders convexUrl={server.convexUrl} authBaseUrl={server.convexSiteUrl} crossDomain>
+          <PantryProviders
+            convexUrl={server.convexUrl}
+            authBaseUrl={server.convexSiteUrl}
+            crossDomain
+          >
             <Routes />
             <SpikeStatus source={server.source} />
           </PantryProviders>
@@ -58,10 +62,11 @@ function Routes() {
 
 function NoServer() {
   return (
-    <main className="grid min-h-svh place-items-center p-6 text-sm text-muted-foreground">
+    <main className="text-muted-foreground grid min-h-svh place-items-center p-6 text-sm">
       <p className="max-w-sm text-center">
-        This build has no server. Rebuild with <code className="font-mono">PANTRY_SERVER_URL=https://your-app</code>, or
-        run <code className="font-mono">pnpm dev</code> first so the local backend URL exists.
+        This build has no server. Rebuild with{" "}
+        <code className="font-mono">PANTRY_SERVER_URL=https://your-app</code>, or run{" "}
+        <code className="font-mono">pnpm dev</code> first so the local backend URL exists.
       </p>
     </main>
   );

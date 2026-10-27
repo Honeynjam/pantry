@@ -1,8 +1,17 @@
 "use client";
 
-import { createContext, useContext, type AnchorHTMLAttributes, type ComponentType, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type AnchorHTMLAttributes,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 
-export type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children?: ReactNode };
+export type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  href: string;
+  children?: ReactNode;
+};
 
 /**
  * Routing is the host's job (Next.js on the web, a static router in Tauri later). Screens only
@@ -18,7 +27,13 @@ export type Navigation = {
 
 const NavigationContext = createContext<Navigation | null>(null);
 
-export function NavigationProvider({ value, children }: { value: Navigation; children: ReactNode }) {
+export function NavigationProvider({
+  value,
+  children,
+}: {
+  value: Navigation;
+  children: ReactNode;
+}) {
   return <NavigationContext value={value}>{children}</NavigationContext>;
 }
 

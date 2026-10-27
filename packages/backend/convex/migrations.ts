@@ -1,7 +1,12 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+} from "./_generated/server";
 import { isLegacyProject, isProject, type LegacyProject } from "./lib/model";
 
 /**
@@ -24,7 +29,9 @@ type Batch = { cursor: string | null; batchSize: number };
 async function spaceFor(ctx: QueryCtx, legacy: LegacyProject) {
   return ctx.db
     .query("spaces")
-    .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", legacy.workspaceId).eq("key", legacy.key))
+    .withIndex("by_workspace_and_key", (q) =>
+      q.eq("workspaceId", legacy.workspaceId).eq("key", legacy.key),
+    )
     .first();
 }
 
@@ -88,7 +95,10 @@ export const migrateIssues = internalMutation({
       } else if (target && isLegacyProject(target)) {
         const space = await spaceFor(ctx, target);
         if (!space) throw new Error(`No space for ${target.key} yet: run migrateSpaces first.`);
-        await ctx.db.patch("issues", issue._id, { spaceId: issue.spaceId ?? space._id, projectId: undefined });
+        await ctx.db.patch("issues", issue._id, {
+          spaceId: issue.spaceId ?? space._id,
+          projectId: undefined,
+        });
         migrated += 1;
       } else if (issue.projectId) {
         // The project row is gone.
@@ -99,7 +109,14 @@ export const migrateIssues = internalMutation({
       } else if (issue.spaceId) unchanged += 1;
       else orphans.push(issue.key);
     }
-    return { migrated, unchanged, cleared, orphans, cursor: page.continueCursor, isDone: page.isDone };
+    return {
+      migrated,
+      unchanged,
+      cleared,
+      orphans,
+      cursor: page.continueCursor,
+      isDone: page.isDone,
+    };
   },
 });
 
@@ -112,7 +129,11 @@ export const migrateDocs = internalMutation({
     let unchanged = 0;
     const orphans: string[] = [];
     for (const doc of page.page) {
-      if (doc.kind === "space_context" && doc.projectId === undefined && doc.spaceId !== undefined) {
+      if (
+        doc.kind === "space_context" &&
+        doc.projectId === undefined &&
+        doc.spaceId !== undefined
+      ) {
         unchanged += 1;
         continue;
       }
@@ -195,7 +216,10 @@ export const run = internalAction({
       legacyProjectsDeleted: 0,
       problems: [],
     };
-    async function pages<R extends { cursor: string; isDone: boolean }>(step: (batch: Batch) => Promise<R>, each: (result: R) => void) {
+    async function pages<R extends { cursor: string; isDone: boolean }>(
+      step: (batch: Batch) => Promise<R>,
+      each: (result: R) => void,
+    ) {
       let cursor: string | null = null;
       for (;;) {
         const result: R = await step({ cursor, batchSize });
@@ -218,7 +242,8 @@ export const run = internalAction({
         summary.issuesMigrated += r.migrated;
         summary.issuesUnchanged += r.unchanged;
         summary.danglingProjectRefsCleared += r.cleared;
-        for (const key of r.orphans) summary.problems.push(`Issue ${key} has no space and its project is gone.`);
+        for (const key of r.orphans)
+          summary.problems.push(`Issue ${key} has no space and its project is gone.`);
       },
     );
     await pages(
@@ -226,14 +251,16 @@ export const run = internalAction({
       (r) => {
         summary.docsMigrated += r.migrated;
         summary.docsUnchanged += r.unchanged;
-        for (const title of r.orphans) summary.problems.push(`Doc "${title}" has no space and its project is gone.`);
+        for (const title of r.orphans)
+          summary.problems.push(`Doc "${title}" has no space and its project is gone.`);
       },
     );
     await pages(
       (batch) => ctx.runMutation(internal.migrations.removeLegacyProjects, batch),
       (r) => {
         summary.legacyProjectsDeleted += r.deleted;
-        for (const key of r.kept) summary.problems.push(`M2 project ${key} is still referenced; kept.`);
+        for (const key of r.kept)
+          summary.problems.push(`M2 project ${key} is still referenced; kept.`);
       },
     );
 

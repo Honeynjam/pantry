@@ -34,7 +34,9 @@ for (const file of manifests(join(dist, "server/app"))) {
   new Function(readFileSync(file, "utf8"))();
   const [route, manifest] = Object.entries(globalThis.__RSC_MANIFEST)[0];
   if (route.startsWith("/_")) continue;
-  const pageKey = Object.keys(manifest.entryJSFiles).find((key) => key.endsWith(`${route}`) || key.endsWith(`${route}/page`));
+  const pageKey = Object.keys(manifest.entryJSFiles).find(
+    (key) => key.endsWith(`${route}`) || key.endsWith(`${route}/page`),
+  );
   const files = new Set(build.rootMainFiles);
   for (const [key, chunks] of Object.entries(manifest.entryJSFiles)) {
     // Layouts on the way to the page, and the page itself.
@@ -47,7 +49,12 @@ for (const file of manifests(join(dist, "server/app"))) {
     raw += s.raw;
     gzip += s.gzip;
   }
-  rows.push({ route: route.replace(/\/page$/, "").replace("/(app)", "") || "/", raw, gzip, chunks: files.size });
+  rows.push({
+    route: route.replace(/\/page$/, "").replace("/(app)", "") || "/",
+    raw,
+    gzip,
+    chunks: files.size,
+  });
 }
 rows.sort((a, b) => a.route.localeCompare(b.route));
 
@@ -63,7 +70,14 @@ if (asJson) {
   const kb = (n) => `${(n / 1024).toFixed(0)} kB`;
   console.log(`First-load JS (${relative(process.cwd(), dist)})`);
   console.log("route".padEnd(28), "raw".padStart(9), "gzip".padStart(9), "chunks".padStart(7));
-  for (const row of rows) console.log(row.route.padEnd(28), kb(row.raw).padStart(9), kb(row.gzip).padStart(9), String(row.chunks).padStart(7));
+  for (const row of rows)
+    console.log(
+      row.route.padEnd(28),
+      kb(row.raw).padStart(9),
+      kb(row.gzip).padStart(9),
+      String(row.chunks).padStart(7),
+    );
   console.log("\nLargest chunks");
-  for (const chunk of largest) console.log(chunk.name.padEnd(28), kb(chunk.raw).padStart(9), kb(chunk.gzip).padStart(9));
+  for (const chunk of largest)
+    console.log(chunk.name.padEnd(28), kb(chunk.raw).padStart(9), kb(chunk.gzip).padStart(9));
 }

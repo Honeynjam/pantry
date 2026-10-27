@@ -19,9 +19,12 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-muted-foreground",
         outline: "border-border bg-transparent text-muted-foreground",
         solid: "border-transparent bg-foreground text-background",
-        success: "border-transparent bg-[color-mix(in_oklch,var(--success)_14%,transparent)] text-success",
-        warning: "border-transparent bg-[color-mix(in_oklch,var(--warning)_16%,transparent)] text-[color-mix(in_oklch,var(--warning),var(--foreground)_25%)]",
-        destructive: "border-transparent bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive",
+        success:
+          "border-transparent bg-[color-mix(in_oklch,var(--success)_14%,transparent)] text-success",
+        warning:
+          "border-transparent bg-[color-mix(in_oklch,var(--warning)_16%,transparent)] text-[color-mix(in_oklch,var(--warning),var(--foreground)_25%)]",
+        destructive:
+          "border-transparent bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive",
         ghost: "border-transparent text-muted-foreground",
         link: "border-transparent px-0 text-primary-text underline decoration-gray-8 underline-offset-4 hover:decoration-current",
       },

@@ -36,7 +36,9 @@ const nextConfig: NextConfig = {
     Object.entries({
       NEXT_PUBLIC_CONVEX_URL: convexUrl,
       NEXT_PUBLIC_CONVEX_SITE_URL: convexSiteUrl,
-    }).filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
+    }).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,
+    ),
   ),
 };
 
