@@ -352,7 +352,7 @@ describe("issues.move", () => {
         }
       }
     }
-  });
+  }, 30_000); // many randomised moves; ~1.5 s locally, ~6 s on a shared CI runner
 
   it("keeps working after many midpoint moves (repeated halving)", async () => {
     const { t, as, create, status } = await setUp();
