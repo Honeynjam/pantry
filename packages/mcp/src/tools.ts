@@ -25,8 +25,9 @@ export const SERVER_INSTRUCTIONS = [
   `Before starting work on an issue, call get_issue and then get_space_context for its space (the part of the key before the dash) and follow that doc.`,
   `Nothing changes status by itself: move the issue to "In Progress" with update_issue when you start and to "In Review" when you're done,`,
   `post progress notes and findings with add_comment, and add follow-ups with create_sub_issue.`,
-  `You can also organise work: create and rename spaces, rewrite a space's context doc, create, rename, recolour and archive projects, and create labels.`,
-  `Not available over MCP: deleting anything, archiving spaces, editing statuses, and invites, members or API tokens; ask a person to do those in the app.`,
+  `You can also organise work: create and rename spaces, rewrite a space's context doc, create, rename, recolour, archive and restore projects, create labels, and rename, recolour or reorder the six statuses.`,
+  `delete_issue permanently deletes an issue with its sub-issues and comments: only use it when the person asked for that delete.`,
+  `Not available over MCP: deleting spaces, comments or labels, archiving spaces, adding or removing statuses, and invites, members or API tokens; ask a person to do those in the app.`,
   `Everything you do shows under the token owner's name, tagged "via MCP".`,
 ].join(" ");
 
@@ -202,6 +203,42 @@ export const schemas = {
     space: spaceKey,
     project: name("The project's name"),
   }),
+  unarchive_project: z.object({
+    space: spaceKey,
+    project: name("The archived project's name"),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(60)
+      .optional()
+      .describe("Restore it under this name instead (when an active project already has its name)"),
+  }),
+  delete_issue: z.object({
+    key: issueKey,
+    confirm: z
+      .string()
+      .trim()
+      .min(1)
+      .describe(`The issue's key again, like ${KEY}-42; anything else deletes nothing`),
+  }),
+  update_status: z.object({
+    status: name(`The status's current name, like "In Review"`),
+    name: z.string().trim().min(1).max(40).optional().describe("New name, unique in the workspace"),
+    color: z
+      .union([color, z.literal("default")])
+      .optional()
+      .describe(`New colour: ${PALETTE.join(", ")}, or "default" for the category's own colour`),
+  }),
+  reorder_statuses: z.object({
+    statuses: z
+      .array(name("Status name"))
+      .min(1)
+      .max(20)
+      .describe(
+        "Every status name exactly once, in the new order (first = first list group and board column)",
+      ),
+  }),
   create_label: z.object({
     name: z.string().trim().min(1).max(40).describe("Label name, unique in the workspace"),
     color: color.optional(),
@@ -243,7 +280,7 @@ type ToolDef<S extends z.ZodType> = {
   title: string;
   description: string;
   readOnly: boolean;
-  /** Changes that can't be undone from the app (archiving). */
+  /** Changes that can't be undone (deleting). */
   destructive?: boolean;
   schema: S;
   run: Run<S>;
@@ -325,7 +362,7 @@ export const tools = {
   }),
   update_issue: tool({
     title: "Update issue",
-    description: `Change an issue's title, markdown description, status (by name, like "In Progress" or "In Review"), priority, assignee, labels (add or remove by name), project (by name, or "none") or due date (null clears it). Give at least one; each change is logged. A sub-issue always follows its parent's project. Nothing changes status automatically: move the issue yourself when you start and when you finish. ${READ_FIRST}`,
+    description: `Change an issue's title, markdown description, status (by name, like "In Progress" or "In Review"), priority, assignee, labels (add or remove by name), project (by name, or "none") or due date (null clears it). Give at least one; each change is logged. A sub-issue always follows its parent's project. This moves one issue; renaming or reordering the statuses themselves is update_status / reorder_statuses. Nothing changes status automatically: move the issue yourself when you start and when you finish. ${READ_FIRST}`,
     readOnly: false,
     schema: schemas.update_issue,
     run: async (args, { token, backend, links }) => {
@@ -405,11 +442,42 @@ export const tools = {
   }),
   archive_project: tool({
     title: "Archive project",
-    description: `Archive a project: it disappears from the app's sidebar and pickers, and its issues stay in the space with no project. There's no un-archive yet, so only do this when the workstream is really over. ${ORIENT_FIRST}`,
+    description: `Archive a project: it disappears from the app's sidebar and pickers, and its issues stay in the space with no project. unarchive_project brings the project back, but not its issues: they stay without a project. ${ORIENT_FIRST}`,
     readOnly: false,
-    destructive: true,
     schema: schemas.archive_project,
     run: (args, { token, backend }) => backend.mutation(api.mcp.archiveProject, { token, ...args }),
+  }),
+  unarchive_project: tool({
+    title: "Unarchive project",
+    description: `Restore an archived project to the end of its space's project list. Issues that lost it when it was archived stay without a project; move them back with update_issue { project }. If an active project already has its name, pass name to restore it under a new one. ${ORIENT_FIRST}`,
+    readOnly: false,
+    schema: schemas.unarchive_project,
+    run: (args, { token, backend }) =>
+      backend.mutation(api.mcp.unarchiveProject, defined({ token, ...args })),
+  }),
+  delete_issue: tool({
+    title: "Delete issue",
+    description: `Permanently delete an issue together with its sub-issues, comments and activity. This can't be undone. Ask the person first, unless they explicitly asked you to delete this issue. confirm must repeat the issue's key; anything else deletes nothing. To finish or drop an issue instead, move it to a done or canceled status with update_issue. ${READ_FIRST}`,
+    readOnly: false,
+    destructive: true,
+    schema: schemas.delete_issue,
+    run: (args, { token, backend }) => backend.mutation(api.mcp.deleteIssue, { token, ...args }),
+  }),
+  update_status: tool({
+    title: "Update status",
+    description: `Rename or recolour one of the workspace's six statuses: the definition everyone sees (list groups, board columns, pickers), not one issue's status. To move an issue to a status, use update_issue { status } instead. Statuses can't be added or removed. ${ORIENT_FIRST}`,
+    readOnly: false,
+    schema: schemas.update_status,
+    run: (args, { token, backend }) =>
+      backend.mutation(api.mcp.updateStatus, defined({ token, ...args })),
+  }),
+  reorder_statuses: tool({
+    title: "Reorder statuses",
+    description: `Put the workspace's statuses in a new order (the order of list groups and board columns, for everyone). List every status name exactly once. This doesn't move any issue; use update_issue { status } for that. ${ORIENT_FIRST}`,
+    readOnly: false,
+    schema: schemas.reorder_statuses,
+    run: (args, { token, backend }) =>
+      backend.mutation(api.mcp.reorderStatuses, { token, ...args }),
   }),
   create_label: tool({
     title: "Create label",

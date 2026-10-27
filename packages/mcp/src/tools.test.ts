@@ -69,7 +69,7 @@ async function call(client: Client, name: ToolName, args: Record<string, unknown
 const userError = (message: string) => new ConvexError({ code: "UNKNOWN_STATUS", message });
 
 describe("tools/list", () => {
-  it("lists the sixteen tools, each telling the agent what to read first", async () => {
+  it("lists the twenty tools, each telling the agent what to read first", async () => {
     const client = await connect(fakeBackend({}).backend);
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual([
@@ -80,15 +80,19 @@ describe("tools/list", () => {
       "create_project",
       "create_space",
       "create_sub_issue",
+      "delete_issue",
       "get_issue",
       "get_space_context",
       "get_workspace",
       "list_issues",
+      "reorder_statuses",
       "search_issues",
+      "unarchive_project",
       "update_issue",
       "update_project",
       "update_space",
       "update_space_context",
+      "update_status",
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.type).toBe("object");
@@ -113,7 +117,11 @@ describe("tools/list", () => {
       "dueDate",
     ]);
     expect(byName.create_issue!.inputSchema.required).toEqual(["space", "title"]);
-    expect(byName.archive_project!.annotations?.destructiveHint).toBe(true);
+    expect(byName.archive_project!.annotations?.destructiveHint).toBe(false);
+    expect(byName.delete_issue!.annotations?.destructiveHint).toBe(true);
+    expect(byName.delete_issue!.description).toMatch(/can't be undone\. Ask the person first/);
+    expect(byName.update_status!.description).toMatch(/use update_issue \{ status \} instead/);
+    expect(byName.update_issue!.description).toMatch(/update_status \/ reorder_statuses/);
     expect(byName.create_project!.annotations?.destructiveHint).toBe(false);
     expect(byName.create_project!.inputSchema.properties?.color).toMatchObject({
       enum: [
@@ -132,7 +140,9 @@ describe("tools/list", () => {
     });
     expect(client.getInstructions()).toMatch(/call get_issue and then get_space_context/);
     expect(client.getInstructions()).toMatch(/Call get_workspace first/);
-    expect(client.getInstructions()).toMatch(/Not available over MCP: deleting anything/);
+    expect(client.getInstructions()).toMatch(
+      /Not available over MCP: deleting spaces, comments or labels/,
+    );
   });
 });
 
@@ -334,6 +344,34 @@ describe("the organising tools pass the token to their Convex function", () => {
       { name: "Perf" },
       { name: "Perf", color: "gray" },
     ],
+    [
+      "unarchive_project",
+      { space: "PAN", project: "Launch", name: "Launch (old)" },
+      "mcp:unarchiveProject",
+      { space: "PAN", project: "Launch", name: "Launch (old)" },
+      { space: "PAN", project: "Launch (old)", color: null, archived: false },
+    ],
+    [
+      "delete_issue",
+      { key: "pan-7", confirm: "PAN-7" },
+      "mcp:deleteIssue",
+      { key: "PAN-7", confirm: "PAN-7" },
+      { deleted: "PAN-7", title: "Old", subIssues: ["PAN-8"], comments: 2 },
+    ],
+    [
+      "update_status",
+      { status: "Todo", name: "To do", color: "default" },
+      "mcp:updateStatus",
+      { status: "Todo", name: "To do", color: "default" },
+      { name: "To do", category: "unstarted", color: "#9b9ea6" },
+    ],
+    [
+      "reorder_statuses",
+      { statuses: ["Todo", "Backlog"] },
+      "mcp:reorderStatuses",
+      { statuses: ["Todo", "Backlog"] },
+      [{ name: "Todo", category: "unstarted", color: "#9b9ea6" }],
+    ],
   ];
   for (const [name, args, fn, sent, answer] of cases) {
     it(name, async () => {
@@ -420,6 +458,10 @@ describe("errors", () => {
       ["create_space", { name: "X", key: "1AB" }],
       ["create_project", { space: "PAN", name: "X", color: "#ff0000" }],
       ["create_label", { name: "X", color: "beige" }],
+      ["delete_issue", { key: "PAN-1" }],
+      ["delete_issue", { key: "PAN-1", confirm: "" }],
+      ["update_status", { status: "Todo", color: "#ffffff" }],
+      ["reorder_statuses", { statuses: [] }],
       ["update_issue", { key: "PAN-1", dueDate: "tomorrow" }],
       ["search_issues", { query: "" }],
     ] as const) {
