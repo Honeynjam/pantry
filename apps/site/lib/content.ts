@@ -19,7 +19,7 @@ export const links = {
   releases: `${repo}/releases`,
   licence: `${repo}/blob/main/LICENSE`,
   deploy:
-    "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D",
+    "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&root-directory=apps%2Fweb&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D",
   deployGuide: `${repo}#deploy-your-own-about-5-minutes`,
   /** The live demo (spec §9f). Hidden until it exists. */
   demo: null as string | null,

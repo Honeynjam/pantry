@@ -6,7 +6,7 @@ Your agents read and update issues over MCP; your data lives in your own Vercel 
 > Status: early development (milestone M3: shortcuts, command palette, optimistic updates, My issues and filters, on spaces with optional projects). The Deploy button below is
 > being tested on a fresh account.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhoneynjam%2Fpantry&project-name=pantry&repository-name=pantry&root-directory=apps%2Fweb&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22convex%22%2C%22productSlug%22%3A%22convex%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
 ## Deploy your own (about 5 minutes)
 
@@ -15,10 +15,10 @@ Vercel Hobby is for non-commercial use).
 
 1. **Click "Deploy with Vercel"** above and sign in to Vercel with GitHub.
 2. **Repository:** Vercel copies this repo into your GitHub account (a clone, not a fork). Keep the name or change it.
-3. **Root Directory: set it to `apps/web`.** This is the one setting the button can't fill in for you; if you
-   miss it, the first build stops with a message telling you how to fix it in Settings. In the
-   "Configure Project" form, find **Root Directory**, click **Edit**, pick `apps/web`, and confirm. Leave the
-   build and install settings alone: `apps/web/vercel.json` provides the build command.
+3. **Root Directory** is already set to `apps/web` by the button; leave it, and leave the build and install
+   settings alone (`apps/web/vercel.json` provides the build command). If the form shows the repo root instead,
+   click **Edit** next to Root Directory and pick `apps/web`. If it's missed, the first build stops with a
+   message telling you how to fix it in Settings.
 4. **Add the Convex integration** when Vercel asks (it's pre-selected by the button): accept the terms and create a
    new Convex project. Keep both **Production** and **Preview** enabled and leave **Custom Prefix** empty.
    This gives the build a `CONVEX_DEPLOY_KEY`.

@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The Deploy button now sets Vercel's Root Directory to `apps/web`, so the first build works without changing
+  any settings.
+
 ## [0.0.1] - 2026-10-27
 
 The first release. Pantry runs on your own Vercel and Convex accounts, for one to three people, and your agents

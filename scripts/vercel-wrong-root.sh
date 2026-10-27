@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs only when a Vercel project builds from the repo root (the root vercel.json).
-# Pantry's web app lives in apps/web, and the Deploy Button can't set Root Directory,
-# so fail fast with the fix instead of Vercel's confusing "No Output Directory named public".
+# Pantry's web app lives in apps/web. The Deploy Button sets that (root-directory=apps%2Fweb), but a manual
+# import or an edited form can leave the repo root, so fail fast with the fix instead of Vercel's confusing
+# "No Output Directory named public".
 cat >&2 <<'MSG'
 
 ✖ Pantry must be built from apps/web, but this Vercel project's Root Directory is the repo root.

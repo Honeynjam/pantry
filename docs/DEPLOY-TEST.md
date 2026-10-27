@@ -17,9 +17,11 @@ Nothing here has been run yet: it needs your accounts. Fill in the "Result" line
 
 1. Open the README on GitHub and click **Deploy with Vercel**.
 2. Sign up to Vercel with GitHub. Let it create the repository copy in your account.
-3. **Root Directory (route 1):** in "Configure Project", click **Edit** next to Root Directory and choose
-   `apps/web`. Don't override build or install commands.
-   - Result: Root Directory field offered? ☐ yes ☐ no → if no, see "Fallback (route 2)" below.
+3. **Root Directory:** the button URL passes `root-directory=apps%2Fweb` (Vercel Deploy Button docs → Build
+   Settings), so "Configure Project" should already show `apps/web`. Don't touch it, and don't override build or
+   install commands.
+   - Result: Root Directory pre-filled with `apps/web`? ☐ yes ☐ no → if no, set it by hand (Edit → `apps/web`)
+     and see "Fallback (route 2)" below.
 4. **Convex integration:** accept it, create a new Convex project. Confirm **Production** and **Preview** are
    both on and **Custom Prefix** is empty.
 5. Click **Deploy** and open the build log. Look for these lines from `scripts/vercel-build.sh`:
