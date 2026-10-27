@@ -15,7 +15,7 @@ Open questions (spec §12): if Kris hasn't answered one, use its ★ default and
 pnpm + Turborepo, Node 24. Next.js 16 App Router (apps/web), Convex (packages/backend/convex),
 Better Auth via @convex-dev/better-auth 0.12.6 (better-auth pinned ~1.6.33, never 1.7), Tailwind v4,
 shadcn/ui on Base UI with our design system (packages/ui), MCP via mcp-handler 2.x (packages/mcp, served at apps/web /api/mcp),
-Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
+Tauri v2 Mac app (apps/desktop, v0.2 / phase 2), one-page landing site (apps/site, M6).
 
 ## Rules
 
@@ -39,7 +39,8 @@ Tauri v2 Mac app (apps/desktop, M5), one-page landing site (apps/site, M6).
 - Keyboard shortcuts are registered only through the shortcut registry in packages/app (it also drives the ? help).
 - Do not build: GitHub PR integration of any kind, agents as members/assignees or agents running inside the app,
   a public REST API, webhooks, saved views UI, cycles, AI helpers, Client/Product modes, appearance themes,
-  local mode, a hosted plan, Cloudflare deploy, or anything on the spec's "Never" list.
+  local mode, the Mac app beyond the existing apps/desktop spike (v0.2), a hosted plan, Cloudflare deploy,
+  or anything on the spec's "Never" list.
 
 ## Commands
 
