@@ -131,7 +131,7 @@ what a member does in the app's settings screens, through the same helpers and p
 | `c58377e` | `lib/organise.ts` and `lib/search.ts`: the app's space, context-doc, project, label and search logic lifted out of the mutations (no behaviour change; all 136 backend tests unchanged) |
 | `308eec0` | `convex/mcp.ts`: `getWorkspace`, `searchIssues`, `createSpace`, `updateSpace`, `updateSpaceContext`, `createProject`, `updateProject`, `archiveProject`, `createLabel`; `updateIssue` takes title, description and due date |
 | `7688258` | `packages/mcp`: the nine tools with zod inputs, `destructiveHint` on `archive_project`, links to spaces, server instructions |
-| (docs commit) | Spec §6/§10b, README, `docs/spikes/mcp-clients.md`, these notes, screenshots `mcp-more-*` |
+| `4e25aa7` | Spec §6/§10b, README, `docs/spikes/mcp-clients.md`, these notes, screenshots `mcp-more-*` |
 
 **The 16 tools:** issue work (`get_issue`, `list_issues`, `search_issues`, `create_issue`, `create_sub_issue`,
 `add_comment`, `update_issue`), orientation and context (`get_workspace`, `get_space_context`,
