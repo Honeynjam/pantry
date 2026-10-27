@@ -61,7 +61,11 @@ describe("set-version", () => {
     }
     // Dependency versions and MIN_APP_VERSION are untouched.
     assert.match(read("apps/desktop/src-tauri/Cargo.toml"), /^tauri = \{ version = "2"/m);
-    assert.match(read("packages/backend/convex/lib/version.ts"), /MIN_APP_VERSION = "0\.1\.0"/);
+    const minApp = (text) => text.match(/MIN_APP_VERSION = "([^"]+)"/)[1];
+    assert.equal(
+      minApp(read("packages/backend/convex/lib/version.ts")),
+      minApp(before["packages/backend/convex/lib/version.ts"]),
+    );
   });
 
   test("rejects versions that aren't semver", () => {

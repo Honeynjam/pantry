@@ -55,13 +55,13 @@ describe("release-notes", () => {
     assert.throws(() => releaseNotes(changelog, "1x1x0"), /no "## \[1x1x0\]" section/);
   });
 
-  test("the real changelog's 0.1.0 section can be extracted once it's dated", () => {
-    const real = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../CHANGELOG.md"),
-      "utf8",
-    );
-    const dated = real.replace(/^## \[0\.1\.0\] - Unreleased$/m, "## [0.1.0] - 2026-10-26");
-    const notes = releaseNotes(dated, "0.1.0");
+  test("the real changelog has a section for the repo's version that can be extracted once it's dated", () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+    const real = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+    const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    const heading = new RegExp(`^## \\[${version.replaceAll(".", "\\.")}\\] - Unreleased$`, "m");
+    const dated = real.replace(heading, `## [${version}] - 2026-10-26`);
+    const notes = releaseNotes(dated, version);
     assert.match(notes, /^### Added$/m);
     assert.doesNotMatch(notes, /TODO|\[Unreleased\]/);
   });

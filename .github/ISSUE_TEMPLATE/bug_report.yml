@@ -12,7 +12,7 @@ body:
     attributes:
       label: Pantry version
       description: "`serverVersion` from `GET https://<your-app>/api/instance`, or the commit if you run from source."
-      placeholder: "0.1.0"
+      placeholder: "0.0.1"
     validations:
       required: true
 
