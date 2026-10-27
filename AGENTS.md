@@ -35,7 +35,7 @@ Tauri v2 Mac app (apps/desktop, v0.2 / phase 2), one-page landing site (apps/sit
 - Use packages/ui components (shadcn on Base UI, restyled to our tokens) before writing new UI; no stock-looking shadcn.
 - Animate only with the motion tokens in packages/ui, and give every animation a reduced-motion branch.
 - Do not build: GitHub PR integration of any kind, agents as members/assignees or agents running inside the app,
-  a public REST API, webhooks, saved views UI, cycles, AI helpers, Client/Product modes, appearance themes,
+  a public REST API, webhooks, saved views UI, cycles, AI helpers, appearance themes,
   local mode, the Mac app beyond the existing apps/desktop spike (v0.2), a hosted plan, Cloudflare deploy,
   or anything on the spec's "Never" list.
 

@@ -10,6 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Onboarding.** Right after setup, a short full-screen walk-through: what you work on (products, clients or
+  both), your first products or clients (the unused sample space can be renamed, key included, and each can
+  take one line for its context doc), invites, connecting your agent, theme and the keys to know. Invited
+  members get a shorter version on first sign-in. Existing owners and members see it once after updating.
+  Settings → General → **Run setup again** and the user menu's **Show onboarding** bring it back.
+- **Products, clients or both.** The workspace's work type sets the words: "Products" or "Clients" in the
+  sidebar, settings, Home and the palette, and new spaces start as that kind. With both, the sidebar and Home
+  group them and the new-space dialog asks which. Owners change it in Settings → General; existing spaces keep
+  their kind. `get_workspace` over MCP now returns the `mode`.
+- A space's key can now change while the space has never had an issue (`spaces.update`; onboarding uses it to
+  rename the sample). Once the first issue exists, the key is fixed as before.
 - **Agents can organise work over MCP**, not just work single issues: `get_workspace` to see spaces, projects,
   statuses, labels and people in one call; `search_issues`; `create_space` and `update_space`;
   `update_space_context` to rewrite a space's context doc; `create_project`, `update_project` and

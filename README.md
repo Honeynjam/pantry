@@ -26,9 +26,14 @@ Vercel Hobby is for non-commercial use).
    (once; it survives redeploys), points Convex `SITE_URL` at your production URL, and builds the web app.
 6. **Open your production URL** (`https://<project>.vercel.app`). You'll see the setup screen: create your
    account and workspace. You become the owner; from then on sign-up is invite-only.
-7. **Invite your partner:** Settings → Members → enter their email → **Create invite link**, and send the link
-   yourself (nothing is emailed). It works once, for that email address, for 7 days. They create their account
-   from the link (or sign in, if they already have one on this instance) and land in the workspace.
+7. **Onboarding** starts right after: say whether you work on products, clients or both (the sidebar and the
+   new-space dialog follow; change it later in Settings → General), name your first products or clients (the
+   sample `PAN` space can be renamed while it's unused), invite people, connect your agent, and pick a theme.
+   Everything but the first step can be skipped. Settings → General → **Run setup again** walks it again.
+8. **Invite your partner** (in onboarding, or later in Settings → Members): enter their email → **Create invite
+   link**, and send the link yourself (nothing is emailed). It works once, for that email address, for 7 days.
+   They create their account from the link (or sign in, if they already have one on this instance) and get a
+   short onboarding of their own.
 
 If the setup screen says **"One more step"**, the deploy key wasn't allowed to set environment variables. Copy the
 one-line command it shows (run it from `packages/backend` in a clone, with `--prod`), or add `BETTER_AUTH_SECRET`
