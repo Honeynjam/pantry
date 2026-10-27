@@ -24,18 +24,23 @@ type Avatar = Infer<typeof avatarValidator>;
 // Spaces
 // ---------------------------------------------------------------------------------------------
 
-/**
- * New space with its context doc. The key is unique per workspace, archived spaces included (their
- * issues keep their keys), and fixed after creation. Without an avatar the space gets a look seeded
- * from its key.
- */
-export async function createSpace(
-  ctx: MutationCtx,
-  me: Doc<"members">,
-  args: { name: string; key: string; kind?: Kind; avatar?: Avatar },
-) {
-  const name = cleanName(args.name, "Space name");
-  const key = args.key.trim().toUpperCase();
+type Mode = NonNullable<Doc<"workspaces">["mode"]>;
+
+/** The workspace's mode; workspaces from before onboarding are product workspaces. */
+export const modeOf = (workspace: Pick<Doc<"workspaces">, "mode"> | null): Mode =>
+  workspace?.mode ?? "product";
+
+/** The kind a new space gets when none is given: clients in a client workspace, else products. */
+export const defaultKind = (mode: Mode): Kind => (mode === "client" ? "client" : "product");
+
+/** A valid key (2–10 letters or digits, a letter first) not used by any space, archived included. */
+async function checkKeyFree(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  rawKey: string,
+  except?: Id<"spaces">,
+): Promise<string> {
+  const key = rawKey.trim().toUpperCase();
   if (!SPACE_KEY_PATTERN.test(key)) {
     fail(
       "INVALID_KEY",
@@ -44,9 +49,9 @@ export async function createSpace(
   }
   const taken = await ctx.db
     .query("spaces")
-    .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", me.workspaceId).eq("key", key))
+    .withIndex("by_workspace_and_key", (q) => q.eq("workspaceId", workspaceId).eq("key", key))
     .first();
-  if (taken) {
+  if (taken && taken._id !== except) {
     fail(
       "KEY_TAKEN",
       taken.archivedAt === undefined
@@ -54,13 +59,30 @@ export async function createSpace(
         : `${key} belongs to an archived space (${taken.name}). Pick another key.`,
     );
   }
+  return key;
+}
+
+/**
+ * New space with its context doc. The key is unique per workspace, archived spaces included (their
+ * issues keep their keys), and fixed once the space has issues. Without a kind the space takes the
+ * workspace's default (clients in a client workspace). Without an avatar the space gets a look
+ * seeded from its key.
+ */
+export async function createSpace(
+  ctx: MutationCtx,
+  me: Doc<"members">,
+  args: { name: string; key: string; kind?: Kind; avatar?: Avatar },
+) {
+  const name = cleanName(args.name, "Space name");
+  const key = await checkKeyFree(ctx, me.workspaceId, args.key);
+  const kind = args.kind ?? defaultKind(modeOf(await ctx.db.get("workspaces", me.workspaceId)));
 
   const spaceId = await ctx.db.insert("spaces", {
     workspaceId: me.workspaceId,
     name,
     key,
     nextIssueNumber: 1,
-    ...(args.kind && args.kind !== "product" ? { kind: args.kind } : {}),
+    ...(kind !== "product" ? { kind } : {}),
     ...(args.avatar ? { avatar: args.avatar } : {}),
   });
   await ctx.db.insert("docs", {
@@ -72,18 +94,29 @@ export async function createSpace(
     updatedBy: me._id,
     updatedAt: Date.now(),
   });
-  return { spaceId, key, name };
+  return { spaceId, key, name, kind };
 }
 
-/** Rename or change kind. The key can't change (issue keys and agents' references depend on it). */
+/**
+ * Rename, change kind, or change the key. The key can only change while the space has never had an
+ * issue (nextIssueNumber is still 1): after that, issue keys and agents' references depend on it.
+ */
 export async function updateSpace(
   ctx: MutationCtx,
   space: Doc<"spaces">,
-  args: { name?: string; kind?: Kind },
+  args: { name?: string; kind?: Kind; key?: string },
 ) {
+  let key: string | undefined;
+  if (args.key !== undefined && args.key.trim().toUpperCase() !== space.key) {
+    if (space.nextIssueNumber !== 1) {
+      fail("KEY_FIXED", `${space.key} has issues, so its key can't change any more.`);
+    }
+    key = await checkKeyFree(ctx, space.workspaceId, args.key, space._id);
+  }
   await ctx.db.patch("spaces", space._id, {
     ...(args.name !== undefined ? { name: cleanName(args.name, "Space name") } : {}),
     ...(args.kind !== undefined ? { kind: args.kind } : {}),
+    ...(key !== undefined ? { key } : {}),
   });
 }
 

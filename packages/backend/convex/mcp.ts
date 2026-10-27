@@ -27,6 +27,7 @@ import {
   createLabel as insertLabel,
   createProject as insertProject,
   createSpace as insertSpace,
+  modeOf,
   reorderStatuses as applyStatusOrder,
   restoreProject,
   saveSpaceContext,
@@ -529,6 +530,8 @@ export const getWorkspace = query({
     );
     return {
       workspace: workspace?.name ?? null,
+      /** What the workspace works on: "product", "client" or "both" (product when never set). */
+      mode: modeOf(workspace),
       you: me.displayName,
       spaces: spaces.map((space, index) => ({
         key: space.key,
@@ -592,12 +595,13 @@ export const createSpace = mutation({
   args: { token: v.string(), name: v.string(), key: v.string(), kind: v.optional(spaceKind) },
   handler: async (ctx, args) => {
     const { member: me } = await requireToken(ctx, args.token);
-    const { key, name } = await insertSpace(ctx, me, {
+    const { key, name, kind } = await insertSpace(ctx, me, {
       name: args.name,
       key: args.key,
       ...(args.kind ? { kind: args.kind } : {}),
     });
-    return { key, name, kind: args.kind ?? "product" };
+    // Without a kind it follows the workspace's mode (a client workspace makes clients).
+    return { key, name, kind };
   },
 });
 

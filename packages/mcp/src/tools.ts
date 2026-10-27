@@ -375,7 +375,7 @@ export const tools = {
   }),
   get_workspace: tool({
     title: "Get workspace",
-    description: `Orient yourself: every space (key, name, kind, archived) with its projects, the statuses in order, the labels and the members (you are marked "me"). Call this first when you're organising work or don't know the names to use.`,
+    description: `Orient yourself: the workspace's mode (what it works on: "product", "client" or "both"), every space (key, name, kind, archived) with its projects, the statuses in order, the labels and the members (you are marked "me"). Call this first when you're organising work or don't know the names to use.`,
     readOnly: true,
     schema: schemas.get_workspace,
     run: async (_args, { token, backend, links }) => {

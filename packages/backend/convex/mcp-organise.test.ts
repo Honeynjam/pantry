@@ -53,6 +53,7 @@ describe("get_workspace", () => {
 
     expect(await workspace(s)).toEqual({
       workspace: "Home",
+      mode: "product", // never set: workspaces from before onboarding are product workspaces
       you: "Kris",
       spaces: [
         {
@@ -88,6 +89,9 @@ describe("get_workspace", () => {
         { name: "Partner", role: "member", me: false },
       ],
     });
+    // The mode the owner picked in onboarding comes through.
+    await s.as.mutation(api.workspace.setMode, { mode: "both" });
+    expect((await workspace(s)).mode).toBe("both");
     // The other workspace's token sees only its own.
     const theirs = await workspace(s, OTHER_TOKEN);
     expect(theirs.spaces.map((space) => space.key)).toEqual(["OTH"]);
@@ -159,6 +163,17 @@ describe("create_space", () => {
       (await s.as.query(api.workspace.current, {})).spaces.map((space) => space.key),
     ).toContain("ACME");
     expect((await mcpIssue(s, "First", { space: "ACME" })).key).toBe("ACME-1");
+  });
+
+  it("gives a space without a kind the workspace's default, and says which", async () => {
+    const s = await setUp();
+    expect(
+      await s.t.mutation(api.mcp.createSpace, { token: s.token, name: "Tool", key: "TOOL" }),
+    ).toEqual({ key: "TOOL", name: "Tool", kind: "product" });
+    await s.as.mutation(api.workspace.setMode, { mode: "client" });
+    expect(
+      await s.t.mutation(api.mcp.createSpace, { token: s.token, name: "Acme", key: "ACME" }),
+    ).toEqual({ key: "ACME", name: "Acme", kind: "client" });
   });
 
   it("follows the app's key rules", async () => {

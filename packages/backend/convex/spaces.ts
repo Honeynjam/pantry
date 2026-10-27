@@ -25,9 +25,17 @@ export const create = mutation({
   },
 });
 
-/** Rename or change kind. The key can't change (issue keys and agents' references depend on it). */
+/**
+ * Rename or change kind; the key can change only while the space has never had an issue (onboarding
+ * renames the untouched sample space this way). After that, issue keys and agents depend on it.
+ */
 export const update = mutation({
-  args: { spaceId: v.id("spaces"), name: v.optional(v.string()), kind: v.optional(spaceKind) },
+  args: {
+    spaceId: v.id("spaces"),
+    name: v.optional(v.string()),
+    kind: v.optional(spaceKind),
+    key: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const space = await getSpace(ctx, me.workspaceId, args.spaceId);
