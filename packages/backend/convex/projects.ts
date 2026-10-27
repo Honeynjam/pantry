@@ -1,12 +1,9 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
-import { mutation, type MutationCtx } from "./_generated/server";
+import { mutation } from "./_generated/server";
 import { requireMember } from "./lib/auth";
 import { fail } from "./lib/errors";
-import { setIssueProject } from "./lib/issues";
-import type { Project } from "./lib/model";
-import { activeProjects, getProject, getSpace, nameKey } from "./lib/spaces";
-import { checkColor, cleanName } from "./lib/validate";
+import { archiveProject, createProject, updateProject } from "./lib/organise";
+import { activeProjects, getProject, getSpace } from "./lib/spaces";
 
 /**
  * Projects: optional workstreams inside a space ("LinkedIn", "Marketing", "Launch"). A name, an
@@ -14,34 +11,13 @@ import { checkColor, cleanName } from "./lib/validate";
  * space among active projects, ignoring case (MCP looks them up by name).
  */
 
-async function checkNameFree(
-  ctx: MutationCtx,
-  spaceId: Id<"spaces">,
-  name: string,
-  except?: Id<"projects">,
-) {
-  const taken = (await activeProjects(ctx, spaceId)).find(
-    (project) => project._id !== except && nameKey(project.name) === nameKey(name),
-  );
-  if (taken) fail("NAME_TAKEN", `There's already a project called ${taken.name} in this space.`);
-}
-
 export const create = mutation({
   args: { spaceId: v.id("spaces"), name: v.string(), color: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const space = await getSpace(ctx, me.workspaceId, args.spaceId);
-    if (space.archivedAt !== undefined) fail("ARCHIVED", `${space.name} is archived.`);
-    const name = cleanName(args.name, "Project name", 60);
-    await checkNameFree(ctx, space._id, name);
-    const last = (await activeProjects(ctx, space._id)).at(-1);
-    return ctx.db.insert("projects", {
-      workspaceId: me.workspaceId,
-      spaceId: space._id,
-      name,
-      ...(args.color !== undefined ? { color: checkColor(args.color) } : {}),
-      sortOrder: (last?.sortOrder ?? 0) + 1,
-    });
+    const { projectId } = await createProject(ctx, space, args);
+    return projectId;
   },
 });
 
@@ -55,16 +31,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const project = await getProject(ctx, me.workspaceId, args.projectId);
-    const patch: Partial<Project> = {};
-    if (args.name !== undefined) {
-      const name = cleanName(args.name, "Project name", 60);
-      if (project.archivedAt === undefined)
-        await checkNameFree(ctx, project.spaceId, name, project._id);
-      patch.name = name;
-    }
-    if (args.color !== undefined)
-      patch.color = args.color === null ? undefined : checkColor(args.color);
-    await ctx.db.patch("projects", project._id, patch);
+    await updateProject(ctx, project, args);
   },
 });
 
@@ -77,19 +44,7 @@ export const archive = mutation({
   handler: async (ctx, args) => {
     const me = await requireMember(ctx);
     const project = await getProject(ctx, me.workspaceId, args.projectId);
-    if (project.archivedAt !== undefined) return;
-    const issues = await ctx.db
-      .query("issues")
-      .withIndex("by_project", (q) => q.eq("projectId", project._id))
-      .collect();
-    const now = Date.now();
-    for (const issue of issues) {
-      // Sub-issues are cleared along with their parent; re-read so none is written twice.
-      const current = await ctx.db.get("issues", issue._id);
-      if (current?.projectId === project._id)
-        await setIssueProject(ctx, { member: me, via: "app" }, current, null, now);
-    }
-    await ctx.db.patch("projects", project._id, { archivedAt: now });
+    await archiveProject(ctx, { member: me, via: "app" }, project);
   },
 });
 
