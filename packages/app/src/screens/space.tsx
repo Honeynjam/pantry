@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "@pantry/ui/lib/motion";
 import { api } from "@pantry/backend/api";
 import type { Doc, Id } from "@pantry/backend/dataModel";
 import type { Project } from "@pantry/backend/model";
@@ -16,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@pantry/ui/components/dropdown-menu";
 import { ChevronDownIcon, InboxIcon, LayersIcon, PlusIcon, SearchXIcon } from "lucide-react";
-import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 import { EntryGate } from "../entry";
 import { useIssueActions } from "../issues/actions";

@@ -2,6 +2,9 @@
 
 import { useReducedMotion, type Transition } from "motion/react";
 
+/** Outside packages/ui, import `motion` from here (lint enforces it), next to the tokens it animates with. */
+export { motion } from "motion/react";
+
 /**
  * Motion tokens (spec §9d). The only timing values the app animates with.
  * CSS mirrors live in styles/globals.css (--duration-*, --ease-*, --ease-spring-*).

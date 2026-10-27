@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@pantry/ui/lib/utils";
-import { spring, useMotionTransition } from "@pantry/ui/lib/motion";
-import { motion } from "motion/react";
+import { motion, spring, useMotionTransition } from "@pantry/ui/lib/motion";
 import { CircleDashedIcon, FolderIcon, KeyRoundIcon, TagIcon, UsersIcon, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { EntryGate } from "../../entry";

@@ -24,7 +24,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@pantry/ui/components/sidebar";
-import { spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
+import { motion, spring, usePrefersReducedMotion } from "@pantry/ui/lib/motion";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
 import { Keycap } from "@pantry/ui/components/keycap";
@@ -33,7 +33,6 @@ import { ChevronRightIcon, CircleUserRoundIcon, HouseIcon, LoaderCircleIcon, Plu
 import type { Doc } from "@pantry/backend/dataModel";
 import type { Project } from "@pantry/backend/model";
 import { cn } from "@pantry/ui/lib/utils";
-import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { preloadMarkdownEditor, whenIdle } from "../components/markdown-editor";
 import { SpaceAvatar } from "../components/space-avatar";
