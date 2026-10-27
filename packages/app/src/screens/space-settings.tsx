@@ -39,6 +39,7 @@ import { fullDate, timeAgo } from "../lib/format";
 import { routes, useNavigation } from "../navigation";
 import { AppShell } from "../shell/app-shell";
 import { projectColor } from "../shell/space-color";
+import { KIND_LABEL, kindOf, modeOf, vocabulary, type Mode } from "../lib/vocabulary";
 import { describeError } from "./form-error";
 import { NotMemberScreen } from "./not-member";
 import { SpaceNotFound, SpaceTitle } from "./space-chrome";
@@ -69,6 +70,7 @@ export function SpaceSettingsPage({ spaceKey }: { spaceKey: string }) {
                   <SpaceSettings
                     space={space}
                     projects={data.projects.filter((row) => row.spaceId === space._id)}
+                    mode={modeOf(data.workspace)}
                   />
                 </div>
               );
@@ -80,7 +82,18 @@ export function SpaceSettingsPage({ spaceKey }: { spaceKey: string }) {
   );
 }
 
-function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Project[] }) {
+function SpaceSettings({
+  space,
+  projects,
+  mode,
+}: {
+  space: Doc<"spaces">;
+  projects: Project[];
+  mode: Mode;
+}) {
+  // A product or client workspace doesn't ask; a space of the other kind still shows (and can fix) it.
+  const showKind = vocabulary(mode).asksKind || kindOf(space) !== vocabulary(mode).defaultKind;
+  const noun = KIND_LABEL[kindOf(space)].one;
   const update = useMutation(api.spaces.update);
   const archive = useMutation(api.spaces.archive);
   const saveAvatar = useMutation(api.spaces.setAvatar);
@@ -98,7 +111,7 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
 
   return (
     <SettingsPanel
-      title="Space settings"
+      title={`${noun} settings`}
       description={
         <span className="inline-flex items-center gap-1.5">
           <SpaceAvatar space={space} size="xs" />
@@ -125,7 +138,7 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
             <PantryAvatarPicker
               value={pendingAvatar ?? spaceAvatar(space)}
               seed={space.key}
-              label="Space avatar"
+              label={`${noun} avatar`}
               className="-my-0.5 -ml-1"
               onChange={async (avatar) => {
                 setPendingAvatar(avatar);
@@ -139,22 +152,24 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
               }}
             />
           </div>
-          <div className="min-h-row flex items-center gap-3 px-3 py-1.5 text-sm">
-            <span className="text-muted-foreground w-24 shrink-0">Kind</span>
-            <SegmentedControl
-              size="sm"
-              aria-label="Kind"
-              value={space.kind ?? "product"}
-              onValueChange={(kind) => void save({ kind })}
-              options={[
-                { value: "product", label: "Product" },
-                { value: "client", label: "Client" },
-              ]}
-            />
-            <span className="text-muted-foreground text-xs">
-              One of your products, or client work.
-            </span>
-          </div>
+          {showKind && (
+            <div className="min-h-row flex items-center gap-3 px-3 py-1.5 text-sm">
+              <span className="text-muted-foreground w-24 shrink-0">Kind</span>
+              <SegmentedControl
+                size="sm"
+                aria-label="Kind"
+                value={space.kind ?? "product"}
+                onValueChange={(kind) => void save({ kind })}
+                options={[
+                  { value: "product", label: "Product" },
+                  { value: "client", label: "Client" },
+                ]}
+              />
+              <span className="text-muted-foreground text-xs">
+                One of your products, or client work.
+              </span>
+            </div>
+          )}
           <div className="min-h-row flex items-center gap-3 px-3 py-1 text-sm">
             <span className="text-muted-foreground w-24 shrink-0">Key</span>
             <IssueKey value={space.key} className="text-foreground" />
@@ -173,7 +188,7 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
           </p>
           <Button variant="secondary" onClick={() => setArchiving(true)} data-icon="inline-start">
             <ArchiveIcon />
-            Archive space
+            Archive {noun.toLowerCase()}
           </Button>
         </div>
       </SettingsGroup>
@@ -182,7 +197,7 @@ function SpaceSettings({ space, projects }: { space: Doc<"spaces">; projects: Pr
         onOpenChange={setArchiving}
         title={`Archive ${space.name}?`}
         description={`It disappears from the sidebar and space lists. Its issues keep their ${space.key} keys.`}
-        confirmLabel="Archive space"
+        confirmLabel={`Archive ${noun.toLowerCase()}`}
         onConfirm={async () => {
           try {
             await archive({ spaceId: space._id });
