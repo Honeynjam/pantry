@@ -6,7 +6,7 @@ import { findToken, requireToken } from "./lib/auth";
 import { addComment as insertComment } from "./lib/comments";
 import { fail } from "./lib/errors";
 import { changeStatus, createIssue as insertIssue, updateIssue as applyUpdate } from "./lib/issues";
-import { isProject, issueSpaceId } from "./lib/model";
+import { isProject, issueSpaceId, type Project } from "./lib/model";
 import {
   resolveAssignee,
   resolveLabelsByName,
@@ -15,10 +15,21 @@ import {
   workspaceMembers,
   workspaceStatuses,
 } from "./lib/names";
+import {
+  archiveProject as archiveProjectRow,
+  createLabel as insertLabel,
+  createProject as insertProject,
+  createSpace as insertSpace,
+  saveSpaceContext,
+  updateProject as applyProjectUpdate,
+  updateSpace as applySpaceUpdate,
+} from "./lib/organise";
 import { priorityName } from "./lib/priority";
+import { searchIssues as findIssues } from "./lib/search";
 import { activeProjects, getSpace, resolveProjectByName, resolveSpaceByKey } from "./lib/spaces";
 import { shouldTouch } from "./lib/tokens";
-import { category, priority } from "./schema";
+import { checkPaletteColor, PALETTE } from "./lib/validate";
+import { category, priority, spaceKind } from "./schema";
 
 /**
  * The MCP surface (spec §6, §10b "MCP tools"): one public function per tool, called by
@@ -381,26 +392,33 @@ export const addComment = mutation({
 });
 
 /**
- * `update_issue`: status (through the one status helper), priority, assignee, labels and project
- * (through the same update helper as the app). Everything is resolved before anything is written,
+ * `update_issue`: status (through the one status helper); title, description, priority, assignee,
+ * labels, project and due date (through the same update helper as the app, one activity row per
+ * changed field). Everything is resolved before anything is written,
  * and the mutation is one transaction, so a bad name changes nothing.
  */
 export const updateIssue = mutation({
   args: {
     token: v.string(),
     key: v.string(),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
     status: v.optional(v.string()),
     priority: v.optional(priority),
     assignee: v.optional(v.string()),
     addLabels: v.optional(v.array(v.string())),
     removeLabels: v.optional(v.array(v.string())),
     project: v.optional(v.string()),
+    dueDate: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
     const { member: me } = await requireToken(ctx, args.token);
     const workspaceId = me.workspaceId;
     const issue = await issueByKey(ctx, workspaceId, args.key);
     const {
+      title,
+      description,
+      dueDate,
       status: statusName,
       priority: nextPriority,
       assignee: assigneeName,
@@ -409,13 +427,21 @@ export const updateIssue = mutation({
       project: projectName,
     } = args;
     if (
-      [statusName, nextPriority, assigneeName, addLabels, removeLabels, projectName].every(
-        (value) => value === undefined,
-      )
+      [
+        title,
+        description,
+        dueDate,
+        statusName,
+        nextPriority,
+        assigneeName,
+        addLabels,
+        removeLabels,
+        projectName,
+      ].every((value) => value === undefined)
     ) {
       fail(
         "INVALID_INPUT",
-        "Nothing to change: give at least one of status, priority, assignee, addLabels, removeLabels or project.",
+        "Nothing to change: give at least one of title, description, status, priority, assignee, addLabels, removeLabels, project or dueDate.",
       );
     }
 
@@ -441,6 +467,9 @@ export const updateIssue = mutation({
 
     const actor = asMcp(me);
     await applyUpdate(ctx, actor, issue, {
+      ...(title !== undefined ? { title } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(dueDate !== undefined ? { dueDate } : {}),
       ...(nextPriority !== undefined ? { priority: nextPriority } : {}),
       ...(assignee !== undefined ? { assigneeId: assignee?._id ?? null } : {}),
       ...(labelIds !== undefined ? { labelIds } : {}),
@@ -450,5 +479,221 @@ export const updateIssue = mutation({
 
     const names = await namer(ctx, workspaceId);
     return names.row((await ctx.db.get("issues", issue._id))!);
+  },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Orientation and search
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * `get_workspace`: everything an agent needs to orient itself in one call: spaces (archived ones
+ * flagged) with their active projects, statuses in order, labels and members. All small tables,
+ * read through indexes.
+ */
+export const getWorkspace = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const { member: me } = await requireToken(ctx, token);
+    const workspaceId = me.workspaceId;
+    const [workspace, statuses, labels, members, spaces] = await Promise.all([
+      ctx.db.get("workspaces", workspaceId),
+      workspaceStatuses(ctx, workspaceId),
+      workspaceLabels(ctx, workspaceId),
+      workspaceMembers(ctx, workspaceId),
+      ctx.db
+        .query("spaces")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+        .collect(),
+    ]);
+    const projects = await Promise.all(
+      spaces.map((space) =>
+        space.archivedAt === undefined ? activeProjects(ctx, space._id) : Promise.resolve([]),
+      ),
+    );
+    return {
+      workspace: workspace?.name ?? null,
+      you: me.displayName,
+      spaces: spaces.map((space, index) => ({
+        key: space.key,
+        name: space.name,
+        kind: space.kind ?? "product",
+        archived: space.archivedAt !== undefined,
+        projects: projects[index]!.map((project) => ({
+          name: project.name,
+          color: project.color ?? null,
+        })),
+      })),
+      statuses: statuses.map((status) => ({ name: status.name, category: status.category })),
+      labels: labels.map((label) => ({ name: label.name, color: label.color })),
+      members: members.map((member) => ({
+        name: member.displayName,
+        role: member.role,
+        me: member._id === me._id,
+      })),
+    };
+  },
+});
+
+/** `search_issues`: by key or title words, like the app's palette; exact key first. */
+export const searchIssues = query({
+  args: {
+    token: v.string(),
+    query: v.string(),
+    space: v.optional(v.string()),
+    project: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const workspaceId = me.workspaceId;
+    if (args.project !== undefined && args.space === undefined) {
+      fail("INVALID_INPUT", "Projects are found by name inside one space: give `space` too.");
+    }
+    const space =
+      args.space !== undefined ? await resolveSpaceByKey(ctx, workspaceId, args.space) : null;
+    const project =
+      space && args.project !== undefined
+        ? await resolveProjectByName(ctx, space, args.project)
+        : null;
+    const issues = await findIssues(ctx, workspaceId, {
+      text: args.query,
+      ...(space ? { spaceId: space._id } : {}),
+      ...(project ? { projectId: project._id } : {}),
+    });
+    const names = await namer(ctx, workspaceId);
+    return Promise.all(issues.map((issue) => names.row(issue)));
+  },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Spaces, context docs, projects and labels: the same helpers as the app's settings screens.
+// Any member can do these in the app, so any member's token can do them here. Deleting things,
+// archiving spaces, invites, members, tokens and status edits are deliberately not exposed.
+// ---------------------------------------------------------------------------------------------
+
+/** `create_space`: a new space with the starter context doc, like the app's "New space". */
+export const createSpace = mutation({
+  args: { token: v.string(), name: v.string(), key: v.string(), kind: v.optional(spaceKind) },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const { key, name } = await insertSpace(ctx, me, {
+      name: args.name,
+      key: args.key,
+      ...(args.kind ? { kind: args.kind } : {}),
+    });
+    return { key, name, kind: args.kind ?? "product" };
+  },
+});
+
+/** `update_space`: rename or change kind. The key never changes. */
+export const updateSpace = mutation({
+  args: {
+    token: v.string(),
+    space: v.string(),
+    name: v.optional(v.string()),
+    kind: v.optional(spaceKind),
+  },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    if (args.name === undefined && args.kind === undefined) {
+      fail("INVALID_INPUT", "Nothing to change: give name or kind. A space's key can't change.");
+    }
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    await applySpaceUpdate(ctx, space, {
+      ...(args.name !== undefined ? { name: args.name } : {}),
+      ...(args.kind !== undefined ? { kind: args.kind } : {}),
+    });
+    const updated = (await ctx.db.get("spaces", space._id))!;
+    return { key: updated.key, name: updated.name, kind: updated.kind ?? "product" };
+  },
+});
+
+/** `update_space_context`: replaces the space's context doc with new markdown. */
+export const updateSpaceContext = mutation({
+  args: { token: v.string(), space: v.string(), body: v.string() },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    const updatedAt = await saveSpaceContext(ctx, me, space, args.body);
+    return { space: space.key, updatedAt: iso(updatedAt), updatedBy: me.displayName };
+  },
+});
+
+/** A named project of the space; "none" isn't one here. */
+async function projectByName(ctx: QueryCtx, space: Doc<"spaces">, name: string): Promise<Project> {
+  const project = await resolveProjectByName(ctx, space, name);
+  if (!project)
+    return fail("INVALID_INPUT", `Name one of ${space.key}'s projects; "none" isn't one.`);
+  return project;
+}
+
+/** Project colours the app cycles through when you don't pick one (the palette minus gray). */
+const PROJECT_COLORS = PALETTE.filter((color) => color !== "gray");
+
+/** `create_project`: a workstream in a space, at the end of its order. */
+export const createProject = mutation({
+  args: { token: v.string(), space: v.string(), name: v.string(), color: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    const color =
+      args.color !== undefined
+        ? checkPaletteColor(args.color)
+        : PROJECT_COLORS[(await activeProjects(ctx, space._id)).length % PROJECT_COLORS.length]!;
+    const { name } = await insertProject(ctx, space, { name: args.name, color });
+    return { space: space.key, name, color };
+  },
+});
+
+/** `update_project`: rename or recolour (`color: null` removes the colour). */
+export const updateProject = mutation({
+  args: {
+    token: v.string(),
+    space: v.string(),
+    project: v.string(),
+    name: v.optional(v.string()),
+    color: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    if (args.name === undefined && args.color === undefined) {
+      fail("INVALID_INPUT", "Nothing to change: give name or color.");
+    }
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    const project = await projectByName(ctx, space, args.project);
+    await applyProjectUpdate(ctx, project, {
+      ...(args.name !== undefined ? { name: args.name } : {}),
+      ...(args.color !== undefined
+        ? { color: args.color === null ? null : checkPaletteColor(args.color) }
+        : {}),
+    });
+    const updated = (await ctx.db.get("projects", project._id)) as Project;
+    return { space: space.key, name: updated.name, color: updated.color ?? null };
+  },
+});
+
+/**
+ * `archive_project`: the project leaves the app's sidebar and pickers; its issues stay in the space
+ * with no project (each change logged "via MCP"). The app has no un-archive yet.
+ */
+export const archiveProject = mutation({
+  args: { token: v.string(), space: v.string(), project: v.string() },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    const project = await projectByName(ctx, space, args.project);
+    const issuesMoved = await archiveProjectRow(ctx, asMcp(me), project);
+    return { space: space.key, project: project.name, archived: true, issuesMoved };
+  },
+});
+
+/** `create_label`: a workspace label (other tools never create labels on the fly). */
+export const createLabel = mutation({
+  args: { token: v.string(), name: v.string(), color: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const color = args.color !== undefined ? checkPaletteColor(args.color) : "gray";
+    const { name } = await insertLabel(ctx, me.workspaceId, { name: args.name, color });
+    return { name, color };
   },
 });
