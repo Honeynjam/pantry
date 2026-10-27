@@ -117,16 +117,24 @@ Forward-compatible, not built in v0.1: Client / Product modes later add optional
 **Auth:** personal API tokens created in User settings → API tokens. Shown once; stored as SHA-256 hash + short prefix. Sent as `Authorization: Bearer <token>`. The server acts as the token's owner; comments and changes show as that user, tagged "via MCP". Revocable; `lastUsedAt` tracked.
 **Internal layer (not a product surface):** the route calls Convex functions in `convex/mcp.ts` via `ConvexHttpClient`, passing the token; each function hashes and checks it before doing anything. There is no public REST API in v0.1 (moved to later).
 
-Tools (minimal):
+Tools: issue work plus organising (added 27 Oct 2026 at Kris's request: "so it can do more things, e.g. add/update projects, create spaces"). They mirror what any member can do in the app, through the same helpers.
 | Tool | Does |
 |---|---|
+| `get_workspace` | Orientation in one call: spaces (archived flagged) with their projects, statuses in order, labels, members (`me` marked) |
 | `get_issue` | One issue by key, incl. its space key, project name, sub-issues, comments |
 | `get_space_context` | The space's context doc (agents call it first) |
 | `list_issues` | Filters: space, project, status/category, assignee (`me`), label, priority |
 | `create_issue` | New issue in a space, optionally in one of its projects |
 | `create_sub_issue` | New sub-issue under a parent key |
 | `add_comment` | Comment on an issue |
-| `update_issue` | Change status, priority, labels, assignee, project |
+| `update_issue` | Change title, description, status, priority, labels, assignee, project, due date |
+| `search_issues` | Find issues by key or title words (exact key first), optionally in a space / project |
+| `create_space` / `update_space` | New space (key rules as in the app, starter context doc) / rename or change kind (key fixed) |
+| `update_space_context` | Replace a space's context doc (markdown) |
+| `create_project` / `update_project` / `archive_project` | Workstreams in a space: create, rename/recolour, archive (its issues stay in the space with no project) |
+| `create_label` | New workspace label (other tools never create labels) |
+
+Not over MCP, on purpose: deleting issues, spaces, comments or labels; archiving spaces (no un-archive in the app); editing statuses; invites, members and API tokens. These are destructive or account-level, and a leaked token shouldn't be able to do them; agents are told to ask a person.
 
 Typical use: create a token → add `/api/mcp` with the bearer token to your MCP client → tell the agent "work on PAN-42" → it calls `get_issue` + `get_space_context`, moves the issue through statuses itself with `update_issue` (nothing changes status automatically), posts notes with `add_comment`, adds follow-ups with `create_sub_issue`.
 
@@ -593,7 +601,7 @@ MCP tools (below) reuse the same internal helpers through `convex/mcp.ts`, so ap
 ### MCP tools (`packages/mcp`)
 Route: `apps/web/app/api/mcp/route.ts` = `withMcpAuth(createMcpHandler(registerTools), verifyToken, { required: true })`, exported as GET and POST. `verifyToken` hashes the bearer token and calls `mcp.verifyToken`; it returns `AuthInfo` with the member and workspace in `extra`, or `undefined` (→ 401). Tools read it from `ctx.http?.authInfo` and pass the raw token to each Convex function, which re-checks it, because these functions are public. `lastUsedAt` is updated by a separate mutation only when the stored value is over 10 minutes old.
 
-All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$` (lower case is upper-cased first). Spaces are given by key (`PAN`); status, label, assignee and project are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`, and `project` takes `"none"`. Priority is a name (`none`, `urgent`, `high`, `medium`, `low`) or 0–4, and results show the name. The resolution itself runs in `convex/mcp.ts`, inside the token's workspace; `packages/mcp` turns a refusal into `isError: true` with its message. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names, or the space's project names), so the agent can retry. Tool descriptions tell the agent to call `get_space_context` first, before starting work. The by-name lookups live in `convex/lib/spaces.ts` (`resolveSpaceByKey`, `resolveProjectByName`).
+All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$` (lower case is upper-cased first). Spaces are given by key (`PAN`); status, label, assignee and project are given **by name**, case-insensitive; `assignee` also takes `"me"` or `"none"`, and `project` takes `"none"`. Priority is a name (`none`, `urgent`, `high`, `medium`, `low`) or 0–4, and results show the name. The resolution itself runs in `convex/mcp.ts`, inside the token's workspace; `packages/mcp` turns a refusal into `isError: true` with its message. On bad input a tool returns `isError: true` with a message that lists the valid values (for example the workspace's status names, or the space's project names), so the agent can retry. Tool descriptions tell the agent to call `get_workspace` (organising) or `get_space_context` (issue work) first. Colours are palette names only (`gray`, `red`, `orange`, `yellow`, `lime`, `green`, `teal`, `blue`, `indigo`, `violet`, `pink`), the same list the app offers. The by-name lookups live in `convex/lib/spaces.ts` (`resolveSpaceByKey`, `resolveProjectByName`).
 
 | Tool | Input | Returns |
 |---|---|---|
@@ -603,7 +611,16 @@ All inputs are `z.object`. Issue keys match `^[A-Z][A-Z0-9]{1,9}-\d+$` (lower ca
 | `create_issue` | `{ space (key, required), project? (name), title (1–200), description?, status?, priority? = 0, assignee?, labels?: string[], dueDate? }` | key, space, project, url. An unknown project is an error listing the space's project names. Default status: the first `unstarted` status. Unknown labels are an error; labels are never auto-created |
 | `create_sub_issue` | `{ parent, title, description?, priority?, assignee? }` | key, parent, space, project, url. Takes the parent's space and project. Error if the parent is itself a sub-issue |
 | `add_comment` | `{ key, body (1–20,000 chars, markdown) }` | key, comment id, comment url |
-| `update_issue` | `{ key, status?, priority?, assignee?, addLabels?, removeLabels?, project? (name or "none") }` (at least one) | the updated issue summary. A bad project name lists the valid ones for the issue's space |
+| `update_issue` | `{ key, title?, description? (markdown), status?, priority?, assignee?, addLabels?, removeLabels?, project? (name or "none"), dueDate? (YYYY-MM-DD or null) }` (at least one) | the updated issue summary. One activity row per changed field; status goes through the move helper; a sub-issue keeps its parent's project. A bad project name lists the valid ones for the issue's space |
+| `get_workspace` | `{}` | workspace name, you, spaces (key, name, kind, archived, projects {name, color}, url), statuses (name, category, in order), labels (name, color), members (name, role, me) |
+| `search_issues` | `{ query, space?, project? (needs space) }` | up to 20 rows like `list_issues`; an exact key first, then title matches (`issues.search`) |
+| `create_space` | `{ name, key (2–10, letter first, upper-cased), kind? = product }` | key, name, kind, url. Key unique per workspace, archived spaces included; creates the starter context doc |
+| `update_space` | `{ space, name?, kind? }` (at least one) | key, name, kind, url. The key never changes |
+| `update_space_context` | `{ space, body (markdown, ≤ 100,000) }` | space, updatedAt, updatedBy. Replaces the whole doc |
+| `create_project` | `{ space, name (≤ 60, unique in the space), color? }` | space, name, color. Without a colour: the app's rotation (palette minus gray) |
+| `update_project` | `{ space, project (name), name?, color? (or null) }` (at least one) | space, name, color |
+| `archive_project` | `{ space, project }` | space, project, archived, issuesMoved. Its issues (sub-issues too) stay in the space with no project, one `project_changed` row each via MCP. No un-archive yet; `destructiveHint: true` |
+| `create_label` | `{ name (≤ 40, unique in the workspace), color? = gray }` | name, color |
 
 Client setup verified today: Claude Code takes `claude mcp add --transport http pantry https://<app>/api/mcp --header "Authorization: Bearer <token>"`; Cursor's `mcp.json` takes `"url"` plus `"headers": { "Authorization": "Bearer ${env:PANTRY_TOKEN}" }`. The token screen shows both snippets.
 
@@ -611,7 +628,7 @@ Client setup verified today: Claude Code takes `claude mcp add --transport http 
 - **M1:** `pnpm i && pnpm dev` runs Convex dev (a local anonymous backend; no Convex login) + web locally. `pnpm turbo typecheck lint test` passes, and a GitHub Actions workflow runs it on push. A Deploy Button run on a fresh Vercel account reaches the setup screen; the first sign-up becomes owner, with default statuses (Backlog, Todo, In Progress, In Review, Done, Canceled) and a sample `PAN` project. A second sign-up without an invite is rejected by the server. `GET /api/instance` returns `{ name, convexUrl, convexSiteUrl, serverVersion, minAppVersion, needsSecret }`. A redeploy keeps `BETTER_AUTH_SECRET` (you stay signed in). Button click to signed-in workspace takes under 10 minutes.
 - **M2:** an owner creates an invite for an email and the partner joins through the link. Create, edit and move issues in list and board views, with sub-issues one level deep. Every change shows in a second browser within 1 second without a reload, and leaves an activity row. Tauri spike: a dev build connects to the deployed instance and signs in.
 - **M3:** every shortcut in §4 works and shows in the `?` help. The command palette finds issues by key and title. Status, assignee and priority changes appear before the server confirms them (optimistic). "My issues" lists open issues assigned to me. URL filters (status, assignee, label, priority) narrow the list and board and survive a reload.
-- **M4:** create, name, revoke and list tokens; a revoked token gets 401 on the next call. The seven tools pass `convex-test` and handler tests. Claude Code, using the snippet, completes this script on a real issue: read it, read the context doc, move it to In Progress, comment, add a sub-issue, move it to In Review. Each step shows "via MCP" under your name.
+- **M4:** create, name, revoke and list tokens; a revoked token gets 401 on the next call. The seven issue tools (the organising tools came after M4) pass `convex-test` and handler tests. Claude Code, using the snippet, completes this script on a real issue: read it, read the context doc, move it to In Progress, comment, add a sub-issue, move it to In Review. Each step shows "via MCP" under your name.
 - **M5 (Mac app, moved to v0.2 by Kris on 27 Oct 2026):** `apps/desktop` builds from the static `packages/app` build. First launch asks for a server URL, rejects one whose `/api/instance` doesn't answer ("not a Pantry server"), shows "update your server" when the server's `serverVersion` is older than the app supports, then signs in. Servers are stored as `servers[]` + `activeServerId` (Store plugin), never a single URL field; each server's session token lives in the macOS Keychain keyed by server id (nothing secret in the JSON); signing out removes only that server's Keychain item; a unit test loads a one-server list and adds a second without migration. A global hotkey opens quick-add and creates an issue in the last-used project; the menu bar item offers quick-add and open; assigning an issue to me from another browser shows a macOS notification. A signed, notarized DMG opens on a clean Mac without Gatekeeper warnings, and the updater installs a newer test release from a GitHub Release's `latest.json` (Kris runs the signing steps).
 - **M6 (Launch):** `apps/site` is one page with the six sections in §9e, and its deploy, GitHub and demo links resolve. With `DEMO_MODE=1`: a visitor lands in the seeded workspace without signing up; MCP, token and invite functions throw (tests); the hourly reset restores the seed (`convex-test` on the reset function); writes over the rate limit are rejected (test). App and site use the same `packages/ui` tokens in dark and light.
 - M6 is split into one-PR tasks when it starts. M5 (above) is now a v0.2 milestone; its criteria stand as written.

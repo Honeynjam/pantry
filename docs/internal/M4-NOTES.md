@@ -120,3 +120,67 @@ Each one is built this way and easy to change.
 - MCP clients on the 2026-07-28 protocol revision. The SDK client negotiated 2025-11-25; I didn't log which
   revision Claude Code used. mcp-handler serves both.
 - Behaviour on Vercel's runtime (only `next start` locally) and under concurrent agents.
+
+## After M4: agents organise work too (27 Oct 2026, branch `mcp/more-tools`)
+
+Kris asked for "the MCP so it can do more things, e.g. add/update projects, create spaces". Agents can now do
+what a member does in the app's settings screens, through the same helpers and permission checks.
+
+| Commit | What |
+|---|---|
+| `c58377e` | `lib/organise.ts` and `lib/search.ts`: the app's space, context-doc, project, label and search logic lifted out of the mutations (no behaviour change; all 136 backend tests unchanged) |
+| `308eec0` | `convex/mcp.ts`: `getWorkspace`, `searchIssues`, `createSpace`, `updateSpace`, `updateSpaceContext`, `createProject`, `updateProject`, `archiveProject`, `createLabel`; `updateIssue` takes title, description and due date |
+| `7688258` | `packages/mcp`: the nine tools with zod inputs, `destructiveHint` on `archive_project`, links to spaces, server instructions |
+| (docs commit) | Spec §6/§10b, README, `docs/spikes/mcp-clients.md`, these notes, screenshots `mcp-more-*` |
+
+**The 16 tools:** issue work (`get_issue`, `list_issues`, `search_issues`, `create_issue`, `create_sub_issue`,
+`add_comment`, `update_issue`), orientation and context (`get_workspace`, `get_space_context`,
+`update_space_context`) and organising (`create_space`, `update_space`, `create_project`, `update_project`,
+`archive_project`, `create_label`).
+
+### Decisions for Kris
+
+1. **Not exposed over MCP, on purpose:** deleting issues, spaces, comments or labels; editing statuses; invites,
+   members and API tokens. They're destructive or account-level, and a leaked token shouldn't be able to do them.
+   The server instructions and `update_space`'s description tell agents to ask a person. Easy to revisit tool by
+   tool.
+2. **No `archive_space`.** The app has `spaces.archive` but no un-archive, and an archived space's key stays
+   taken, so it isn't reversible. Skipped until the app can restore a space.
+3. **`archive_project` is exposed even though the app has no un-archive either**, because you asked for it. Its
+   issues stay in the space (the project is just cleared, each change logged "via MCP"), and the tool carries
+   `destructiveHint: true` and says "only when the workstream is really over". Say if you'd rather drop it until
+   there's an un-archive.
+4. **Permissions match the app: any member's token** can create spaces, projects and labels and rewrite context
+   docs (none of these is owner-only in the app; invites are, and stay off MCP). Tested with the partner's token.
+5. **`get_workspace` replaces `list_spaces` / `list_projects`.** The tables are small (it reads spaces, projects,
+   statuses, labels and members through indexes), so one call orients an agent. Projects of archived spaces
+   aren't listed; the space is, flagged `archived: true`.
+6. **`create_issue` gets no `parent`:** that would duplicate `create_sub_issue`. It already took labels and due
+   dates.
+7. **Colours over MCP are palette names only** (`gray` … `pink`, the app's swatches; a test keeps the two lists
+   equal). The app's mutations also accept hex for statuses; agents can't store a colour the app has no swatch
+   for. Defaults: a new project gets the next colour in the app's rotation (palette minus gray), a label gray.
+8. **Context docs record who and when** (`updatedBy`, `updatedAt`, as in the app) but carry no "via MCP" tag:
+   docs have no `via` field, and adding one would be a schema change. The settings page shows "Edited … by Kris".
+
+### How it was verified
+
+- `pnpm check` (format, typecheck, lint, tests, script tests, web build): passes. Backend 157 tests (21 new in
+  `mcp-organise.test.ts`: every new tool, a revoked token on each, cross-workspace "not found" for spaces,
+  projects, labels, context docs and search, key rules, palette errors, partner-token parity, archive leaving
+  issues and sub-issues in the space with `project_changed` rows via MCP, title/description/due-date rows);
+  `packages/mcp` 27 handler tests (16 tools listed, pass-through per new tool, zod refusals before Convex);
+  app 65 (palette parity).
+- End to end: production build on :3300, fresh anonymous backend on :3330/:3331, owner and token created in the
+  browser, then the MCP client SDK: `get_workspace` → `create_space` ACME (client) → `update_space_context` →
+  `create_project` Website (red, the rotation) and Launch (violet) → `create_label` Content, Bug →
+  `create_issue` ×3 across both projects with labels and due dates → `update_project` Website → "Marketing site",
+  teal → `update_issue` ACME-1 to Launch with a new title and due date → `create_issue` with label "Ideas" (error
+  listing "Content", "Bug") → `archive_project` Launch (2 issues moved) → `search_issues` "launch" and "acme-2"
+  → `get_workspace` and `get_issue` confirming the state. In the browser: ACME in the sidebar with "Marketing
+  site" only, the list with label chips and due dates, the settings page with kind Client, the teal project and
+  the new context doc ("Edited just now by Kris"), and ACME-1's activity: created, renamed, due date set, moved
+  from Marketing site to Launch, removed from Launch, each "via MCP". Screenshots
+  `docs/screenshots/mcp-more-{space,issue,space-settings}-{light,dark}.png`.
+- Not verified: a real Claude Code or Cursor session using the new tools (only the SDK client this time), and
+  anything on a deployed instance.

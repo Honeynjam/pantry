@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Agents can organise work over MCP**, not just work single issues: `get_workspace` to see spaces, projects,
+  statuses, labels and people in one call; `search_issues`; `create_space` and `update_space`;
+  `update_space_context` to rewrite a space's context doc; `create_project`, `update_project` and
+  `archive_project`; `create_label`. `update_issue` can now also change the title, description and due date.
+  Everything shows under your name, tagged "via MCP". Deleting things, archiving spaces, statuses, invites,
+  members and tokens stay app-only.
+
 ### Fixed
 
 - The Deploy button now sets Vercel's Root Directory to `apps/web`, so the first build works without changing

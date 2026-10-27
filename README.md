@@ -47,9 +47,18 @@ never touch your Convex data. Every push to your repo's production branch redepl
 3. Tell the agent "work on PAN-12". It reads the issue and the space's context doc, moves the issue itself, comments
    and adds sub-issues. Everything shows under your name, tagged "via MCP".
 
-The agent acts as you, inside your workspace only. Revoking a token on the same screen stops it at once (the next
-call gets a 401). Tools: `get_issue`, `get_space_context`, `list_issues`, `create_issue`, `create_sub_issue`,
-`add_comment`, `update_issue` (spec §10b).
+4. Agents can also organise work: "set up a space for Acme with Website and Launch projects and file these
+   issues" works too. They call `get_workspace` first to see what exists.
+
+The agent acts as you, inside your workspace only, and can do what a member can in the app, except deleting
+anything, archiving spaces, editing statuses, and invites, members or tokens. Revoking a token on the same screen
+stops it at once (the next call gets a 401). Tools (spec §10b):
+
+- Issues: `get_issue`, `list_issues`, `search_issues`, `create_issue`, `create_sub_issue`, `add_comment`,
+  `update_issue`
+- Orientation and context: `get_workspace`, `get_space_context`, `update_space_context`
+- Organising: `create_space`, `update_space`, `create_project`, `update_project`, `archive_project`,
+  `create_label`
 
 ### Troubleshooting
 
