@@ -1,8 +1,14 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { requireMember } from "./lib/auth";
 import { fail } from "./lib/errors";
-import { archiveProject, createProject, updateProject } from "./lib/organise";
+import {
+  archivedProjects,
+  archiveProject,
+  createProject,
+  restoreProject,
+  updateProject,
+} from "./lib/organise";
 import { activeProjects, getProject, getSpace } from "./lib/spaces";
 
 /**
@@ -45,6 +51,31 @@ export const archive = mutation({
     const me = await requireMember(ctx);
     const project = await getProject(ctx, me.workspaceId, args.projectId);
     await archiveProject(ctx, { member: me, via: "app" }, project);
+  },
+});
+
+/**
+ * Un-archive: back at the end of the space's order, in the sidebar and pickers. Issues that lost the
+ * project when it was archived stay without one. Refused if an active project in the space has the
+ * same name; the settings screen lets you rename the archived one first (or pass `name`).
+ */
+export const restore = mutation({
+  args: { projectId: v.id("projects"), name: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const me = await requireMember(ctx);
+    const project = await getProject(ctx, me.workspaceId, args.projectId);
+    const space = await getSpace(ctx, me.workspaceId, project.spaceId);
+    await restoreProject(ctx, space, project, args.name !== undefined ? { name: args.name } : {});
+  },
+});
+
+/** A space's archived projects for Space settings, most recently archived first. */
+export const listArchived = query({
+  args: { spaceId: v.id("spaces") },
+  handler: async (ctx, args) => {
+    const me = await requireMember(ctx);
+    const space = await getSpace(ctx, me.workspaceId, args.spaceId);
+    return archivedProjects(ctx, space._id);
   },
 });
 

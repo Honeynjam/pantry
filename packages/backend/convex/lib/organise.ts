@@ -6,7 +6,7 @@ import type { avatarValidator } from "./avatar";
 import { SAMPLE_CONTEXT_DOC } from "./defaults";
 import { fail } from "./errors";
 import { setIssueProject } from "./issues";
-import type { Project } from "./model";
+import { isProject, type Project } from "./model";
 import { activeProjects, nameKey } from "./spaces";
 import { checkColor, cleanName, SPACE_KEY_PATTERN } from "./validate";
 
@@ -231,4 +231,104 @@ export async function createLabel(
     color: checkColor(args.color),
   });
   return { labelId, name };
+}
+
+/**
+ * Restore an archived project: it goes to the end of the space's order and shows in the sidebar and
+ * pickers again. Issues that lost it when it was archived stay without a project (archiving cleared
+ * them; nothing records which they were). Refused when the space is archived, or when an active
+ * project in the space already has its name (names are unique among active projects): rename one of
+ * them first, or pass `name` to restore it under a new name.
+ */
+export async function restoreProject(
+  ctx: MutationCtx,
+  space: Doc<"spaces">,
+  project: Project,
+  args: { name?: string } = {},
+) {
+  if (project.spaceId !== space._id)
+    fail("WRONG_SPACE", `${project.name} isn't a project in ${space.name}.`);
+  if (space.archivedAt !== undefined) fail("ARCHIVED", `${space.name} is archived.`);
+  if (project.archivedAt === undefined) return { name: project.name, restored: false };
+  const name = args.name !== undefined ? cleanName(args.name, "Project name", 60) : project.name;
+  const taken = (await activeProjects(ctx, space._id)).find(
+    (row) => nameKey(row.name) === nameKey(name),
+  );
+  if (taken) {
+    fail(
+      "NAME_TAKEN",
+      `There's already an active project called ${taken.name} in ${space.name}. Rename one of them first, then restore.`,
+    );
+  }
+  const last = (await activeProjects(ctx, space._id)).at(-1);
+  await ctx.db.patch("projects", project._id, {
+    name,
+    archivedAt: undefined,
+    sortOrder: (last?.sortOrder ?? 0) + 1,
+  });
+  return { name, restored: true };
+}
+
+/** A space's archived projects, most recently archived first. */
+export async function archivedProjects(ctx: QueryCtx, spaceId: Id<"spaces">): Promise<Project[]> {
+  const rows = await ctx.db
+    .query("projects")
+    .withIndex("by_space", (q) => q.eq("spaceId", spaceId))
+    .collect();
+  return rows
+    .filter(isProject)
+    .filter((row) => row.archivedAt !== undefined)
+    .sort((a, b) => b.archivedAt! - a.archivedAt!);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Statuses: six fixed ones (one per category). Rename, recolour and reorder only.
+// ---------------------------------------------------------------------------------------------
+
+export async function workspaceStatusRows(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  return ctx.db
+    .query("statuses")
+    .withIndex("by_workspace_and_order", (q) => q.eq("workspaceId", workspaceId))
+    .collect();
+}
+
+/** Names stay unique, ignoring case, because agents set status by name over MCP. */
+export async function updateStatus(
+  ctx: MutationCtx,
+  status: Doc<"statuses">,
+  args: { name?: string; color?: string },
+) {
+  const patch: Partial<Doc<"statuses">> = {};
+  if (args.name !== undefined) {
+    const name = cleanName(args.name, "Status name", 40);
+    const clash = (await workspaceStatusRows(ctx, status.workspaceId)).find(
+      (row) => row._id !== status._id && row.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (clash) fail("NAME_TAKEN", `There's already a status called ${clash.name}.`);
+    patch.name = name;
+  }
+  if (args.color !== undefined) patch.color = checkColor(args.color);
+  await ctx.db.patch("statuses", status._id, patch);
+}
+
+/** New order for all of the workspace's statuses: `statusIds` must list each exactly once. */
+export async function reorderStatuses(
+  ctx: MutationCtx,
+  workspaceId: Id<"workspaces">,
+  statusIds: Id<"statuses">[],
+) {
+  const all = await workspaceStatusRows(ctx, workspaceId);
+  const known = new Set(all.map((status) => status._id));
+  const given = new Set(statusIds);
+  if (
+    given.size !== statusIds.length ||
+    given.size !== known.size ||
+    statusIds.some((id) => !known.has(id))
+  ) {
+    fail("INVALID_ORDER", "Reorder needs every status exactly once.");
+  }
+  for (const [order, statusId] of statusIds.entries()) {
+    const status = all.find((row) => row._id === statusId)!;
+    if (status.order !== order) await ctx.db.patch("statuses", statusId, { order });
+  }
 }

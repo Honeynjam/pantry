@@ -4,8 +4,14 @@ import { mutation, query, type QueryCtx } from "./_generated/server";
 import type { Actor } from "./lib/activity";
 import { findToken, requireToken } from "./lib/auth";
 import { addComment as insertComment } from "./lib/comments";
+import { DEFAULT_STATUSES } from "./lib/defaults";
 import { fail } from "./lib/errors";
-import { changeStatus, createIssue as insertIssue, updateIssue as applyUpdate } from "./lib/issues";
+import {
+  changeStatus,
+  createIssue as insertIssue,
+  deleteIssue as removeIssue,
+  updateIssue as applyUpdate,
+} from "./lib/issues";
 import { isProject, issueSpaceId, type Project } from "./lib/model";
 import {
   resolveAssignee,
@@ -16,17 +22,27 @@ import {
   workspaceStatuses,
 } from "./lib/names";
 import {
+  archivedProjects,
   archiveProject as archiveProjectRow,
   createLabel as insertLabel,
   createProject as insertProject,
   createSpace as insertSpace,
+  reorderStatuses as applyStatusOrder,
+  restoreProject,
   saveSpaceContext,
   updateProject as applyProjectUpdate,
   updateSpace as applySpaceUpdate,
+  updateStatus as applyStatusUpdate,
 } from "./lib/organise";
 import { priorityName } from "./lib/priority";
 import { searchIssues as findIssues } from "./lib/search";
-import { activeProjects, getSpace, resolveProjectByName, resolveSpaceByKey } from "./lib/spaces";
+import {
+  activeProjects,
+  getSpace,
+  nameKey,
+  resolveProjectByName,
+  resolveSpaceByKey,
+} from "./lib/spaces";
 import { shouldTouch } from "./lib/tokens";
 import { checkPaletteColor, PALETTE } from "./lib/validate";
 import { category, priority, spaceKind } from "./schema";
@@ -674,7 +690,8 @@ export const updateProject = mutation({
 
 /**
  * `archive_project`: the project leaves the app's sidebar and pickers; its issues stay in the space
- * with no project (each change logged "via MCP"). The app has no un-archive yet.
+ * with no project (each change logged "via MCP"). `unarchive_project` brings the project back, but
+ * not its issues.
  */
 export const archiveProject = mutation({
   args: { token: v.string(), space: v.string(), project: v.string() },
@@ -695,5 +712,137 @@ export const createLabel = mutation({
     const color = args.color !== undefined ? checkPaletteColor(args.color) : "gray";
     const { name } = await insertLabel(ctx, me.workspaceId, { name: args.name, color });
     return { name, color };
+  },
+});
+
+/**
+ * An archived project of the space by name (any case). Names are only unique among active projects,
+ * so with two archived namesakes the most recently archived one is meant.
+ */
+async function archivedProjectByName(ctx: QueryCtx, space: Doc<"spaces">, name: string) {
+  const archived = await archivedProjects(ctx, space._id);
+  const match = archived.find((project) => nameKey(project.name) === nameKey(name));
+  if (match) return match;
+  const active = (await activeProjects(ctx, space._id)).find(
+    (project) => nameKey(project.name) === nameKey(name),
+  );
+  if (active) return fail("NOT_ARCHIVED", `${active.name} isn't archived.`);
+  const valid = archived.map((project) => project.name);
+  return fail(
+    "UNKNOWN_PROJECT",
+    valid.length
+      ? `No archived project "${name.trim()}" in ${space.key}. Archived: ${[...new Set(valid)].join(", ")}.`
+      : `${space.key} has no archived projects.`,
+  );
+}
+
+/**
+ * `unarchive_project`: back at the end of the space's order. Issues that lost it when it was
+ * archived stay without a project. If an active project now has the same name, give `name` to
+ * restore it under a new one.
+ */
+export const unarchiveProject = mutation({
+  args: { token: v.string(), space: v.string(), project: v.string(), name: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const space = await resolveSpaceByKey(ctx, me.workspaceId, args.space);
+    const project = await archivedProjectByName(ctx, space, args.project);
+    const { name } = await restoreProject(
+      ctx,
+      space,
+      project,
+      args.name !== undefined ? { name: args.name } : {},
+    );
+    const restored = (await ctx.db.get("projects", project._id)) as Project;
+    return { space: space.key, project: name, color: restored.color ?? null, archived: false };
+  },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Issue deletion and status definitions (Kris, 27 Oct 2026: both over MCP, as in the app)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * `delete_issue`: the app's hard delete (comments, activity and sub-issues go too). `confirm` must
+ * repeat the issue's key, so a delete never happens by accident.
+ */
+export const deleteIssue = mutation({
+  args: { token: v.string(), key: v.string(), confirm: v.string() },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const issue = await issueByKey(ctx, me.workspaceId, args.key);
+    if (args.confirm.trim().toUpperCase() !== issue.key) {
+      fail(
+        "CONFIRM_MISMATCH",
+        `Nothing deleted. To delete ${issue.key} ("${issue.title}"), pass confirm: "${issue.key}".`,
+      );
+    }
+    const removed = await removeIssue(ctx, issue);
+    return {
+      deleted: issue.key,
+      title: issue.title,
+      subIssues: removed.subIssues,
+      comments: removed.comments,
+    };
+  },
+});
+
+/** A status colour over MCP: a palette name, or "default" for the category's own colour. */
+function statusColor(category: Doc<"statuses">["category"], color: string): string {
+  if (nameKey(color) === "default") {
+    return DEFAULT_STATUSES.find((row) => row.category === category)!.color;
+  }
+  return checkPaletteColor(color);
+}
+
+const statusRow = (status: Doc<"statuses">) => ({
+  name: status.name,
+  category: status.category,
+  color: status.color,
+});
+
+/**
+ * `update_status`: rename or recolour one of the six statuses (the definition, for everyone).
+ * Moving an issue to a status is `update_issue { status }`.
+ */
+export const updateStatus = mutation({
+  args: {
+    token: v.string(),
+    status: v.string(),
+    name: v.optional(v.string()),
+    color: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    if (args.name === undefined && args.color === undefined) {
+      fail("INVALID_INPUT", "Nothing to change: give name or color.");
+    }
+    const status = await resolveStatusByName(ctx, me.workspaceId, args.status);
+    await applyStatusUpdate(ctx, status, {
+      ...(args.name !== undefined ? { name: args.name } : {}),
+      ...(args.color !== undefined ? { color: statusColor(status.category, args.color) } : {}),
+    });
+    return statusRow((await ctx.db.get("statuses", status._id))!);
+  },
+});
+
+/** `reorder_statuses`: the six statuses in a new order (list groups and board columns follow). */
+export const reorderStatuses = mutation({
+  args: { token: v.string(), statuses: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const { member: me } = await requireToken(ctx, args.token);
+    const all = await workspaceStatuses(ctx, me.workspaceId);
+    const order = await Promise.all(
+      args.statuses.map((name) => resolveStatusByName(ctx, me.workspaceId, name)),
+    );
+    const ids = order.map((status) => status._id);
+    if (new Set(ids).size !== ids.length || ids.length !== all.length) {
+      fail(
+        "INVALID_ORDER",
+        `List each status exactly once, in the new order. Statuses: ${all.map((status) => `"${status.name}"`).join(", ")}.`,
+      );
+    }
+    await applyStatusOrder(ctx, me.workspaceId, ids);
+    return (await workspaceStatuses(ctx, me.workspaceId)).map(statusRow);
   },
 });
