@@ -69,22 +69,33 @@ async function call(client: Client, name: ToolName, args: Record<string, unknown
 const userError = (message: string) => new ConvexError({ code: "UNKNOWN_STATUS", message });
 
 describe("tools/list", () => {
-  it("lists the seven tools, each telling the agent to read the space context first", async () => {
+  it("lists the sixteen tools, each telling the agent what to read first", async () => {
     const client = await connect(fakeBackend({}).backend);
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       "add_comment",
+      "archive_project",
       "create_issue",
+      "create_label",
+      "create_project",
+      "create_space",
       "create_sub_issue",
       "get_issue",
       "get_space_context",
+      "get_workspace",
       "list_issues",
+      "search_issues",
       "update_issue",
+      "update_project",
+      "update_space",
+      "update_space_context",
     ]);
     for (const tool of tools) {
       expect(tool.inputSchema.type).toBe("object");
       expect(tool.description).toMatch(
-        tool.name === "get_space_context" ? /Call this first/ : /Call get_space_context/,
+        ["get_space_context", "get_workspace"].includes(tool.name)
+          ? /Call this first/
+          : /(Call|with) get_(space_context|workspace)/,
       );
     }
     const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
@@ -102,7 +113,26 @@ describe("tools/list", () => {
       "dueDate",
     ]);
     expect(byName.create_issue!.inputSchema.required).toEqual(["space", "title"]);
+    expect(byName.archive_project!.annotations?.destructiveHint).toBe(true);
+    expect(byName.create_project!.annotations?.destructiveHint).toBe(false);
+    expect(byName.create_project!.inputSchema.properties?.color).toMatchObject({
+      enum: [
+        "gray",
+        "red",
+        "orange",
+        "yellow",
+        "lime",
+        "green",
+        "teal",
+        "blue",
+        "indigo",
+        "violet",
+        "pink",
+      ],
+    });
     expect(client.getInstructions()).toMatch(/call get_issue and then get_space_context/);
+    expect(client.getInstructions()).toMatch(/Call get_workspace first/);
+    expect(client.getInstructions()).toMatch(/Not available over MCP: deleting anything/);
   });
 });
 
@@ -246,6 +276,120 @@ describe("each tool passes the token to its Convex function", () => {
   });
 });
 
+describe("the organising tools pass the token to their Convex function", () => {
+  const cases: [ToolName, Record<string, unknown>, string, Record<string, unknown>, unknown][] = [
+    [
+      "search_issues",
+      { query: "login", space: "PAN" },
+      "mcp:searchIssues",
+      { query: "login", space: "PAN" },
+      [{ key: "PAN-1" }],
+    ],
+    [
+      "create_space",
+      { name: "Acme", key: "acme", kind: "client" },
+      "mcp:createSpace",
+      { name: "Acme", key: "ACME", kind: "client" },
+      { key: "ACME", name: "Acme", kind: "client" },
+    ],
+    [
+      "update_space",
+      { space: "WEB", name: "Site" },
+      "mcp:updateSpace",
+      { space: "WEB", name: "Site" },
+      { key: "WEB", name: "Site", kind: "product" },
+    ],
+    [
+      "update_space_context",
+      { space: "PAN", body: "# Hi" },
+      "mcp:updateSpaceContext",
+      { space: "PAN", body: "# Hi" },
+      { space: "PAN" },
+    ],
+    [
+      "create_project",
+      { space: "PAN", name: "Launch", color: "teal" },
+      "mcp:createProject",
+      { space: "PAN", name: "Launch", color: "teal" },
+      { space: "PAN", name: "Launch", color: "teal" },
+    ],
+    [
+      "update_project",
+      { space: "PAN", project: "Launch", color: null },
+      "mcp:updateProject",
+      { space: "PAN", project: "Launch", color: null },
+      { space: "PAN", name: "Launch", color: null },
+    ],
+    [
+      "archive_project",
+      { space: "PAN", project: "Launch" },
+      "mcp:archiveProject",
+      { space: "PAN", project: "Launch" },
+      { space: "PAN", project: "Launch", archived: true, issuesMoved: 2 },
+    ],
+    [
+      "create_label",
+      { name: "Perf" },
+      "mcp:createLabel",
+      { name: "Perf" },
+      { name: "Perf", color: "gray" },
+    ],
+  ];
+  for (const [name, args, fn, sent, answer] of cases) {
+    it(name, async () => {
+      const { backend, calls } = fakeBackend({ [fn]: () => answer });
+      const result = await call(await connect(backend), name, args);
+      expect(result.isError).toBe(false);
+      expect(calls).toEqual([{ fn, args: { token: TOKEN, ...sent } }]);
+      const urls = {
+        create_space: "https://pantry.example.com/spaces/ACME",
+        update_space: "https://pantry.example.com/spaces/WEB",
+      } as Record<string, string>;
+      const expected =
+        name === "search_issues"
+          ? [{ key: "PAN-1", url: "https://pantry.example.com/issues/PAN-1" }]
+          : urls[name]
+            ? { ...(answer as object), url: urls[name] }
+            : answer;
+      expect(result.json()).toEqual(expected);
+    });
+  }
+
+  it("get_workspace adds each space's link", async () => {
+    const workspace = {
+      workspace: "Home",
+      you: "Kris",
+      spaces: [{ key: "PAN", name: "Pantry" }],
+      statuses: [],
+      labels: [],
+      members: [],
+    };
+    const { backend, calls } = fakeBackend({ "mcp:getWorkspace": () => workspace });
+    const result = await call(await connect(backend), "get_workspace", {});
+    expect(calls).toEqual([{ fn: "mcp:getWorkspace", args: { token: TOKEN } }]);
+    expect(result.json()).toEqual({
+      ...workspace,
+      spaces: [{ key: "PAN", name: "Pantry", url: "https://pantry.example.com/spaces/PAN" }],
+    });
+  });
+
+  it("update_issue passes title, description and a null due date through", async () => {
+    const { backend, calls } = fakeBackend({ "mcp:updateIssue": () => ({ key: "PAN-7" }) });
+    await call(await connect(backend), "update_issue", {
+      key: "PAN-7",
+      title: "New",
+      description: "## Hi",
+      dueDate: null,
+    });
+    expect(calls).toEqual([
+      {
+        fn: "mcp:updateIssue",
+        args: { token: TOKEN, key: "PAN-7", title: "New", description: "## Hi", dueDate: null },
+      },
+    ]);
+  });
+});
+
 describe("errors", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -273,6 +417,11 @@ describe("errors", () => {
       ["create_issue", { space: "PAN", title: "x", priority: "highest" }],
       ["add_comment", { key: "PAN-1", body: "" }],
       ["list_issues", { limit: 500 }],
+      ["create_space", { name: "X", key: "1AB" }],
+      ["create_project", { space: "PAN", name: "X", color: "#ff0000" }],
+      ["create_label", { name: "X", color: "beige" }],
+      ["update_issue", { key: "PAN-1", dueDate: "tomorrow" }],
+      ["search_issues", { query: "" }],
     ] as const) {
       const result = await call(client, name, args);
       expect(result.isError, `${name} ${JSON.stringify(args)}`).toBe(true);
