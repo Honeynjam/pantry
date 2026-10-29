@@ -48,4 +48,9 @@ Versions: never edit them by hand; `pnpm set-version X.Y.Z` updates every file (
 ## Done means
 
 Typecheck, lint and tests pass; the task's "Done" line and the milestone's acceptance criteria are met;
-README updated if setup changed; a line under CHANGELOG.md [Unreleased] if people running Pantry will notice.
+README updated if setup changed; a line under CHANGELOG.md [Unreleased] if people running Pantry will notice;
+and the docs (apps/site/content/docs, served at /docs) updated in the same change when what people or agents do
+changes: setup, settings, screens, MCP behaviour. The MCP tool reference, keyboard shortcuts and changelog pages are
+generated from packages/mcp, packages/app/src/shortcuts.ts and CHANGELOG.md, so keep descriptions there accurate;
+a new MCP tool also needs a group in apps/site/lib/docs/mcp.ts (`pnpm check` fails until it has one, and when a
+docs page names a tool that no longer exists).

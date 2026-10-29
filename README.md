@@ -224,7 +224,8 @@ unless `PANTRY_DESIGN_PAGE=1` is set at build time.
 
 ### Landing site
 
-`apps/site` is the one-page marketing site (http://localhost:3002 while `pnpm dev` runs). All copy lives in
+`apps/site` is the marketing site and the docs (`/docs`, written in `apps/site/content/docs`; the MCP tool
+reference, keyboard shortcuts and changelog pages are generated from the code). It's the one-page marketing site (http://localhost:3002 while `pnpm dev` runs). All copy lives in
 `apps/site/lib/content.ts`. It's deployed as its own Vercel project, separate from any Pantry instance:
 import this repo again, set **Root Directory** to `apps/site`, don't add Convex, then add the domain under
 Settings → Domains. Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://pantry.dev`) for canonical URLs and social cards; without
