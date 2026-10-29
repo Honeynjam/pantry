@@ -52,17 +52,19 @@ function rehypeHeadings(toc: TocItem[]) {
   };
 }
 
-/** Markdown (GitHub-flavoured) → HTML with highlighted code and an outline. */
-export async function renderMarkdown(markdown: string): Promise<{ html: string; toc: TocItem[] }> {
+/**
+ * Markdown (GitHub-flavoured) → HTML with highlighted code and an outline. `highlight: false` skips
+ * Shiki, the slow part, for callers that only need the links and headings.
+ */
+export async function renderMarkdown(
+  markdown: string,
+  { highlight = true }: { highlight?: boolean } = {},
+): Promise<{ html: string; toc: TocItem[] }> {
   const toc: TocItem[] = [];
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeSlug)
-    .use(rehypeHeadings(toc))
-    .use(rehypeShiki, { theme: "github-light", lazy: true, fallbackLanguage: "text", defaultLanguage: "text" })
-    .use(rehypeStringify)
-    .process(markdown);
+  const processor = unified().use(remarkParse).use(remarkGfm).use(remarkRehype).use(rehypeSlug).use(rehypeHeadings(toc));
+  if (highlight) {
+    processor.use(rehypeShiki, { theme: "github-light", lazy: true, fallbackLanguage: "text", defaultLanguage: "text" });
+  }
+  const file = await processor.use(rehypeStringify).process(markdown);
   return { html: String(file), toc };
 }

@@ -24,12 +24,12 @@ describe("docs pages", () => {
   it("every /docs link points at a page that exists", async () => {
     const sources = [...(await Promise.all(markdownPages.map((page) => readDocMarkdown(page.slug)))), await readChangelog()];
     for (const markdown of sources) {
-      const { html } = await renderMarkdown(markdown);
+      const { html } = await renderMarkdown(markdown, { highlight: false });
       for (const [, href] of html.matchAll(/href="(\/docs[^"#]*)/g)) {
         expect(docPaths, `broken docs link ${href}`).toContain(href!.replace(/\/$/, ""));
       }
     }
-  }, 60_000); // renders every page with syntax highlighting: ~4 s locally, ~22 s on a shared CI runner
+  });
 });
 
 describe("MCP tools", () => {

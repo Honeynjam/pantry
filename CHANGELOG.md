@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The docs link check no longer times out in CI.** It rendered every docs page with syntax highlighting just to
+  read the links, which took over 60 seconds on a slow GitHub runner and failed update PRs. It now skips the
+  highlighting and runs in well under a second.
 - When `SYNC_UPSTREAM_TOKEN` lacks _Actions: Read_, an update PR that should merge by itself now says so in a comment
   ("add Actions: Read, then re-run CI") instead of failing with a bare HTTP 403 in the workflow log.
 
