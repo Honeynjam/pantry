@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-30
+
+Automatic updates now work on every GitHub plan, including private repos on GitHub Free. This update changes files
+under `.github/workflows`, so Sync upstream needs the `SYNC_UPSTREAM_TOKEN` secret to push it
+([Updating your instance](https://github.com/honeynjam/pantry#updating-your-instance)).
+
 ### Changed
 
 - **Automatic updates work on any GitHub plan.** Private repos on GitHub Free can't use GitHub's auto-merge or
@@ -130,6 +136,7 @@ work on its issues over MCP. The Mac app is not in this release yet.
 - **`GET /api/instance`**, a quick health check: your instance's name, Convex URLs, server version, the oldest Mac
   app it supports, and whether the auth secret is still missing.
 
-[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/honeynjam/pantry/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/honeynjam/pantry/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/honeynjam/pantry/releases/tag/v0.0.1
