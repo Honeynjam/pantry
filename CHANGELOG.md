@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-10-30
+
 ### Fixed
 
 - **The docs link check no longer times out in CI.** It rendered every docs page with syntax highlighting just to
@@ -152,7 +154,8 @@ work on its issues over MCP. The Mac app is not in this release yet.
 - **`GET /api/instance`**, a quick health check: your instance's name, Convex URLs, server version, the oldest Mac
   app it supports, and whether the auth secret is still missing.
 
-[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/honeynjam/pantry/compare/v0.1.2...v0.1.21
 [0.1.2]: https://github.com/honeynjam/pantry/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/honeynjam/pantry/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/honeynjam/pantry/compare/v0.0.1...v0.1.0
