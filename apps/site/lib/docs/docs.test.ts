@@ -29,7 +29,7 @@ describe("docs pages", () => {
         expect(docPaths, `broken docs link ${href}`).toContain(href!.replace(/\/$/, ""));
       }
     }
-  });
+  }, 60_000); // renders every page with syntax highlighting: ~4 s locally, ~22 s on a shared CI runner
 });
 
 describe("MCP tools", () => {
