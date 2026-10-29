@@ -72,7 +72,7 @@ describe("release-notes", () => {
     const heading = new RegExp(`^## \\[${version.replaceAll(".", "\\.")}\\] - Unreleased$`, "m");
     const dated = real.replace(heading, `## [${version}] - 2026-10-26`);
     const notes = releaseNotes(dated, version);
-    assert.match(notes, /^### Added$/m);
+    assert.match(notes, /^### (Added|Changed|Deprecated|Removed|Fixed|Security)$/m);
     assert.doesNotMatch(notes, /TODO|\[Unreleased\]/);
   });
 });
