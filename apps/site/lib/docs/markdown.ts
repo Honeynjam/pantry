@@ -21,6 +21,8 @@ const README_SECTIONS: Record<string, string> = {
   "connect-your-agents-mcp": "/docs/agents",
   troubleshooting: "/docs/troubleshooting",
   "updating-your-instance": "/docs/updating",
+  "automatic-updates-opt-in": "/docs/updating#automatic-updates-opt-in",
+  "when-an-update-doesnt-deploy": "/docs/updating#when-an-update-doesnt-deploy",
   "develop-locally": "/docs/development",
 };
 
