@@ -33,6 +33,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Agents can delete issues and edit statuses over MCP:** `delete_issue` (only when `confirm` repeats the
   issue's key; sub-issues and comments go too), `update_status` (rename or recolour) and `reorder_statuses`.
 
+- **Automatic updates (opt-in).** Set the repository variable `SYNC_AUTO_MERGE` to `true` and Sync upstream
+  turns on GitHub's auto-merge for its update PRs, so ordinary updates merge, and deploy, by themselves: after
+  your required checks pass, or straight away if there are none. It never auto-merges the first update of your
+  copy, a release marked for review, or a PR that conflicts with your own changes. If GitHub refuses (auto-merge
+  not allowed, for example), it comments on the PR with the setting to change. Setup:
+  [Automatic updates](README.md#automatic-updates-opt-in).
+- **Releases can ask for a review.** When a release's notes say so, its update PR opens with "Review before
+  merging", and it's never merged automatically.
+- **Hear about updates that didn't deploy.** A new "Watch update deploys" workflow watches Vercel's production
+  deploy after an update PR merges. If it fails (for example, the data migration stopped) or hasn't finished in 30
+  minutes, it opens an issue "Pantry vX.Y.Z didn't deploy" with the build link and the fix. On by default; set
+  the repository variable `PANTRY_DEPLOY_WATCH` to `false` to turn it off.
+
 ### Fixed
 
 - The Deploy button now sets Vercel's Root Directory to `apps/web`, so the first build works without changing

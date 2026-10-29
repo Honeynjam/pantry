@@ -91,11 +91,13 @@ The Deploy button copies this repo into your account; it doesn't fork it, so Git
 it. Your copy includes a **Sync upstream** workflow (`.github/workflows/sync-upstream.yml`) for that. Every Monday,
 or whenever you run it, it opens a pull request in your repo that updates it to the latest Pantry release.
 **Merging the PR deploys the update** (Vercel rebuilds the web app and pushes the new Convex functions). Nothing
-changes until you merge: the workflow never merges by itself. To skip a release, close its PR; the workflow won't
-reopen it.
+changes until you merge: the workflow never merges by itself unless you turn on
+[automatic updates](#automatic-updates-opt-in). To skip a release, close its PR; the workflow won't reopen it.
 
 1. **One-time setting:** in your repo, Settings → Actions → General → Workflow permissions, turn on **"Allow GitHub
    Actions to create and approve pull requests"**. Without it the workflow pushes its branch but can't open the PR.
+   If the repo belongs to a GitHub organisation, the checkbox is greyed out until an organisation owner allows it
+   first: the organisation's Settings → Actions → General → Workflow permissions, same checkbox.
 2. **Run it now (optional):** Actions → Sync upstream → Run workflow. Leave "tag" empty for the latest release, or
    tick "dry run" to see what it would do without pushing anything.
 3. **Review and merge** the "Update Pantry to vX.Y.Z" PR.
@@ -111,14 +113,69 @@ Good to know:
   this repo only, with _Contents_, _Pull requests_ and _Workflows_ set to read and write. Save it as the repository
   secret `SYNC_UPSTREAM_TOKEN` and run the workflow again; it uses that token whenever the secret exists.
 - PRs opened with the built-in token don't trigger other workflows, so CI doesn't run on them. Vercel still
-  deploys once you merge.
+  deploys once you merge. With `SYNC_UPSTREAM_TOKEN` set, CI runs on them like on any PR.
+- **Some releases ask for a review.** When a release's notes say so (for example, one that moves data), the PR
+  says "Review before merging" at the top. Read the release notes before you merge it.
 - GitHub pauses scheduled workflows in repos with no activity for 60 days. Re-enable it on the Actions tab, or
   just run it by hand.
 - Prefer a real fork? Fork the repo first and import the fork into Vercel. The same workflow works there too.
 - In `honeynjam/pantry` itself the workflow does nothing.
 
-Maintainers can test the workflow locally (no Docker; throwaway repos and a stub `gh`):
-`bash scripts/test-sync-upstream.sh`.
+#### Automatic updates (opt-in)
+
+Turn this on and ordinary updates merge, and so deploy, by themselves. Sync upstream still opens the PR every
+Monday, then turns on GitHub's auto-merge for it. It **never** auto-merges:
+
+- the first update of your copy (it replaces files wholesale; review that one PR yourself);
+- a release the Pantry maintainers marked for review (its PR says why);
+- a PR that conflicts with changes you made in your repo.
+
+Those stay open for you, as before. Updates merge with a merge commit, never a squash, so the next update merges
+cleanly. Steps, all in your repo on GitHub:
+
+1. **Settings → General → Pull Requests:** turn on **Allow auto-merge**, and keep **Allow merge commits** on.
+2. **Settings → Actions → General → Workflow permissions:** "Read and write permissions", and **Allow GitHub Actions
+   to create and approve pull requests** (in an organisation, allow it at the organisation level first; see step 1
+   above).
+3. **A token, so CI runs on the update PR.** Create a fine-grained personal access token (GitHub → Settings →
+   Developer settings → Fine-grained tokens) for this repository only, with _Contents_, _Pull requests_ and
+   _Workflows_ set to read and write. Save it as the repository secret `SYNC_UPSTREAM_TOKEN` (Settings → Secrets and
+   variables → Actions → Secrets). Without it, CI never runs on the PR (GitHub doesn't start workflows for PRs the
+   built-in token opens), so step 4's "after CI" would wait forever.
+4. **Pick when it merges:**
+   - **After CI passes (recommended).** Settings → Rules → Rulesets → New branch ruleset, target the default branch,
+     turn on **Require status checks to pass** and add the check **Typecheck, lint, test, build** (or use a classic
+     branch protection rule with the same required check). The PR then merges itself once CI is green; if CI fails,
+     it stays open and nothing deploys.
+   - **Straight away.** With no required checks, GitHub has nothing to wait for, so the workflow merges the PR as
+     soon as it opens it, and Vercel deploys at once. Quicker, but a broken release reaches your instance untested.
+   - If your rules also require an approving review, every PR waits for your approval, which is the same as
+     leaving automatic updates off.
+5. **Settings → Secrets and variables → Actions → Variables:** add the repository variable `SYNC_AUTO_MERGE` with
+   the value `true`.
+
+To check it, run Actions → Sync upstream with "dry run" ticked: the log says whether it would turn on auto-merge,
+and why not if it wouldn't. If GitHub refuses (auto-merge or merge commits not allowed, or the token can't merge),
+the workflow comments on the PR with the setting to change and leaves it open. To stop one update, click "Disable
+auto-merge" on its PR or close it. To turn the feature off, delete the variable or set it to `false`.
+
+#### When an update doesn't deploy
+
+The Vercel build pushes the new Convex functions and then runs the data migration. If the migration fails, the
+new backend is live while Vercel keeps serving the previous web app. The **Watch update deploys** workflow
+(`.github/workflows/deploy-watch.yml`) catches this. After an update PR merges, it watches the production deploy
+Vercel reports on the merge commit. If the deploy fails, or hasn't finished after 30 minutes, it opens an issue
+"Pantry vX.Y.Z didn't deploy" with the link to the Vercel build and the fix
+([docs/MIGRATIONS.md → If it fails](docs/MIGRATIONS.md#if-it-fails)).
+
+It's on by default and uses only the built-in token. To turn it off, set the repository variable
+`PANTRY_DEPLOY_WATCH` to `false`; `PANTRY_DEPLOY_WATCH_MINUTES` changes the time limit. A failed deploy is always
+caught, because Vercel reports it to GitHub. The 30-minute timeout check only starts when the merge itself can start
+workflows: a merge by you, or by `SYNC_UPSTREAM_TOKEN`, but not one done by the built-in token. To check an update
+by hand, run Actions → Watch update deploys.
+
+Maintainers can test both workflows locally (no Docker; throwaway repos and a stub `gh`):
+`bash scripts/test-sync-upstream.sh` and `node --test scripts/deploy-watch.test.mjs`. `pnpm check` runs both.
 
 ## Develop locally
 
