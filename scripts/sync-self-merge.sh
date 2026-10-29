@@ -62,8 +62,16 @@ if ! printf '%s\n' "$body" | grep -qF "<!-- pantry-sync:self-merge sha=$sha -->"
 fi
 
 # Every CI run on this commit (one for the branch push, one for the PR) must have finished, and all passed.
-runs="$(gh api "repos/$repo/actions/runs?head_sha=$sha&per_page=100" \
-  --jq ".workflow_runs[] | select(.name == \"$ci\") | \"\(.status) \(.conclusion // \"none\") \(.html_url)\"")"
+if ! runs="$(gh api "repos/$repo/actions/runs?head_sha=$sha&per_page=100" \
+  --jq ".workflow_runs[] | select(.name == \"$ci\") | \"\(.status) \(.conclusion // \"none\") \(.html_url)\"" 2>"$err")"; then
+  if grep -q "HTTP 403" "$err"; then
+    comment_once actions-read "This PR can't merge by itself yet: \`SYNC_UPSTREAM_TOKEN\` can't read this repo's Actions runs, so it can't see whether CI passed. Edit the token and add **Actions: Read** (next to Contents, Pull requests and Workflows), then re-run CI on this PR; it merges once CI passes. Or merge it yourself."
+    echo "::error::SYNC_UPSTREAM_TOKEN can't read Actions runs (HTTP 403): give it Actions: Read. $pr stays open."
+  else
+    echo "::error::Couldn't read CI runs for $short: $(cat "$err")"
+  fi
+  exit 1
+fi
 if [ -z "$runs" ]; then
   echo "CI hasn't started on $short yet; this runs again when it completes."
   exit 0

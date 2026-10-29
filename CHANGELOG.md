@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- When `SYNC_UPSTREAM_TOKEN` lacks _Actions: Read_, an update PR that should merge by itself now says so in a comment
+  ("add Actions: Read, then re-run CI") instead of failing with a bare HTTP 403 in the workflow log.
+
 ## [0.1.2] - 2026-10-30
 
 ### Fixed
