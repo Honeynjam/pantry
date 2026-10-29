@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-29
+
+Pantry-Review: manual
+
+**Review this update before merging.** For most copies it's the first update, which replaces files wholesale:
+if you edited files in your repo, put your changes back on the PR branch first. If your copy is older than 0.0.1
+(from before spaces), the deploy also moves your data to spaces; watch the Vercel build, and see
+[docs/MIGRATIONS.md](https://github.com/honeynjam/pantry/blob/main/docs/MIGRATIONS.md#if-it-fails) if it stops. This update adds files under `.github/workflows`, so Sync
+upstream needs the `SYNC_UPSTREAM_TOKEN` secret to push it
+([Updating your instance](https://github.com/honeynjam/pantry#updating-your-instance)).
+
+Onboarding and products or clients for new and existing workspaces, agents that can organise your work over MCP
+(20 tools in all), and updates that can merge and deploy themselves if you want them to.
+
 ### Added
 
 - **Onboarding.** Right after setup, a short full-screen walk-through: what you work on (products, clients or
@@ -32,13 +46,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   archived stay without a project. If an active project has the same name, rename one of them first.
 - **Agents can delete issues and edit statuses over MCP:** `delete_issue` (only when `confirm` repeats the
   issue's key; sub-issues and comments go too), `update_status` (rename or recolour) and `reorder_statuses`.
-
 - **Automatic updates (opt-in).** Set the repository variable `SYNC_AUTO_MERGE` to `true` and Sync upstream
   turns on GitHub's auto-merge for its update PRs, so ordinary updates merge, and deploy, by themselves: after
   your required checks pass, or straight away if there are none. It never auto-merges the first update of your
   copy, a release marked for review, or a PR that conflicts with your own changes. If GitHub refuses (auto-merge
   not allowed, for example), it comments on the PR with the setting to change. Setup:
-  [Automatic updates](README.md#automatic-updates-opt-in).
+  [Automatic updates](https://github.com/honeynjam/pantry#automatic-updates-opt-in).
 - **Releases can ask for a review.** When a release's notes say so, its update PR opens with "Review before
   merging", and it's never merged automatically.
 - **Hear about updates that didn't deploy.** A new "Watch update deploys" workflow watches Vercel's production
@@ -104,5 +117,6 @@ work on its issues over MCP. The Mac app is not in this release yet.
 - **`GET /api/instance`**, a quick health check: your instance's name, Convex URLs, server version, the oldest Mac
   app it supports, and whether the auth secret is still missing.
 
-[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/honeynjam/pantry/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/honeynjam/pantry/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/honeynjam/pantry/releases/tag/v0.0.1
