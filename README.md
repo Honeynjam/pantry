@@ -111,7 +111,8 @@ Good to know:
 - **Releases that change `.github/workflows`.** GitHub won't let the built-in token push changes to workflow
   files, and the run then fails with an error that says so. Fix: create a fine-grained personal access token for
   this repo only, with _Contents_, _Pull requests_ and _Workflows_ set to read and write. Save it as the repository
-  secret `SYNC_UPSTREAM_TOKEN` and run the workflow again; it uses that token whenever the secret exists.
+  secret `SYNC_UPSTREAM_TOKEN` and run the workflow again; it uses that token whenever the secret exists. (For
+  automatic updates, give it _Actions_ read too: see below.)
 - PRs opened with the built-in token don't trigger other workflows, so CI doesn't run on them. Vercel still
   deploys once you merge. With `SYNC_UPSTREAM_TOKEN` set, CI runs on them like on any PR.
 - **Some releases ask for a review.** When a release's notes say so (for example, one that moves data), the PR
@@ -123,41 +124,46 @@ Good to know:
 
 #### Automatic updates (opt-in)
 
-Turn this on and ordinary updates merge, and so deploy, by themselves. Sync upstream still opens the PR every
-Monday, then turns on GitHub's auto-merge for it. It **never** auto-merges:
+Turn this on and ordinary updates merge, and so deploy, by themselves once CI has passed on them. It works on any
+GitHub plan, including private repos on GitHub Free. Sync upstream still opens the PR every Monday. It **never**
+merges by itself:
 
 - the first update of your copy (it replaces files wholesale; review that one PR yourself);
-- a release the Pantry maintainers marked for review (its PR says why);
-- a PR that conflicts with changes you made in your repo.
+- a release the Pantry maintainers marked for review, or an update that brings one you haven't merged yet (the PR
+  says why);
+- a PR that conflicts with changes you made in your repo;
+- a PR whose CI failed, or one somebody pushed to after Sync upstream opened it.
 
 Those stay open for you, as before. Updates merge with a merge commit, never a squash, so the next update merges
-cleanly. Steps, all in your repo on GitHub:
+cleanly. Setup, in your repo on GitHub:
 
-1. **Settings → General → Pull Requests:** turn on **Allow auto-merge**, and keep **Allow merge commits** on.
-2. **Settings → Actions → General → Workflow permissions:** "Read and write permissions", and **Allow GitHub Actions
-   to create and approve pull requests** (in an organisation, allow it at the organisation level first; see step 1
-   above).
-3. **A token, so CI runs on the update PR.** Create a fine-grained personal access token (GitHub → Settings →
-   Developer settings → Fine-grained tokens) for this repository only, with _Contents_, _Pull requests_ and
-   _Workflows_ set to read and write. Save it as the repository secret `SYNC_UPSTREAM_TOKEN` (Settings → Secrets and
-   variables → Actions → Secrets). Without it, CI never runs on the PR (GitHub doesn't start workflows for PRs the
-   built-in token opens), so step 4's "after CI" would wait forever.
-4. **Pick when it merges:**
-   - **After CI passes (recommended).** Settings → Rules → Rulesets → New branch ruleset, target the default branch,
-     turn on **Require status checks to pass** and add the check **Typecheck, lint, test, build** (or use a classic
-     branch protection rule with the same required check). The PR then merges itself once CI is green; if CI fails,
-     it stays open and nothing deploys.
-   - **Straight away.** With no required checks, GitHub has nothing to wait for, so the workflow merges the PR as
-     soon as it opens it, and Vercel deploys at once. Quicker, but a broken release reaches your instance untested.
-   - If your rules also require an approving review, every PR waits for your approval, which is the same as
-     leaving automatic updates off.
-5. **Settings → Secrets and variables → Actions → Variables:** add the repository variable `SYNC_AUTO_MERGE` with
-   the value `true`.
+1. **Actions can open PRs:** Settings → Actions → General → Workflow permissions → **Allow GitHub Actions to create
+   and approve pull requests** (the one-time setting above). In an organisation, an owner allows it in the
+   organisation's Settings → Actions → General first.
+2. **A token**, so CI runs on update PRs and the merge starts your deploy. Create a fine-grained personal access
+   token (GitHub → Settings → Developer settings → Fine-grained tokens). Resource owner: the account or organisation
+   that owns your repo. Repository access: only this repo. Permissions: _Actions_ read; _Contents_, _Pull requests_
+   and _Workflows_ read and write. Save it as the repository secret `SYNC_UPSTREAM_TOKEN` (Settings → Secrets and
+   variables → Actions → Secrets). Organisations can require approval for fine-grained tokens: if yours does, an
+   owner approves it under the organisation's Settings → Personal access tokens.
+3. **Switch it on:** Settings → Secrets and variables → Actions → Variables → add the repository variable
+   `SYNC_AUTO_MERGE` with the value `true`.
 
-To check it, run Actions → Sync upstream with "dry run" ticked: the log says whether it would turn on auto-merge,
-and why not if it wouldn't. If GitHub refuses (auto-merge or merge commits not allowed, or the token can't merge),
-the workflow comments on the PR with the setting to change and leaves it open. To stop one update, click "Disable
-auto-merge" on its PR or close it. To turn the feature off, delete the variable or set it to `false`.
+That's all. After opening the PR, Sync upstream marks it to merge once CI passes on that exact commit. When CI
+finishes, the **Sync upstream merge** workflow (`.github/workflows/sync-upstream-merge.yml`) checks again: every CI
+run on the commit passed, the branch still holds Sync upstream's commit, and the PR merges cleanly. Then it merges
+the PR with the token. Nothing waits on a runner in between. If CI fails, it comments and leaves the PR open:
+re-run CI from the PR, and it merges once CI is green.
+
+Every update PR says how it will merge, or why it won't. To check your setup, run Actions → Sync upstream with "dry
+run" ticked. To stop one update, close its PR. To turn the feature off, delete the variable or set it to `false`.
+
+**Alternative: GitHub's own auto-merge** (public repos, or private repos on a paid plan). If Settings → General →
+Pull Requests → **Allow auto-merge** is on (keep **Allow merge commits** on too), Sync upstream turns on GitHub's
+auto-merge instead. That waits for the checks your branch rules require, so add a ruleset (Settings → Rules →
+Rulesets) or branch protection on the default branch that requires **Typecheck, lint, test, build**. With no
+required checks GitHub has nothing to wait for, so Sync upstream merges after CI itself, as above. If your rules
+also require an approving review, every PR waits for you, the same as leaving automatic updates off.
 
 #### When an update doesn't deploy
 

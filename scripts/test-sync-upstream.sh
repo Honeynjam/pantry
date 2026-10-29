@@ -40,6 +40,22 @@ section "Workflow file"
   || fail "AUTO_MERGE env is $(cat "$work/auto-merge-env")"
 grep -q -- "--squash\|--rebase" "$work/sync.sh" && fail "updates must merge with a merge commit" || pass "merges only with merge commits"
 
+ruby -ryaml -e '
+  wf = YAML.load_file(ARGV[0])
+  triggers = wf["on"] || wf[true]
+  run = triggers.fetch("workflow_run")
+  job = wf.fetch("jobs").fetch("merge")
+  step = job.fetch("steps").find { |s| s["run"] }
+  ok = run["workflows"] == ["CI"] && run["types"] == ["completed"] && triggers.keys == ["workflow_run"] &&
+    job["if"].include?("github.repository != \x27honeynjam/pantry\x27") &&
+    job["if"].include?("vars.SYNC_AUTO_MERGE == \x27true\x27") &&
+    job["if"].include?("startsWith(github.event.workflow_run.head_branch, \x27sync-upstream/\x27)") &&
+    step["env"]["GH_TOKEN"] == "${{ secrets.SYNC_UPSTREAM_TOKEN }}" && step["run"].include?("scripts/sync-self-merge.sh")
+  exit(ok ? 0 : 1)
+' "$ROOT/.github/workflows/sync-upstream-merge.yml" \
+  && pass "sync-upstream-merge.yml: runs when CI completes on a sync-upstream branch, with the token, not upstream" \
+  || fail "sync-upstream-merge.yml trigger or guards changed"
+
 # --- Sandbox: git config, gh stub ------------------------------------------------------------------
 export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$work/gitconfig"
 git config --global user.name "Test" && git config --global user.email "test@example.com"
@@ -49,18 +65,23 @@ git config --global advice.detachedHead false
 git config --global url."$work/upstream.git".insteadOf "https://github.com/honeynjam/pantry.git"
 
 state="$work/gh-state"
-mkdir -p "$work/bin" "$state/prs" "$state/notes" "$state/comments"
+mkdir -p "$work/bin" "$state/prs" "$state/notes" "$state/comments" "$state/ci"
 : >"$state/calls.log"
 cat >"$work/bin/gh" <<'STUB'
 #!/usr/bin/env bash
-# Minimal gh stand-in for the calls sync-upstream.yml makes. State lives in $GH_STUB_STATE:
+# Minimal gh stand-in for the calls sync-upstream.yml and sync-self-merge.sh make. State in $GH_STUB_STATE:
 #   latest            tag of the latest release (empty = none published)
 #   notes/<tag>       release notes (missing = the release can't be read)
+#   native            the repo's allow_auto_merge setting (true unless the file says false)
 #   automerge-mode    what `gh pr merge --auto` does: ok | clean | not-allowed | merge-commits | forbidden
-#   prs/<branch>      "STATE url" of the PR for a branch;  pr-<n>.md  what `gh pr create` got
-#   automerge-<n>     auto-merge is on for PR n;  comments/<n>  PR n's comments;  calls.log  merges, comments
+#   prs/<branch>      "STATE url" of the PR for a branch;  pr-<n>.md  title line;  pr-<n>.branch;  body-<n>.md
+#   ci/<sha>          CI runs on a commit, one "status conclusion url" line each
+#   mergeable-<n>     GitHub's mergeable answer (MERGEABLE unless set)
+#   automerge-<n>     auto-merge is on for PR n;  comments/<n>  PR n's comments;  calls.log  merges, comments, edits
+# The PR branches live in $ORIGIN_GIT, so a PR's head is whatever its branch points at there.
 state="$GH_STUB_STATE"
 pr_number() { printf '%s' "${1##*/}"; }
+pr_head() { git --git-dir="$ORIGIN_GIT" rev-parse "refs/heads/$(cat "$state/pr-$1.branch")"; }
 case "$1 $2" in
   "api repos/"*)
     if [[ "$2" == */releases/latest ]]; then
@@ -71,6 +92,24 @@ case "$1 $2" in
       tag="${2##*/}"
       [[ -f "$state/notes/$tag" ]] && cat "$state/notes/$tag" && exit 0
       echo "gh: Not Found (HTTP 404)" >&2; exit 1
+    fi
+    if [[ "$2" == */commits/*/pulls ]]; then # open PRs whose head is this commit
+      sha="${2%/pulls}"; sha="${sha##*/}"
+      for f in "$state"/prs/*; do
+        [[ -f "$f" ]] || continue
+        read -r st url <"$f"
+        [[ "$st" == OPEN ]] && [[ "$(pr_head "$(pr_number "$url")")" == "$sha" ]] && echo "$url" && break
+      done
+      exit 0
+    fi
+    if [[ "$2" == */actions/runs* ]]; then
+      sha="${2##*head_sha=}"; sha="${sha%%&*}"
+      cat "$state/ci/$sha" 2>/dev/null || true
+      exit 0
+    fi
+    if [[ " $* " == *".allow_auto_merge"* ]]; then
+      cat "$state/native" 2>/dev/null || echo true
+      exit 0
     fi
     echo main ;;
   "pr list")
@@ -84,16 +123,26 @@ case "$1 $2" in
       case "$1" in --head) head="$2";; --base) base="$2";; --title) title="$2";; --body-file) body="$2";; esac; shift
     done
     n=$(( $(ls "$state/prs" | wc -l) + 1 ))
-    { echo "base=$base head=$head title=$title"; cat "$body"; echo "---"; } >"$state/pr-$n.md"
+    echo "base=$base head=$head title=$title" >"$state/pr-$n.md"
+    printf '%s' "$head" >"$state/pr-$n.branch"
+    cp "$body" "$state/body-$n.md"
     echo "OPEN https://github.com/$GITHUB_REPOSITORY/pull/$n" >"$state/prs/${head//\//__}"
     echo "https://github.com/$GITHUB_REPOSITORY/pull/$n" ;;
+  "pr edit")
+    n="$(pr_number "$3")"; file=""
+    while [[ $# -gt 0 ]]; do [[ "$1" == --body-file ]] && file="$2"; shift; done
+    cp "$file" "$state/body-$n.md"
+    echo "edit $n" >>"$state/calls.log" ;;
   "pr view")
     n="$(pr_number "$3")"
-    if [[ " $* " == *" autoMergeRequest "* ]]; then
-      [[ -f "$state/automerge-$n" ]] && echo true || echo false
-    else
-      cat "$state/comments/$n" 2>/dev/null || true
-    fi ;;
+    case " $* " in
+      *" autoMergeRequest "*) [[ -f "$state/automerge-$n" ]] && echo true || echo false ;;
+      *" headRefOid "*) pr_head "$n" ;;
+      *" body "*) cat "$state/body-$n.md" ;;
+      *" mergeable "*) cat "$state/mergeable-$n" 2>/dev/null || echo MERGEABLE ;;
+      *" baseRefName "*) echo main ;;
+      *) cat "$state/comments/$n" 2>/dev/null || true ;;
+    esac ;;
   "pr comment")
     n="$(pr_number "$3")"; file=""
     while [[ $# -gt 0 ]]; do [[ "$1" == --body-file ]] && file="$2"; shift; done
@@ -112,6 +161,8 @@ case "$1 $2" in
       esac
     else
       echo "merge now $n $*" >>"$state/calls.log"
+      branch="$(cat "$state/pr-$n.branch")"
+      echo "MERGED $3" >"$state/prs/${branch//\//__}"
     fi ;;
   *) echo "gh stub: unexpected call: $*" >&2; exit 1 ;;
 esac
@@ -146,14 +197,17 @@ git init -q "$work/copy-src"
 git clone -q --bare "$work/copy-src" "$work/origin.git"
 git clone -q "$work/origin.git" "$work/owner" # the owner's own clone, for merging PRs and editing
 
-export GH_STUB_STATE="$state" GH_TOKEN=dummy UPSTREAM_REPO=honeynjam/pantry
-AUTO="" # the SYNC_AUTO_MERGE repo variable
+export GH_STUB_STATE="$state" GH_TOKEN=dummy UPSTREAM_REPO=honeynjam/pantry ORIGIN_GIT="$work/origin.git"
+AUTO=""     # the SYNC_AUTO_MERGE repo variable
+TOKEN=true  # whether the SYNC_UPSTREAM_TOKEN secret is set
 run_workflow() { # run_workflow <repo> <dry_run> [tag] → output in $work/out
   rm -rf "$work/checkout"
   git clone -q "$work/origin.git" "$work/checkout" # actions/checkout with fetch-depth: 0
+  mkdir -p "$work/checkout/scripts" && cp "$ROOT/scripts/sync-self-merge.sh" "$work/checkout/scripts/" # in every copy
   (
     cd "$work/checkout"
-    GITHUB_REPOSITORY="$1" DRY_RUN="$2" REQUESTED_TAG="${3:-}" AUTO_MERGE="$AUTO" PATH="$work/bin:$PATH" \
+    GITHUB_REPOSITORY="$1" DRY_RUN="$2" REQUESTED_TAG="${3:-}" AUTO_MERGE="$AUTO" HAS_SYNC_TOKEN="$TOKEN" \
+      POLL_SECONDS=0 PATH="$work/bin:$PATH" \
       bash --noprofile --norc -eo pipefail "$work/sync.sh"
   ) >"$work/out" 2>&1 || { cat "$work/out"; fail "workflow script failed"; }
   sed 's/^/    │ /' "$work/out"
@@ -186,7 +240,7 @@ owner_edit() { # owner_edit <file> <content>
 }
 calls_since() { tail -n +"$(($1 + 1))" "$state/calls.log"; }
 ncalls() { wc -l <"$state/calls.log" | tr -d ' '; }
-pr_body() { cat "$state/pr-$1.md"; }
+pr_body() { cat "$state/pr-$1.md" "$state/body-$1.md"; }
 pr_count() { ls "$state/prs" | wc -l | tr -d ' '; }
 
 # --- Scenarios ------------------------------------------------------------------------------------
@@ -219,7 +273,7 @@ branches | grep -qx "sync-upstream/v0.2.0" && pass "pushed branch sync-upstream/
 pr_body 1 | grep -q "base=main head=sync-upstream/v0.2.0 title=Update Pantry to v0.2.0" \
   && pass "gh pr create: base main, head sync-upstream/v0.2.0, title \"Update Pantry to v0.2.0\"" || fail "PR not created"
 echo "    PR body:"
-pr_body 1 | sed -n '2,/^---$/p' | sed '$d' | sed 's/^/    │ /'
+sed 's/^/    │ /' "$state/body-1.md"
 [[ -z "$(calls_since "$calls")" ]] && pass "no merge or auto-merge call" || fail "touched merging: $(calls_since "$calls")"
 pr_body 1 | grep -q "Not merging automatically:\*\* it's the first update of this copy" \
   && pass "the PR body says why it won't merge by itself" || fail "body doesn't explain"
@@ -266,7 +320,7 @@ run_workflow kris/my-pantry false
 calls_since "$calls" | grep -q "^merge --auto 3 .*--auto --merge" && pass "gh pr merge --auto --merge on the new PR" \
   || fail "auto-merge not requested: $(calls_since "$calls")"
 grep -q "Auto-merge is on for https://github.com/kris/my-pantry/pull/3" "$work/out" && pass "reports auto-merge on" || fail "no notice"
-pr_body 3 | grep -q "Auto-merge is on for this repo" && pass "the PR body says it merges by itself" || fail "body doesn't say"
+pr_body 3 | grep -q "GitHub.s auto-merge is on" && pass "the PR body says it merges by itself" || fail "body doesn't say"
 run_workflow kris/my-pantry false
 grep -q "Auto-merge is already on" "$work/out" && [[ "$(pr_count)" == 3 ]] && pass "a re-run changes nothing" || fail "re-run acted"
 owner_merge v0.4.0
@@ -297,20 +351,18 @@ grep -q "Conflicts: true" "$work/out" && [[ -z "$(calls_since "$calls")" ]] && p
 pr_body 5 | grep -q "Not merging automatically:\*\* it conflicts with changes in your repo" && pass "the PR body says why" || fail "body"
 owner_merge v0.6.0 theirs
 
-section "12. v0.7.0 in a repo that doesn't allow auto-merge: comment once; retried once allowed"
+section "12. v0.7.0: GitHub refuses auto-merge (not allowed), so it falls back to merging after CI"
 release v0.7.0 apps/api.txt "api v7"
 printf 'not-allowed' >"$state/automerge-mode"
 run_workflow kris/my-pantry false
-grep -q "Allow auto-merge" "$state/comments/6" && grep -q "::warning::Auto-merge didn't turn on" "$work/out" \
-  && pass "commented what to switch on (Settings → General → Pull Requests → Allow auto-merge), warned in the log" \
-  || fail "no comment"
-grep -q "merge now 6" "$state/calls.log" && fail "merged anyway" || pass "left the PR open"
-run_workflow kris/my-pantry false
-[[ "$(grep -c "pantry-sync:allow-auto-merge" "$state/comments/6")" == 1 ]] && pass "a re-run doesn't comment again" || fail "duplicate comment"
+v7="$(git --git-dir="$work/upstream.git" rev-parse 'v0.7.0^{commit}')"
+grep -qF "<!-- pantry-sync:self-merge sha=$v7 -->" "$state/body-6.md" && pass "marked for self-merge on the bot's commit" || fail "no marker"
+grep -q "Merges by itself once CI passes" "$state/body-6.md" && pass "the PR body says it merges once CI passes, and why" || fail "body"
+[[ ! -f "$state/comments/6" ]] && ! grep -q "merge now 6" "$state/calls.log" && pass "no comment, no merge yet (CI hasn't run)" || fail "acted early"
 printf 'ok' >"$state/automerge-mode"
 run_workflow kris/my-pantry false
-[[ -f "$state/automerge-6" ]] && [[ "$(pr_count)" == 6 ]] && pass "once allowed, a re-run turns auto-merge on for the same PR" \
-  || fail "existing PR not retried"
+[[ -f "$state/automerge-6" ]] && [[ "$(pr_count)" == 6 ]] && grep -q "GitHub's auto-merge is on" "$state/body-6.md" \
+  && pass "once allowed, a re-run switches the same PR to GitHub's auto-merge" || fail "existing PR not retried"
 owner_merge v0.7.0
 
 section "13. Other answers from GitHub"
@@ -321,8 +373,9 @@ try_mode() { # try_mode <tag> <automerge-mode>
   owner_merge "$1"
 }
 try_mode v0.8.0 clean
-grep -q "merge now 7 .*--merge" "$state/calls.log" && grep -q "Merged https://github.com/kris/my-pantry/pull/7 now" "$work/out" \
-  && pass "no required checks (\"clean status\"): merges right away, with a merge commit" || fail "clean status not handled"
+grep -q "merge now 7" "$state/calls.log" && fail "merged before CI" || true
+grep -q "no required status checks" "$state/body-7.md" && grep -q "pantry-sync:self-merge" "$state/body-7.md" \
+  && pass "no required checks (\"clean status\"): waits for CI instead of merging untested" || fail "clean status not handled"
 try_mode v0.9.0 merge-commits
 grep -q "Allow merge commits" "$state/comments/8" && pass "merge commits not allowed: the comment says to allow them" || fail "no comment"
 try_mode v0.10.0 forbidden
@@ -354,5 +407,116 @@ release v0.14.0 apps/api.txt "api v14"
 calls=$(ncalls)
 run_workflow kris/my-pantry false
 calls_since "$calls" | grep -q "^merge --auto 13" && pass "once that's merged, v0.14.0 auto-merges again" || fail "still blocked"
+
+# --- Self-merge (GitHub Free, private repo: no auto-merge, no required checks) ----------------------
+self_merge() { # self_merge <repo> <sha> → output in $work/out (what sync-upstream-merge.yml runs)
+  (GITHUB_REPOSITORY="$1" POLL_SECONDS=0 PATH="$work/bin:$PATH" bash "$ROOT/scripts/sync-self-merge.sh" "$2") \
+    >"$work/out" 2>&1 || { cat "$work/out"; fail "sync-self-merge.sh failed"; }
+  sed 's/^/    │ /' "$work/out"
+}
+ci() { # ci <sha> <lines...>: the CI runs GitHub reports on a commit
+  local sha="$1"; shift
+  printf '%s\n' "$@" >"$state/ci/$sha"
+}
+sha_of() { git --git-dir="$work/upstream.git" rev-parse "$1^{commit}"; }
+printf 'false' >"$state/native"
+
+section "16. Free plan, token set: marked to merge after CI; merges once both CI runs pass"
+release v0.15.0 apps/api.txt "api v15"
+calls=$(ncalls)
+run_workflow kris/my-pantry false
+sha="$(sha_of v0.15.0)"; n=14
+calls_since "$calls" | grep -q "^merge --auto" && fail "tried GitHub's auto-merge where it's off" || pass "skips GitHub's auto-merge (allow_auto_merge is false)"
+grep -qF "<!-- pantry-sync:self-merge sha=$sha -->" "$state/body-$n.md" \
+  && grep -q "not available in this repo (on GitHub Free it isn't, for private repos)" "$state/body-$n.md" \
+  && pass "PR body: merges once CI passes, says why, and carries the marker for $sha" || fail "body"
+grep -q "CI hasn't started" "$work/out" && ! grep -q "merge now $n" "$state/calls.log" && pass "checked CI right away: not started, no merge" || fail "merged early"
+ci "$sha" "completed success https://ci/1" "in_progress none https://ci/2"
+self_merge kris/my-pantry "$sha"
+grep -q "still running" "$work/out" && ! grep -q "merge now $n" "$state/calls.log" && pass "one CI run still going: waits" || fail "merged early"
+ci "$sha" "completed success https://ci/1" "completed success https://ci/2"
+self_merge kris/my-pantry "$sha"
+grep -q "^merge now $n .*--merge --match-head-commit $sha" "$state/calls.log" \
+  && pass "both runs passed: merges with a merge commit, pinned to $sha" || fail "didn't merge: $(cat "$work/out")"
+self_merge kris/my-pantry "$sha"
+grep -q "No open Sync upstream PR" "$work/out" && pass "the second CI run's trigger finds nothing left to do" || fail "merged twice"
+owner_merge v0.15.0
+
+section "17. CI already passed when Sync upstream runs (a re-run): merges straight away"
+release v0.16.0 apps/api.txt "api v16"
+sha="$(sha_of v0.16.0)"
+ci "$sha" "completed success https://ci/3"
+run_workflow kris/my-pantry false
+grep -q "^merge now 15 .*--match-head-commit $sha" "$state/calls.log" && pass "merged in the same run" || fail "didn't merge"
+owner_merge v0.16.0
+
+section "18. CI fails: comment once, no merge"
+release v0.17.0 apps/api.txt "api v17"
+run_workflow kris/my-pantry false
+sha="$(sha_of v0.17.0)"
+ci "$sha" "completed success https://ci/4" "completed failure https://ci/5"
+self_merge kris/my-pantry "$sha"
+self_merge kris/my-pantry "$sha"
+! grep -q "merge now 16" "$state/calls.log" && grep -q "CI didn't pass on this update (\[the run\](https://ci/5)" "$state/comments/16" \
+  && [[ "$(grep -c "pantry-sync:ci-failed" "$state/comments/16")" == 1 ]] \
+  && pass "left open, one comment linking the failed run" || fail "CI failure not handled"
+owner_merge v0.17.0
+
+section "19. No SYNC_UPSTREAM_TOKEN: comment that it's needed, no marker"
+TOKEN=false
+release v0.18.0 apps/api.txt "api v18"
+run_workflow kris/my-pantry false
+grep -q "needs the \`SYNC_UPSTREAM_TOKEN\` secret" "$state/comments/17" && ! grep -q "pantry-sync:self-merge" "$state/body-17.md" \
+  && grep -q "SYNC_UPSTREAM_TOKEN\` isn't set" "$state/body-17.md" && pass "commented, body says so, not marked" || fail "no-token not handled"
+sha="$(sha_of v0.18.0)"
+ci "$sha" "completed success https://ci/6"
+self_merge kris/my-pantry "$sha"
+! grep -q "merge now 17" "$state/calls.log" && pass "never merged" || fail "merged without the token"
+TOKEN=true
+owner_merge v0.18.0
+
+section "20. Someone pushes to the update branch after the bot"
+release v0.19.0 apps/api.txt "api v19"
+run_workflow kris/my-pantry false
+(cd "$work/owner" && git fetch -q origin && git checkout -q -b fix "origin/sync-upstream/v0.19.0" \
+  && printf 'tweak\n' >>apps/api.txt && git commit -qam "My tweak" && git push -q origin HEAD:sync-upstream/v0.19.0 \
+  && git checkout -q main && git branch -q -D fix)
+pushed="$(git --git-dir="$work/origin.git" rev-parse refs/heads/sync-upstream/v0.19.0)"
+ci "$pushed" "completed success https://ci/7"
+self_merge kris/my-pantry "$pushed"
+! grep -q "merge now 18" "$state/calls.log" && grep -q "Someone pushed to this branch" "$state/comments/18" \
+  && pass "CI passed on the human's commit, but it doesn't merge; says why" || fail "merged a human push"
+run_workflow kris/my-pantry false
+grep -q "Someone pushed to sync-upstream/v0.19.0" "$work/out" && pass "Sync upstream re-runs leave it alone too" || fail "re-run acted"
+owner_merge v0.19.0
+
+section "21. CI passed, but the PR conflicts by now"
+release v0.20.0 apps/other.txt "other v20"
+run_workflow kris/my-pantry false
+sha="$(sha_of v0.20.0)"
+ci "$sha" "completed success https://ci/8"
+printf 'CONFLICTING' >"$state/mergeable-19"
+self_merge kris/my-pantry "$sha"
+! grep -q "merge now 19" "$state/calls.log" && grep -q "now conflicts with \`main\`" "$state/comments/19" \
+  && pass "no merge, comment says to resolve" || fail "merged a conflict"
+owner_merge v0.20.0
+
+section "22. Free plan: the safety rules still hold (manual review, conflicts, first update)"
+release v0.21.0 apps/api.txt "api v21" "Pantry-Review: manual
+
+**Review this update before merging.**"
+calls=$(ncalls)
+run_workflow kris/my-pantry false
+[[ -z "$(calls_since "$calls")" ]] && ! grep -q "pantry-sync:self-merge" "$state/body-20.md" && pass "manual-review release: not marked" || fail "marked"
+owner_merge v0.21.0 theirs
+owner_edit apps/api.txt "api, ours"
+release v0.22.0 apps/api.txt "api v22"
+calls=$(ncalls)
+run_workflow kris/my-pantry false
+[[ -z "$(calls_since "$calls")" ]] && ! grep -q "pantry-sync:self-merge" "$state/body-21.md" && pass "conflicting update: not marked" || fail "marked"
+owner_merge v0.22.0 theirs
+grep -q "pantry-sync:self-merge" "$state/body-1.md" && fail "first update marked" || pass "first update (scenario 4): never marked"
+self_merge Honeynjam/pantry "$(sha_of v0.22.0)"
+grep -q "nothing to merge" "$work/out" && pass "sync-self-merge.sh does nothing in honeynjam/pantry" || fail "acted upstream"
 
 printf '\n\033[32mAll sync-upstream checks passed.\033[0m\n'

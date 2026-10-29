@@ -3,9 +3,11 @@
 # you run it from the Actions tab, this workflow opens a pull request in your repo that updates it to the
 # latest Pantry release. Merging the PR is what redeploys your app.
 #
-# It never merges unless you opt in with the repo variable SYNC_AUTO_MERGE=true. Even then it turns on
-# GitHub auto-merge only for ordinary updates: never for the first update of a copy, a release the
-# maintainers marked "Pantry-Review: manual", or a PR with conflicts.
+# It never merges unless you opt in with the repo variable SYNC_AUTO_MERGE=true. Even then only ordinary
+# updates merge by themselves: never the first update of a copy, a release the maintainers marked
+# "Pantry-Review: manual", or a PR with conflicts. It uses GitHub's auto-merge where the repo allows it;
+# otherwise (private repos on GitHub Free) it marks the PR, and sync-upstream-merge.yml merges it once CI has
+# passed on it (scripts/sync-self-merge.sh; needs SYNC_UPSTREAM_TOKEN).
 # It does nothing in honeynjam/pantry itself. Setup and options: README → "Updating your instance".
 name: Sync upstream
 
@@ -53,6 +55,7 @@ jobs:
           REQUESTED_TAG: ${{ inputs.tag }}
           DRY_RUN: ${{ inputs.dry_run }}
           AUTO_MERGE: ${{ vars.SYNC_AUTO_MERGE }}
+          HAS_SYNC_TOKEN: ${{ secrets.SYNC_UPSTREAM_TOKEN != '' }}
         run: |
           set -euo pipefail
           notice() { echo "::notice::$*"; }
@@ -176,12 +179,18 @@ jobs:
           existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all \
             --json state,url --jq '.[0] | select(. != null) | "\(.state) \(.url)"')"
           if [ -n "$existing" ]; then
-            # An open PR from an earlier run only gets another try at auto-merge (say, after you allowed it).
+            # An open PR from an earlier run only gets another try at merging by itself (say, after you
+            # allowed auto-merge or added the token).
             if [ "${existing%% *}" != OPEN ] || [ "$auto_merge" != true ]; then
               notice "There's already a PR for Pantry $tag ($existing); not opening another."
               exit 0
             fi
             pr="${existing#* }"
+            # Someone pushed to the update branch: it's theirs now, so it never merges by itself.
+            if [ "$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)" != "$commit" ]; then
+              notice "Someone pushed to $branch after Sync upstream; $pr won't merge by itself."
+              exit 0
+            fi
           fi
 
           echo "Pantry $tag → $GITHUB_REPOSITORY ($base), $mode, branch $branch at $commit"
@@ -193,28 +202,21 @@ jobs:
               notice "Dry run: would push $branch and open a PR into $base ($mode)."
             fi
             if [ "$auto_merge" = true ]; then
-              notice "Dry run: would turn on auto-merge (merge commit)."
+              notice "Dry run: would merge it by itself: with GitHub's auto-merge where this repo allows it, otherwise once CI passes on it (needs SYNC_UPSTREAM_TOKEN; set: ${HAS_SYNC_TOKEN:-false})."
             elif [ -n "$why" ]; then
               notice "Dry run: would not auto-merge: $why."
             fi
             exit 0
           fi
 
-          if [ -z "$pr" ]; then
-            if ! git push --force origin "$commit:refs/heads/$branch" 2>"$err"; then
-              cat "$err" >&2
-              if grep -qi "workflow" "$err"; then
-                echo "::error::This release changes .github/workflows, which GITHUB_TOKEN can't push. Add a SYNC_UPSTREAM_TOKEN secret (README → Updating your instance) and run the workflow again."
-              fi
-              exit 1
-            fi
-
-            body="$(mktemp)"
+          # The PR description. $1 is the paragraph on how (or whether) it merges by itself, $2 an optional
+          # hidden marker for the self-merge workflow.
+          write_body() {
             {
               echo "Updates this repo to [Pantry $tag]($release_url)."
               echo
               if [ "$auto_merge" = true ]; then
-                echo "**Merging deploys it:** Vercel rebuilds the web app and pushes the new Convex functions, as with any push to \`$base\`."
+                echo "**Merging deploys it:** Vercel rebuilds the web app and pushes the new Convex functions, as with any push to \`$base\`. To skip this release, close the PR."
               else
                 echo "**Merging deploys it:** Vercel rebuilds the web app and pushes the new Convex functions, as with any push to \`$base\`. Nothing changes until you merge. To skip this release, close the PR."
               fi
@@ -233,18 +235,37 @@ jobs:
                 echo "If GitHub reports conflicts, they're between your own changes and the release: resolve them in this PR or locally before merging."
               fi
               echo
-              if [ "$auto_merge" = true ]; then
-                echo "**Auto-merge is on for this repo** (\`SYNC_AUTO_MERGE\`): this PR merges by itself once the checks your branch rules require have passed, or straight away if \`$base\` requires none. To stop it, click \"Disable auto-merge\" or close the PR."
-                echo
-              elif [ -n "$why" ]; then
-                echo "**Not merging automatically:** $why."
+              if [ -n "$1" ]; then
+                echo "$1"
                 echo
               fi
               echo "Opened by the \`sync-upstream\` workflow (\`.github/workflows/sync-upstream.yml\`)."
-            } >"$body"
+              if [ -n "${2:-}" ]; then
+                echo
+                echo "$2"
+              fi
+            } >"$err.body"
+          }
 
+          if [ -n "$why" ]; then
+            how="**Not merging automatically:** $why."
+          elif [ "$auto_merge" = true ]; then
+            how="**Merges by itself** (\`SYNC_AUTO_MERGE\`): checking how…"
+          else
+            how=""
+          fi
+
+          if [ -z "$pr" ]; then
+            if ! git push --force origin "$commit:refs/heads/$branch" 2>"$err"; then
+              cat "$err" >&2
+              if grep -qi "workflow" "$err"; then
+                echo "::error::This release changes .github/workflows, which GITHUB_TOKEN can't push. Add a SYNC_UPSTREAM_TOKEN secret (README → Updating your instance) and run the workflow again."
+              fi
+              exit 1
+            fi
+            write_body "$how"
             if ! pr="$(gh pr create --repo "$GITHUB_REPOSITORY" --base "$base" --head "$branch" \
-              --title "Update Pantry to $tag" --body-file "$body" 2>"$err")"; then
+              --title "Update Pantry to $tag" --body-file "$err.body" 2>"$err")"; then
               cat "$err" >&2
               if grep -qi "not permitted to create" "$err"; then
                 echo "::error::Allow Actions to open PRs: Settings → Actions → General → Workflow permissions → \"Allow GitHub Actions to create and approve pull requests\" (in an organisation, allow it in the organisation's settings first). The branch $branch is already pushed, so you can also open the PR by hand."
@@ -266,40 +287,64 @@ jobs:
             printf '%s\n\n<!-- pantry-sync:%s -->\n' "$2" "$1" >"$err.comment"
             gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file "$err.comment" >/dev/null
           }
+          set_how() { # set_how <paragraph> [marker]: rewrite the PR description with the merge path
+            write_body "$1" "${2:-}"
+            gh pr edit "$pr" --repo "$GITHUB_REPOSITORY" --body-file "$err.body" >/dev/null
+          }
+          short="${commit:0:7}"
 
-          if [ "$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')" = true ]; then
-            notice "Auto-merge is already on for $pr."
-            exit 0
-          fi
-
-          # A merge commit, not a squash: it keeps the release in your history, so the next update merges cleanly.
-          if gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --auto --merge 2>"$err"; then
-            notice "Auto-merge is on for $pr: it merges once the required checks pass."
-            exit 0
-          fi
-          cat "$err" >&2
-          if grep -qi "clean status" "$err"; then
-            # $base requires no checks, so there's nothing to wait for: GitHub won't queue it. Merge it now.
-            if gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --merge 2>"$err"; then
-              notice "Merged $pr now: $base has no required checks to wait for."
+          # 1. GitHub's own auto-merge, where the repo allows it (public repos, or paid plans).
+          native="$(gh api "repos/$GITHUB_REPOSITORY" --jq .allow_auto_merge 2>/dev/null || echo unknown)"
+          unavailable="GitHub's auto-merge is turned off or not available in this repo (on GitHub Free it isn't, for private repos)"
+          if [ "$native" != false ]; then
+            if [ "$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')" = true ]; then
+              notice "Auto-merge is already on for $pr."
+              exit 0
+            fi
+            # A merge commit, not a squash: it keeps the release in your history, so the next update merges cleanly.
+            if gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --auto --merge 2>"$err"; then
+              set_how "**Merges by itself:** GitHub's auto-merge is on (\`SYNC_AUTO_MERGE\`). It merges with a merge commit once the checks your branch rules require have passed. To stop it, click \"Disable auto-merge\" or close the PR."
+              notice "Auto-merge is on for $pr: it merges once the required checks pass."
               exit 0
             fi
             cat "$err" >&2
+            retry="then run Sync upstream again (Actions → Sync upstream → Run workflow), or merge this PR yourself"
+            # Merge commits first: GitHub's message for that also names enablePullRequestAutoMerge.
+            if grep -qi "clean status" "$err"; then
+              unavailable="there are no required status checks for GitHub's auto-merge to wait for"
+            elif ! grep -qi "merge commits are not allowed" "$err" \
+              && grep -Eqi "auto.?merge.*not allowed|not allowed.*auto.?merge|auto.?merge.*disabled" "$err"; then
+              : # not allowed here: fall through to merging it ourselves after CI
+            else
+              if grep -qi "merge commits are not allowed" "$err"; then
+                key=allow-merge-commits
+                text="This PR won't merge by itself: this repo doesn't allow merge commits. Updates need a merge commit (a squash drops the link to Pantry's history, and the next update would conflict). Turn on **Settings → General → Pull Requests → Allow merge commits**, $retry with a merge commit."
+              elif grep -Eqi "not accessible|permission|forbidden|403" "$err"; then
+                key=permissions
+                text="This PR won't merge by itself: the workflow's token isn't allowed to merge. If you set \`SYNC_UPSTREAM_TOKEN\`, give it *Contents* and *Pull requests* read and write on this repo; without it, set Settings → Actions → General → Workflow permissions to \"Read and write\". Then run Sync upstream again, or merge this PR yourself."
+              else
+                key=other
+                text="This PR won't merge by itself. GitHub said: \`$(tr '\n`' '  ' <"$err")\`. Fix that and run Sync upstream again, or merge this PR yourself."
+              fi
+              set_how "**Not merging automatically:** see the comment below."
+              comment_once "$key" "$text"
+              echo "::warning::$text"
+              exit 0
+            fi
           fi
 
-          retry="then run Sync upstream again (Actions → Sync upstream → Run workflow), or merge this PR yourself"
-          if grep -qi "merge commits are not allowed" "$err"; then
-            key=allow-merge-commits
-            text="Auto-merge didn't turn on: this repo doesn't allow merge commits. Updates need a merge commit (a squash drops the link to Pantry's history, and the next update would conflict). Turn on **Settings → General → Pull Requests → Allow merge commits**, $retry with a merge commit."
-          elif grep -Eqi "auto.?merge.*not allowed|not allowed.*auto.?merge|auto.?merge.*disabled" "$err"; then
-            key=allow-auto-merge
-            text="Auto-merge didn't turn on: this repo doesn't allow it. Turn on **Settings → General → Pull Requests → Allow auto-merge**, $retry."
-          elif grep -Eqi "not accessible|permission|forbidden|403" "$err"; then
-            key=permissions
-            text="Auto-merge didn't turn on: the workflow's token isn't allowed to merge. If you set \`SYNC_UPSTREAM_TOKEN\`, give it *Contents* and *Pull requests* read and write on this repo; without it, set Settings → Actions → General → Workflow permissions to \"Read and write\". Then run Sync upstream again, or merge this PR yourself."
-          else
-            key=other
-            text="Auto-merge didn't turn on. GitHub said: \`$(tr '\n`' '  ' <"$err")\`. Fix that and run Sync upstream again, or merge this PR yourself."
+          # 2. Otherwise Sync upstream merges it itself once CI has passed on this exact commit
+          #    (.github/workflows/sync-upstream-merge.yml). CI only runs on the PR when the token pushed it.
+          if [ "${HAS_SYNC_TOKEN:-false}" != true ]; then
+            text="This PR won't merge by itself: $unavailable, and Sync upstream can only merge updates itself after CI has passed on them. CI doesn't run on PRs the built-in token opens, so that needs the \`SYNC_UPSTREAM_TOKEN\` secret (README → Automatic updates). Add it, then run Sync upstream again, or merge this PR yourself."
+            set_how "**Not merging automatically:** \`SYNC_UPSTREAM_TOKEN\` isn't set (see the comment below)."
+            comment_once no-token "$text"
+            echo "::warning::$text"
+            exit 0
           fi
-          comment_once "$key" "$text"
-          echo "::warning::$text"
+          set_how "**Merges by itself once CI passes:** $unavailable, so Sync upstream merges this PR itself (\`SYNC_AUTO_MERGE\`), with a merge commit, when the CI workflow has passed on commit \`$short\`. If CI fails, or anyone pushes to this branch, it stays open for you. To stop it, close the PR or set \`SYNC_AUTO_MERGE\` to \`false\`." \
+            "<!-- pantry-sync:self-merge sha=$commit -->"
+          notice "$pr will merge once CI passes on $short ($unavailable)."
+          # CI may already be done (it started when the branch was pushed): check once now; otherwise the
+          # self-merge workflow runs when CI completes.
+          bash scripts/sync-self-merge.sh "$commit"

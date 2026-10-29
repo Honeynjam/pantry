@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Automatic updates work on any GitHub plan.** Private repos on GitHub Free can't use GitHub's auto-merge or
+  require status checks, so `SYNC_AUTO_MERGE` didn't merge anything there. Now, when GitHub's auto-merge isn't
+  available, Sync upstream merges the update PR itself once CI has passed on it, using `SYNC_UPSTREAM_TOKEN`, so
+  the merge deploys and is watched like one of yours. Setup is the token (with _Actions_ read added) plus
+  `SYNC_AUTO_MERGE=true`; no repo settings needed. The same rules hold: never the first update, a release marked
+  for review, a conflicting PR, a PR whose CI failed (it comments) or one someone else pushed to. Without the
+  token it comments on the PR saying it's needed. Where GitHub's auto-merge is available it's still used. See
+  [Automatic updates](https://github.com/honeynjam/pantry#automatic-updates-opt-in).
+- With GitHub's auto-merge allowed but no required checks, update PRs no longer merge the moment they open: they
+  now wait for CI as above.
+
 ## [0.1.0] - 2026-10-29
 
 Pantry-Review: manual
